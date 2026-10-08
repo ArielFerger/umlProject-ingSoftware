@@ -32,6 +32,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [selectedNode, setSelectedNode] = useState("");
   const drag = useRef<Drag | null>(null);
   const fittedId = useRef("");
+  const renderedId = useRef("");
   const content = useMemo(() => cleanSource(diagram.source), [diagram.source]);
   const settings = useMemo(() => readCanvas(diagram.source), [diagram.source]);
   const settingsRef = useRef(settings); settingsRef.current = settings;
@@ -100,6 +101,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             });
           }
           model.current = { nodes, edges };
+          renderedId.current = diagram.id;
           setResult({ svg: new XMLSerializer().serializeToString(live), width, height });
           setBusy(false);
         } catch (e) {
@@ -112,7 +114,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
 
   useEffect(() => {
     const svg = root();
-    if (!svg || busy || error) return;
+    if (!svg || busy || error || renderedId.current !== diagram.id) return;
     if (isClass) positions.current = applyCanvas(svg, model.current, settings, diagram.theme === "dark");
     else {
       svg.querySelectorAll<SVGPathElement>(".edgePaths path,.messageLine0,.messageLine1").forEach(path => { path.style.strokeWidth = String(settings.lineWidth); });
