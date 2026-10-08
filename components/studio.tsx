@@ -94,7 +94,7 @@ export default function Studio() {
     if (saveLock.current) return saveLock.current;
     const action = async () => {
       let snapshot = docsRef.current.find(d => saved.current.get(d.id) !== signature(d));
-      if (!snapshot) return true;
+      if (!snapshot) { setSaveState("saved"); return true; }
       setSaveState("saving");
       try {
         while (snapshot) {
@@ -113,7 +113,10 @@ export default function Studio() {
 
   useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 600) setView("diagram"); }, [load]);
   useEffect(() => {
-    if (!documents.some(d => saved.current.get(d.id) !== signature(d))) return;
+    if (!documents.some(d => saved.current.get(d.id) !== signature(d))) {
+      if (saveState === "pending") setSaveState("saved");
+      return;
+    }
     if (saveState === "error") return;
     setSaveState("pending");
     const timeout = setTimeout(() => { void saveAll(); }, 1200);
