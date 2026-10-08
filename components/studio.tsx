@@ -6,9 +6,11 @@ import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, TYPES, clas
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
 import Modal from "./modal";
+import RelationGuide, { RelationSymbol } from "./relation-guide";
+import { RELATIONS, appendRelation, cleanSource, readCanvas, relationInfo, writeCanvas } from "@/lib/canvas";
 
 const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database };
-type ModalKind = "new" | "class" | "relation" | "export" | "history" | "notes" | "delete" | "chat" | null;
+type ModalKind = "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
 type Revision = { revision: number; createdAt: string; diagram: Diagram };
 
 async function api<T>(method = "GET", data?: unknown, query = ""): Promise<T> {
@@ -65,6 +67,7 @@ export default function Studio() {
   const [relFrom, setRelFrom] = useState("");
   const [relTo, setRelTo] = useState("");
   const [relKind, setRelKind] = useState("-->");
+  const [guideKind, setGuideKind] = useState("o--");
   const [relLabel, setRelLabel] = useState("");
   const [relCardFrom, setRelCardFrom] = useState("");
   const [relCardTo, setRelCardTo] = useState("");
@@ -179,7 +182,7 @@ export default function Studio() {
     if (/["\n\r]/.test(relCardFrom + relCardTo) || /[\n\r]/.test(relLabel)) { setFormError("Usa una sola linea y cardinalidades sin comillas."); return; }
     const from = relFrom + (relCardFrom ? ` "${relCardFrom}"` : "");
     const to = (relCardTo ? `"${relCardTo}" ` : "") + relTo;
-    edit({ source: current!.source + `\n${from} ${relKind} ${to}${relLabel ? " : " + relLabel : ""}\n` }); setModal(null);
+    edit({ source: writeCanvas(cleanSource(current!.source) + `\n${from} ${relKind} ${to}${relLabel ? " : " + relLabel : ""}\n`, readCanvas(current!.source)) }); setModal(null);
   }
   async function showHistory() {
     if (!current) return;
@@ -336,7 +339,10 @@ export default function Studio() {
             <div className="code-footer"><span>{current.source.split("\n").length} líneas</span><span>UTF-8</span></div>
           </section>
           <section className="canvas-pane"><div className="pane-header"><span><Shapes size={15} />Diagrama</span><span className="live-label"><span />Vista en vivo</span></div>
-            <DiagramPreview diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} />
+            <DiagramPreview diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)}
+              onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
+              onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}
+              onGuide={kind => { setGuideKind(kind); openModal("guide"); }} />
             {current.type === "class" && blocks.length > 0 && <div className="class-inspector"><span>CLASES</span><div>{blocks.map(block => <button key={block.name} title={"Editar " + block.name} onClick={() => beginClass(block.name)}><Boxes size={13} />{block.name}</button>)}</div><button className="icon-btn" title="Agregar clase" aria-label="Agregar clase" onClick={() => beginClass()}><Plus size={15} /></button></div>}
           </section>
         </div>
@@ -368,11 +374,14 @@ export default function Studio() {
 
     {modal === "relation" && <Modal title="Agregar relación" onClose={() => setModal(null)}><form onSubmit={e => { e.preventDefault(); saveRelation(); }}><div className="modal-body">
       <div className="form-row"><label>Origen<input required list="class-names" value={relFrom} onChange={e => setRelFrom(e.target.value)} /></label><label>Destino<input required list="class-names" value={relTo} onChange={e => setRelTo(e.target.value)} /></label></div><datalist id="class-names">{blocks.map(b => <option key={b.name} value={b.name} />)}</datalist>
-      <label>Tipo<select value={relKind} onChange={e => setRelKind(e.target.value)}><option value="-->">Asociacion</option><option value="<|--">Herencia (origen: clase base)</option><option value="*--">Composicion (origen: contenedor)</option><option value="o--">Agregacion (origen: contenedor)</option><option value="..>">Dependencia</option><option value="..|>">Realizacion (destino: interfaz)</option><option value="--">Vinculo</option></select></label>
+      <label>Tipo<select value={relKind} onChange={e => setRelKind(e.target.value)}>{RELATIONS.map(relation => <option key={relation.value} value={relation.value}>{relation.name}</option>)}</select></label>
+      <div className="relation-inline-guide"><RelationSymbol kind={relKind} /><strong>{relationInfo(relKind).short}</strong><p>{relationInfo(relKind).meaning}</p><small>{relationInfo(relKind).symbol}</small></div>
       <div className="form-row"><label>Cardinalidad del origen<input placeholder="1" value={relCardFrom} onChange={e => setRelCardFrom(e.target.value)} /></label><label>Cardinalidad del destino<input placeholder="0..*" value={relCardTo} onChange={e => setRelCardTo(e.target.value)} /></label></div>
       <label>Etiqueta<input placeholder="realiza, contiene, utiliza..." value={relLabel} onChange={e => setRelLabel(e.target.value)} /></label>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn primary"><Link2 size={16} />Agregar relación</button></div></form></Modal>}
+
+    {modal === "guide" && <Modal title="Guía de relaciones UML" wide onClose={() => setModal(null)}><RelationGuide selected={guideKind} onSelect={setGuideKind} /></Modal>}
 
     {modal === "export" && current && <Modal title="Exportar diagrama" onClose={() => setModal(null)}><div className="modal-body export-options">
       <button onClick={() => svg && download(svg.svg, filename(current.name) + ".svg", "image/svg+xml")} disabled={!svg}><Shapes size={22} /><span><strong>SVG</strong><small>Vectorial, para documentos y diseño</small></span><Download size={17} /></button>

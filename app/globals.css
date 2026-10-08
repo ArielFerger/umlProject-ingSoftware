@@ -128,6 +128,50 @@ select { padding: 6px 26px 6px 8px; background: white; border: 1px solid #dce3de
 .error-panel strong { font-size: 14px; }
 .error-panel pre { font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0 0; }
 .file-input { display: none; }
+.canvas-tools { min-height: 43px; display: flex; align-items: center; gap: 7px; padding: 5px 12px; border-bottom: 1px solid var(--line); background: #fafcfb; z-index: 3; }
+.canvas-mode .icon-btn { width: 29px; }
+.canvas-tools select { width: 145px; height: 29px; padding: 3px 22px 3px 8px; }
+.canvas-tool-spacer { flex: 1; }
+.canvas-style { position: relative; margin-left: auto; }
+.canvas-style summary { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; list-style: none; color: #557b61; }
+.canvas-style summary::-webkit-details-marker { display: none; }
+.canvas-style summary:hover, .canvas-style[open] summary { background: var(--green-soft); }
+.style-popover { position: absolute; top: 36px; right: 0; width: 252px; padding: 18px; display: flex; flex-direction: column; gap: 19px; border: 1px solid #ceddd2; border-radius: 6px; background: white; box-shadow: 0 8px 24px #234c3124; }
+.style-popover label { display: block; color: #506b58; font-size: 13px; }
+.style-popover output { float: right; color: #86988c; font-size: 12px; }
+.style-popover input { width: 100%; display: block; margin-top: 12px; accent-color: var(--green); }
+.connection-prompt { display: flex; align-items: center; gap: 8px; min-height: 33px; padding: 1px 10px; font-size: 12px; color: #327755; background: #edf6ef; border-bottom: 1px solid #d3e6d8; }
+.connection-prompt span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diagram-art g[data-class] { cursor: move; }
+.connecting .diagram-art g[data-class] { cursor: crosshair; }
+.diagram-art g.class-selected > g.outer-path > path, .diagram-art g.connection-origin > g.outer-path > path { stroke: #217c50 !important; stroke-width: 2.5px !important; }
+.diagram-art g.connection-origin > g.outer-path > path { fill: #d7eddd !important; }
+.diagram-art g[data-class]:focus { outline: none; }
+.diagram-art g[data-class]:focus > g.outer-path > path { stroke: #217c50 !important; stroke-width: 3px !important; }
+.relation-guide { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+.guide-tabs { display: flex; flex-wrap: wrap; gap: 2px 14px; border-bottom: 1px solid var(--line); }
+.guide-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 10px 0; color: #7a8b80; font-size: 14px; }
+.guide-tabs button[aria-selected=true] { border-color: var(--green); color: var(--green); font-weight: 600; }
+.guide-detail h3, .guide-reference h3 { font-size: 17px; font-weight: 600; margin: 16px 0 10px; color: #365c44; }
+.guide-detail p, .guide-reference p { font-size: 14px; line-height: 1.8; color: #607367; margin: 10px 0; }
+.guide-example { display: grid; grid-template-columns: minmax(85px, 1fr) minmax(100px, 1.5fr) minmax(85px, 1fr); align-items: center; max-width: 480px; margin: 6px auto 24px; }
+.guide-example > span { border: 1px solid #7ca28b; background: #edf6f0; padding: 13px 7px; text-align: center; font-size: 14px; color: #3c654b; }
+.relation-symbol { display: block; width: 100%; height: 42px; color: #4c7a5c; }
+.guide-detail .guide-symbol-note { color: #83958a; }
+.guide-detail > code, .guide-reference > code { display: block; padding: 13px; background: #f3f6f4; border: 1px solid #e0e9e3; border-radius: 4px; color: #466d52; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.guide-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-top: 18px; }
+.guide-roles small { display: block; font-size: 11px; color: #8a9f91; margin-bottom: 5px; }
+.guide-roles strong { display: block; font-size: 13px; color: #547760; font-weight: 500; }
+.guide-reference { border-top: 1px solid var(--line); }
+.guide-reference dl { display: grid; grid-template-columns: 44px 1fr 44px 1fr; gap: 12px 10px; font-size: 13px; color: #6a8070; }
+.guide-reference dt { font-family: Consolas, monospace; color: #39704b; font-weight: 600; }
+.guide-reference dd { margin: 0; }
+.guide-source { display: inline-flex; align-items: center; gap: 7px; color: #6b8c74; font-size: 12px; }
+.relation-inline-guide { padding: 14px; border-left: 3px solid #82ab8c; background: #f3f8f4; }
+.relation-inline-guide .relation-symbol { width: 130px; height: 30px; margin-bottom: 7px; }
+.relation-inline-guide strong { font-size: 13px; font-weight: 600; color: #426a4e; }
+.relation-inline-guide p { margin: 9px 0; font-size: 13px; line-height: 1.7; }
+.relation-inline-guide small { font-size: 12px; line-height: 1.7; color: #7f9686; display: block; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .modal { border: 1px solid #d6e1d9; border-radius: 8px; padding: 0; width: 480px; max-width: calc(100vw - 28px); max-height: calc(100dvh - 44px); color: var(--ink); background: white; box-shadow: 0 20px 90px #21352930; overflow: auto; margin: auto; }
@@ -244,7 +288,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--green); }
   @page { size: landscape; margin: 15mm; }
   html, body { height: auto; overflow: visible; }
   .studio { display: block; height: auto; overflow: visible; }
-  .app-header, .sidebar, .document-header, .workspace-toolbar, .statusbar, .code-pane, .pane-header, .class-inspector, .zoom-toolbar, .canvas-caption, .canvas-loading, .notice, .modal { display: none !important; }
+  .app-header, .sidebar, .document-header, .workspace-toolbar, .statusbar, .code-pane, .pane-header, .class-inspector, .zoom-toolbar, .canvas-caption, .canvas-loading, .notice, .modal, .canvas-tools, .connection-prompt { display: none !important; }
   .main-workspace, .editor-workspace, .canvas-pane { display: block; overflow: visible; }
   .diagram-viewport { display: block; background: white; height: auto; overflow: visible; }
   .diagram-art { position: static; transform: none !important; width: 100% !important; height: auto !important; }

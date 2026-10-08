@@ -14,6 +14,8 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 
 Keep the interface in Spanish. Use Mermaid as the canonical diagram engine. Use lucide-react icons. Check types with `node node_modules/typescript/bin/tsc --noEmit` and follow Sites skills for publication.
 
+Class positions and arrow appearance are saved as a structured JSON Mermaid comment beginning with `%% uml-studio: `. Preserve this comment when changing a saved diagram's source. `lib/canvas.ts` validates and reads/writes this metadata; `lib/svg-canvas.ts` routes the SVG connections when classes move. Exported JSON and Mermaid include these settings; SVG and PNG preserve the visual placement.
+
 ## Editing saved diagrams from chat
 
 The Site exposes the personal UML Studio plugin at `/mcp`, with `list_diagrams`, `get_diagram`, `create_diagram`, and `update_diagram`.
