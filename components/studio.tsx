@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, ReactNode } from "react";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, ExternalLink } from "lucide-react";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, ExternalLink, BookOpen } from "lucide-react";
 import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, TYPES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
@@ -87,7 +87,8 @@ export default function Studio() {
     try {
       const docs = await api<Diagram[]>();
       saved.current = new Map(docs.map(d => [d.id, signature(d)]));
-      updateDocuments(() => docs); setSelected(prev => docs.some(d => d.id === prev) ? prev : docs[0]?.id || "");
+      const requested = new URLSearchParams(window.location.search).get("diagram");
+      updateDocuments(() => docs); setSelected(prev => requested && docs.some(d => d.id === requested) ? requested : docs.some(d => d.id === prev) ? prev : docs[0]?.id || "");
       setSaveState("saved");
     } catch (e) { setLoadError((e as Error).message); }
     finally { setLoading(false); }
@@ -272,7 +273,7 @@ export default function Studio() {
           {saveState === "saved" ? "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
         </span>
       </div>
-      <div className="header-actions"><button className="btn chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>Editar desde el chat</span></button><div className="avatar" title="Espacio personal">A</div></div>
+      <div className="header-actions"><button className="btn studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } }}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button><button className="btn chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>Editar desde el chat</span></button><div className="avatar" title="Espacio personal">A</div></div>
     </header>
 
     <aside className="sidebar">

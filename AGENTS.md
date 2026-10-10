@@ -10,11 +10,16 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 - `app/globals.css`: responsive application layout and print styles.
 - `lib/diagrams.ts`: shared validation, seven diagram templates, file interchange.
 - `lib/store.ts`: authenticated D1 persistence and optimistic revision checks.
+- `components/study.tsx`, `app/estudio/`, `app/study.css`: IS II theory, exercises, study progress and mock exams.
+- `lib/study-data.json`: course content derived from Ariel's 25 documents; `public/estudio/` retains the originals and downloadable summary.
+- `lib/study.ts`: validated browser-local progress, scoped using the authenticated owner returned by `/api/study-profile`.
 - `db/schema.ts` and `drizzle/`: schema and generated migrations.
 
 Keep the interface in Spanish. Use Mermaid as the canonical diagram engine. Use lucide-react icons. Check types with `node node_modules/typescript/bin/tsc --noEmit` and follow Sites skills for publication.
 
 Class positions and arrow appearance are saved as a structured JSON Mermaid comment beginning with `%% uml-studio: `. Preserve this comment when changing a saved diagram's source. `lib/canvas.ts` validates and reads/writes this metadata; `lib/svg-canvas.ts` routes the SVG connections when classes move. Exported JSON and Mermaid include these settings; SVG and PNG preserve the visual placement.
+
+Study exercises reuse CodeEditor and DiagramPreview. Transfer creates a new diagram only when requested; reopening an exercise diagram must not overwrite saved edits. Reasoning and UML are self-assessed with a rubric; only multiple-choice and numerical answers are graded automatically. Keep course assumptions and original source links when revising educational content.
 
 ## Editing saved diagrams from chat
 

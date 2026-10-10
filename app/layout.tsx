@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./study.css";
 
 export const metadata: Metadata = {
   title: "UML Studio",
-  description: "Tu espacio de trabajo para diagramas UML.",
-  other: {
-    "codex-preview": "development",
-  },
+  description: "Diagramas UML y estudio de Ingeniería de Software II con teoría y práctica por niveles.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

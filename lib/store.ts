@@ -61,8 +61,9 @@ export async function saveDiagram(owner: string, id: string, data: DiagramInput,
 }
 
 export async function deleteDiagram(owner: string, id: string, revision: number) {
-  const result = await getBinding().prepare("DELETE FROM diagrams WHERE id = ? AND owner = ? AND revision = ?").bind(id, owner, revision).run();
-  if (result.meta.changes !== 1) throw new StoreError("El diagrama cambio. Recarga antes de eliminarlo.", 409);
+  // Cascaded history deletions also count as changes; inspect the deleted row instead.
+  const deleted = await getBinding().prepare("DELETE FROM diagrams WHERE id = ? AND owner = ? AND revision = ? RETURNING id").bind(id, owner, revision).first();
+  if (!deleted) throw new StoreError("El diagrama cambio. Recarga antes de eliminarlo.", 409);
 }
 
 export async function getHistory(owner: string, id: string) {

@@ -24,6 +24,7 @@ svg { flex-shrink: 0; }
 .save-status.saved { color: #57816b; }
 .save-status.error { color: #ba4343; }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+.studio-study-btn .studio-study-short { display: none; }
 .avatar { background: #f3ebda; color: #7b6640; width: 29px; height: 29px; border: 1px solid #e8ddc4; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; }
 .btn { height: 35px; padding: 0 12px; border: 1px solid #dce3de; border-radius: 5px; background: white; display: inline-flex; gap: 8px; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; white-space: nowrap; transition: background .12s; }
 .btn:hover:not(:disabled) { background: #f2f5f3; border-color: #bac9c0; }
@@ -267,6 +268,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--green); }
   .statusbar > span:nth-child(2) { display: none; }
 }
 @media (max-width: 600px) {
+  .app-header { gap: 10px; }
+  .studio-study-btn { padding: 6px 8px; font-size: 11px; gap: 5px; height: 31px; }
+  .studio-study-btn > span { display: none; }
+  .studio-study-btn .studio-study-short { display: inline; }
   .editor-workspace.view-split { grid-template-columns: 1fr; grid-template-rows: minmax(0, 45%) minmax(0, 55%); }
   .view-split .code-pane { border-right: 0; border-bottom: 1px solid var(--line); }
   .view-split .code-pane .pane-header, .view-split .code-pane .code-footer { display: none; }
@@ -282,6 +287,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--green); }
   .modal-head h2 { font-size: 17px; }
   .pane-header { padding: 0 12px; }
   .notice { padding: 10px; font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .studio-study-btn .studio-study-short { display: none; }
+  .studio-study-btn { width: 31px; padding: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation-duration: 2s !important; } }
 @media print {
