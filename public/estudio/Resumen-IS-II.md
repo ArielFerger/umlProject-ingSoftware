@@ -11,12 +11,15 @@ Material de base: 25 documentos, 183 páginas PDF y 3 archivos Word. Las solucio
 5. Practicá por niveles en el sector Estudio IS II de UML Studio.
 
 ## Cómo pensar un patrón
+
 Primero encontrá qué cambia y qué necesita permanecer estable. Después elegí la estructura.
 
 ### Qué es y qué no es
+
 Un patrón describe una solución de diseño recurrente: propósito, contexto, participantes, responsabilidades, relaciones y consecuencias. No es una biblioteca lista para copiar ni un algoritmo con una secuencia fija. El mismo patrón tiene implementaciones distintas según el lenguaje y el problema.
 
 ### Tres familias
+
 
 
 | Familia | Pregunta que responde | Patrones centrales de estas guías |
@@ -26,6 +29,7 @@ Un patrón describe una solución de diseño recurrente: propósito, contexto, p
 | Comportamiento | ¿Cómo colaboran y distribuyen responsabilidades? | Observer, Strategy |
 
 ### Principios que explican las ventajas
+
 
 
 - Responsabilidad única: separar construcción, traducción, notificación y negocio cuando cambian por motivos diferentes.
@@ -38,6 +42,7 @@ Un patrón describe una solución de diseño recurrente: propósito, contexto, p
 ### Método para cualquier ejercicio
 
 
+
 - Subrayá cada requisito y separá responsabilidades.
 - Identificá la variación: cantidad de instancias, construcción, contrato incompatible, árbol, evento o algoritmo.
 - Asigná un patrón solo al requisito que resuelve.
@@ -48,12 +53,15 @@ Un patrón describe una solución de diseño recurrente: propósito, contexto, p
 Fuentes: Introducción patrones de diseño.pdf, 02 - Creacionales - Patrones de diseño.pdf, 03 - Estructurales - Patrones de diseño.pdf, 04 - Comportamiento - Patrones de diseño.pdf
 
 ## UML para resolver las guías
+
 Un diagrama debe mostrar la estructura que hace funcionar la solución.
 
 ### Clases y miembros
+
 Una clase tiene nombre, atributos y métodos. + indica público, - privado, # protegido. En UML tradicional los miembros estáticos se subrayan; en Mermaid se marcan con $ al final. <<interface>> identifica un contrato y <<abstract>> una abstracción no instanciable.
 
 ### Relaciones
+
 
 
 | Relación | Mermaid | Lectura |
@@ -66,9 +74,11 @@ Una clase tiene nombre, atributos y métodos. + indica público, - privado, # pr
 | Composición | Todo *-- Parte | Todo controla la vida de las partes; rombo lleno en Todo |
 
 ### Multiplicidades
+
 1 = exactamente uno; 0..1 = opcional; 0..* = cero o muchos; 1..* = uno o muchos. Profesor "1" --> "0..*" Estudiante expresa un profesor para cada estudiante y muchos estudiantes por profesor. No exige que haya un único Profesor en todo el programa.
 
 ### Errores frecuentes
+
 
 
 - Dibujar solo herencia y olvidar la referencia que permite delegar (Strategy, Adapter).
@@ -80,9 +90,11 @@ Una clase tiene nombre, atributos y métodos. + indica público, - privado, # pr
 Fuentes: 02 - Creacionales - Patrones de diseño.pdf, 03 - Estructurales - Patrones de diseño.pdf, 04 - Comportamiento - Patrones de diseño.pdf, Guia Nº1 Ejercicios - Patrones crecionales.pdf, Guia Nº2 Ejercicios - Patrones estructurales.docx, Guia Nº3 Ejercicios - Patrones de comportamiento.docx, practica 1 patrones.pdf, practica 2 patrones.pdf
 
 ## Creación de objetos
+
 Estudiá el propósito, reconocé los participantes y probá la ficha UML de cada patrón.
 
 ### Singleton
+
 Controla que una clase tenga una única instancia y ofrece un acceso global a ella.
 
 - Señal: La consigna exige una única instancia de una CLASE en el ámbito de la aplicación.
@@ -93,6 +105,7 @@ Controla que una clase tenga una única instancia y ofrece un acceso global a el
 - Cuidado: Una relación de multiplicidad 1 no convierte una clase en Singleton. Tener un gestor único tampoco significa una sola conexión física o una sola instancia en toda una red.
 
 ### Factory Method
+
 Delega a subclases creadoras qué producto concreto instanciar, devolviendo una abstracción común.
 
 - Señal: Cambia el tipo de producto y el cliente no debe conocer sus constructores.
@@ -103,6 +116,7 @@ Delega a subclases creadoras qué producto concreto instanciar, devolviendo una 
 - Cuidado: Mover un new a un método con switch es una fábrica simple; para mostrar Factory Method GoF, incluí la redefinición en creadores concretos.
 
 ### Abstract Factory
+
 Crea familias de productos relacionados y compatibles sin exponer sus clases concretas.
 
 - Señal: Hay varios tipos de producto y variantes de familia que deben combinar entre sí.
@@ -115,9 +129,11 @@ Crea familias de productos relacionados y compatibles sin exponer sus clases con
 Fuentes: 02 - Creacionales - Patrones de diseño.pdf, Ejercicios de patrones.pdf, Ejercicios_patrones_singleton_subir.pdf, Guia Nº1 Ejercicios - Patrones crecionales.pdf
 
 ## Estructuras flexibles
+
 Estudiá el propósito, reconocé los participantes y probá la ficha UML de cada patrón.
 
 ### Adapter
+
 Traduce la interfaz de una clase existente a la interfaz que espera el cliente.
 
 - Señal: Una biblioteca, API o clase útil tiene métodos incompatibles con el sistema.
@@ -128,6 +144,7 @@ Traduce la interfaz de una clase existente a la interfaz que espera el cliente.
 - Cuidado: Adapter no inventa capacidades inexistentes. Si una biblioteca solo dibuja círculos, traducir nombres de métodos no permite dibujar cuadrados por arte de magia.
 
 ### Composite
+
 Representa un árbol de objetos simples y compuestos con una interfaz común.
 
 - Señal: Carpetas dentro de carpetas, organismos hijos, expresiones formadas por expresiones o colecciones anidadas.
@@ -138,6 +155,7 @@ Representa un árbol de objetos simples y compuestos con una interfaz común.
 - Cuidado: Composite es el patrón; composición UML es una relación. Elegí rombo lleno solo si el padre controla el ciclo de vida de sus hijos.
 
 ### Facade
+
 Ofrece una entrada simple a un subsistema complejo y coordina llamadas internas.
 
 - Señal: El cliente debe invocar una operación simple que organiza varios subsistemas.
@@ -150,9 +168,11 @@ Ofrece una entrada simple a un subsistema complejo y coordina llamadas internas.
 Fuentes: 03 - Estructurales - Patrones de diseño.pdf, Guia Nº2 Ejercicios - Patrones estructurales.docx, practica 2 patrones.pdf, Practica_03_patrones_subir.pdf
 
 ## Comunicación y algoritmos
+
 Estudiá el propósito, reconocé los participantes y probá la ficha UML de cada patrón.
 
 ### Observer
+
 Notifica a suscriptores cuando ocurre un evento o cambia un estado del sujeto.
 
 - Señal: Al cambiar un objeto, deben reaccionar varios receptores; se pueden agregar alertas sin modificar el emisor.
@@ -163,6 +183,7 @@ Notifica a suscriptores cuando ocurre un evento o cambia un estado del sujeto.
 - Cuidado: Notificar a varios receptores no es elegir un único algoritmo. Gestioná suscripción y baja.
 
 ### Strategy
+
 Encapsula variantes de un algoritmo bajo un contrato común y permite intercambiarlas.
 
 - Señal: Se puede hacer la misma tarea de distintas maneras: ordenar, frenar, calcular presupuesto o elegir una ruta.
@@ -175,9 +196,11 @@ Encapsula variantes de un algoritmo bajo un contrato común y permite intercambi
 Fuentes: 04 - Comportamiento - Patrones de diseño.pdf, Guia Nº3 Ejercicios - Patrones de comportamiento.docx, practica 2 patrones.pdf
 
 ## Otros patrones del catálogo
+
 Sirven para reconocer el panorama; las guías desarrollan principalmente los ocho de las fichas.
 
 ### Patrones mencionados
+
 
 
 | Patrón | Idea central | Distinción útil |
@@ -190,17 +213,21 @@ Sirven para reconocer el panorama; las guías desarrollan principalmente los och
 | Template Method | Fijar el esqueleto del algoritmo y redefinir pasos | Usa herencia; Strategy usa composición |
 
 ### Evitar confusiones
+
 Una fábrica puede construir un árbol Composite. Una fachada puede usar adaptadores. Un Singleton puede gestionar un sujeto Observer. Los patrones se pueden combinar porque atienden requisitos distintos; nombrarlos sin explicar su responsabilidad no alcanza.
 
 Fuentes: Introducción patrones de diseño.pdf
 
 ## Calidad del producto y del proceso
+
 Calidad significa cumplir requisitos y necesidades de forma útil, confiable y mantenible.
 
 ### Por qué importa
+
 La calidad afecta satisfacción, costos, reputación, seguridad y capacidad de evolución. Corregir defectos tarde genera retrabajo, retrasos y costos. Ausencia de fallos no garantiza usabilidad ni eficiencia.
 
 ### Atributos de calidad
+
 
 
 | Atributo | Qué evaluás | Ejemplo verificable |
@@ -217,6 +244,7 @@ La calidad afecta satisfacción, costos, reputación, seguridad y capacidad de e
 ### Marcos y prácticas
 
 
+
 | Marco / enfoque | Función en el material |
 | --- | --- |
 | ISO 9001 | Gestión de calidad organizacional |
@@ -230,6 +258,7 @@ La calidad afecta satisfacción, costos, reputación, seguridad y capacidad de e
 ### Técnicas de mejora
 
 
+
 - Pruebas unitarias, de integración, sistema y aceptación: diferentes alcances de verificación.
 - Automatizar regresiones repetitivas; probar carga, rendimiento y seguridad.
 - Revisiones por pares y análisis estático; registrar y corregir hallazgos.
@@ -239,14 +268,17 @@ La calidad afecta satisfacción, costos, reputación, seguridad y capacidad de e
 - IA puede apoyar revisión y pruebas; sus propuestas necesitan validación humana.
 
 ### Versiones del modelo de calidad
+
 El apunte de métricas utiliza explícitamente ISO/IEC 25010:2011 y sus ocho características. Esta guía conserva ese marco para estudiar el material de la cátedra; no presenta esa enumeración como un inventario de toda edición posterior de la norma.
 
 Fuentes: Calidad de software.pdf, IS2 - Calidad de Software - Ejercicios prácticos.pdf, Métricas_compressed.pdf
 
 ## Mejorar procesos y organizar equipos
+
 Un proyecto de mejora cambia cómo se trabaja; un proyecto de desarrollo entrega un producto.
 
 ### PI, BPI y SPI
+
 
 
 | Concepto | Alcance | Ejemplo |
@@ -256,12 +288,15 @@ Un proyecto de mejora cambia cómo se trabaja; un proyecto de desarrollo entrega
 | SPI | Desarrollo y mantenimiento de software | Incorporar revisión y CI |
 
 ### Ciclo de mejora
+
 Relevá el AS-IS (situación actual), diagnosticá causas y cuellos de botella, definí objetivos cuantificables, diseñá el TO-BE (situación objetivo), implementá con capacitación y medí los resultados. PDCA: planificar, hacer, verificar y actuar. Una herramienta nueva solo es una mejora si produce el resultado esperado.
 
 ### Tres dimensiones
+
 Personas: conocimiento, participación y capacitación. Métodos: procedimientos, responsabilidades y criterios. Herramientas: soporte para ejecutar, medir y controlar. Deben funcionar juntas.
 
 ### Roles
+
 
 
 | Rol | Responsabilidad |
@@ -276,14 +311,17 @@ Personas: conocimiento, participación y capacitación. Métodos: procedimientos
 | Equipo de métricas | Analiza datos y apoya decisiones |
 
 ### Diferenciar proyectos
+
 Desarrollo: requisitos → análisis y diseño → código → pruebas → despliegue → mantenimiento. Mejora: diagnóstico → objetivos → rediseño → adopción → evaluación. Pueden estar relacionados: desarrollar software puede apoyar una mejora; automatizar un proceso defectuoso no lo corrige automáticamente.
 
 Fuentes: Calidad de software.pdf
 
 ## CMMI a partir de evidencias
+
 Diagnosticá prácticas observables. Las herramientas por sí solas no determinan un nivel.
 
 ### Los cinco niveles de las guías
+
 
 
 | Nivel | Nombre | Evidencia característica | Paso siguiente |
@@ -295,15 +333,19 @@ Diagnosticá prácticas observables. Las herramientas por sí solas no determina
 | 5 | En optimización | Innovaciones y prevención, evaluadas y extendidas con resultados | Mantener y evolucionar la mejora continua; no hay nivel 6 en este esquema |
 
 ### Pistas decisivas
+
 Documentar un proceso sin institucionalizarlo no prueba el nivel 3. Recopilar métricas y mostrar informes no prueba el nivel 4. Usar IA o automatizar una tarea no prueba el nivel 5. Se necesita evidencia de uso, gestión de variación y mejora causal sostenida.
 
 ### Casos de la práctica CMMI
+
 Clínica: pasa de prácticas iniciales a gestión de proyecto; el diagnóstico didáctico actual apunta a 2, aunque un solo proyecto no demuestra por sí solo madurez institucional de toda la empresa. Universidad: 2 porque cada proyecto tiene procedimientos propios. Servicios tecnológicos: 3 porque comparte procesos, pero solo informa métricas sin modelos estadísticos. Banco: 4 por rangos históricos y alertas de desvíos. Fábrica de software: 5 por análisis causal, pruebas de mejora y adopción de cambios comprobados.
 
 ### SoftMetrics del parcial
+
 El enunciado menciona procesos documentados con aplicación desigual. Una respuesta defendible propone nivel 2 si no hay un estándar organizacional institucionalizado; también puede argumentarse cercanía al 3 si se interpreta que el proceso común ya existe. Debés declarar el supuesto, citar evidencia y reconocer que no se demuestra nivel 4: no hay gestión cuantitativa. El caso no equivale a una evaluación formal CMMI.
 
 ### Tres acciones hacia el nivel 5 con IA
+
 
 
 - Institucionalizar un proceso común, capacitar y auditar su aplicación (base del 3); usar IA para borradores de documentación, con revisión.
@@ -313,9 +355,11 @@ El enunciado menciona procesos documentados con aplicación desigual. Una respue
 Fuentes: Calidad de software.pdf, IS2 - Calidad de Software - Ejercicios prácticos.pdf, Practica 2  CMMI.pdf, Parcial N°2 - 8 de octubre.pdf
 
 ## Medidas métricas e indicadores
+
 Cada número necesita atributo, unidad, contexto y una decisión que pueda orientar.
 
 ### Cinco conceptos
+
 
 
 | Concepto | Definición operativa | Ejemplo |
@@ -327,23 +371,29 @@ Cada número necesita atributo, unidad, contexto y una decisión que pueda orien
 | Indicador | Métrica interpretada frente a meta, umbral o tendencia | Tiempo medio supera la meta de 3 horas: investigar causas |
 
 ### Aplicación
+
 Producto: calidad del software. Proceso: cómo se desarrolla o mantiene. Proyecto: planificación, esfuerzo y avance. Una misma medida puede apoyar varias preguntas, pero necesitás declarar el alcance y período.
 
 ### Ciclo de medición
+
 Planificación → definición → recolección → análisis → comunicación → revisión. Definí procedimientos, responsables, unidad, frecuencia y criterios. Asegurá consistencia de datos; compará resultados con objetivos y revisá si la métrica sigue siendo útil.
 
 ### GQM y otros modelos
+
 GQM va de Goal (objetivo) a Question (pregunta) a Metric. Ejemplo: reducir retrabajo → ¿qué módulos concentran defectos reabiertos? → tasa de reapertura por módulo. GQM+Strategies conecta esos objetivos con la estrategia de negocio. BSC mira finanzas, clientes, procesos internos y aprendizaje. ISO/IEC 25010 orienta atributos de producto; CMMI, procesos; ITIL, servicios. SW-CMM es un antecedente de CMMI.
 
 ### Buen uso y mal uso
+
 Las métricas ayudan a decidir, controlar y aprender. Medir todo genera ruido. Premiar líneas de código o cantidad de commits puede incentivar volumen sin valor. No compares story points entre equipos ni uses cobertura como prueba de ausencia de errores. Combiná cantidad, calidad y contexto.
 
 Fuentes: Métricas_compressed.pdf, Practica_Metricas_3_Enunciados.pdf, Parcial N°2 - 8 de octubre.pdf
 
 ## Fórmulas y práctica numérica
+
 Escribí fórmula, reemplazo, resultado con unidad e interpretación.
 
 ### Métricas por tamaño
+
 
 
 | Métrica | Fórmula | Interpretación contextual |
@@ -354,9 +404,11 @@ Escribí fórmula, reemplazo, resultado con unidad e interpretación.
 | Documentación | Páginas / tamaño | Mayor densidad no garantiza mejor documentación |
 
 ### Ambigüedad de la tabla KLDC
+
 La práctica rotula KLDC y escribe 14.500 y 21.200; no especifica unidad de esfuerzo. Para aprender usamos el supuesto explícito de 14 500 y 21 200 líneas de código, es decir 14,5 y 21,2 KLOC, con esfuerzo 28 y 44 unidades. Si el docente confirma que eran ya KLDC, hay que recalcular. No inventes persona-mes sin que se informe.
 
 ### Resultados con ese supuesto
+
 
 
 | Proyecto | KLOC/esfuerzo | Errores/KLOC | $/KLOC | Páginas/KLOC |
@@ -365,23 +417,29 @@ La práctica rotula KLDC y escribe 14.500 y 21.200; no especifica unidad de esfu
 | Turnos | 21,2/44 = 0,4818 | 58/21,2 = 2,7358 | 528000/21,2 = 24905,66 | 245/21,2 = 11,5566 |
 
 ### Comparación
+
 Con igual unidad de esfuerzo, Biblioteca tiene mayor productividad, menor densidad de errores y menor costo por KLOC. Turnos tiene más páginas por KLOC; eso indica densidad documental, no superioridad de calidad por sí sola. La cantidad de personas no se multiplica por el esfuerzo si este ya representa trabajo total.
 
 ### Puntos de función
+
 Cuenta sin ajustar = Σ(cantidad × peso). Para Inscripciones: 9×4 + 12×5 + 18×4 + 7×10 + 3×7 = 259. Los 14 Fi suman 45. Factor = 0,65 + 0,01×45 = 1,10. PF = 259×1,10 = 284,9. Es el método de ajuste solicitado por esta guía. Para obtener PF/esfuerzo, defectos/PF, $/PF y páginas/PF faltan esfuerzo, defectos, costo y documentación.
 
 ### Mesa de ayuda
+
 Medidas directas: 420 recibidos, 378 resueltos, 42 pendientes, 1260 horas, 31 reabiertos y satisfacción 4,2/5. Tasa de resolución = 378/420×100 = 90 %. Pendientes/recibidos = 10 %. Tiempo medio = 1260/378 = 3,333 h por resuelto. Reaperturas/resueltos = 31/378×100 = 8,20 % bajo el supuesto de que los reabiertos pertenecen a esos cierres. Satisfacción normalizada = 4,2/5×100 = 84 %, no porcentaje de usuarios satisfechos. Una meta de resolución ≥95 % daría alerta con 90 %; ese umbral es un ejemplo didáctico, no un dato de la consigna.
 
 ### Complejidad ciclomática
+
 V(G)=E−N+2P. En una función con grafo conectado, P=1. Para decisiones binarias modeladas como un nodo, suele equivaler a decisiones+1. Par/impar tiene un if: V=2. En el ejemplo de primalidad hay cuatro if y un while: V=6 al contar cada condición compuesta como una decisión; si se modela cada or de cortocircuito, suma dos decisiones adicionales y V=8. Definí la convención y el alcance: el if del programa que imprime el resultado está fuera de la función es_primo.
 
 Fuentes: Practica_Metricas_3_Enunciados.pdf, Métricas_compressed.pdf
 
 ## Métricas de software y aprendizaje automático
+
 Elegí medidas según el problema: velocidad, calidad, confiabilidad o capacidad predictiva.
 
 ### Software
+
 
 
 | Grupo | Métricas e interpretación |
@@ -398,6 +456,7 @@ Elegí medidas según el problema: velocidad, calidad, confiabilidad o capacidad
 ### Clasificación ML
 
 
+
 | Métrica | Fórmula / idea |
 | --- | --- |
 | Accuracy | (TP+TN)/(TP+TN+FP+FN); puede engañar con clases desbalanceadas |
@@ -409,20 +468,25 @@ Elegí medidas según el problema: velocidad, calidad, confiabilidad o capacidad
 | Log loss | Evalúa probabilidades; castiga confianza alta en respuestas incorrectas |
 
 ### Regresión y validación
+
 MAE = promedio de |real−predicho|. MSE = promedio del error al cuadrado. RMSE = raíz de MSE, en la unidad de la variable. R² compara variación explicada con el caso de referencia. Clasificación y regresión usan métricas distintas. Overfitting: rendimiento alto en entrenamiento que cae en datos nuevos; underfitting: el modelo no captura el patrón. Validación cruzada ayuda a evaluar generalización; no evalúes solo sobre los datos usados para entrenar.
 
 ### Operación de modelos
+
 Medí latencia y throughput de inferencia, entrenamiento, recursos, disponibilidad, tasa de predicciones inválidas, frecuencia de reentrenamiento y costo por inferencia. Data drift: cambia la distribución de entradas. Concept drift: cambia la relación entrada/objetivo. Prediction drift: cambia la distribución de predicciones. Model drift: deterioro de desempeño a lo largo del tiempo, que debe comprobarse con resultados reales.
 
 ### Mini proyecto del apunte
+
 Elegí un repositorio y un período. Registrá commits, contribuidores activos, issues, PR y tiempos de revisión, lenguajes y tamaño. Presentá origen, fórmulas, límites e interpretación. Un resumen generado por IA necesita contrastarse con datos; muchos commits no prueban calidad.
 
 Fuentes: Métricas_compressed.pdf
 
 ## Control de cambios y Git
+
 Git registra versiones; la gestión de cambios decide cómo introducir una modificación.
 
 ### Cuatro conceptos
+
 
 
 | Concepto | Alcance |
@@ -433,12 +497,15 @@ Git registra versiones; la gestión de cambios decide cómo introducir una modif
 | Control de versiones | Registrar historia técnica, comparar estados, ramificar e integrar |
 
 ### Centralizado y distribuido
+
 CVS y SVN concentran el repositorio en un servidor. Git y Mercurial permiten repositorios locales y operaciones sin conexión; para intercambiar cambios con otro equipo sí se necesita conectividad. GitHub, GitLab y Bitbucket son plataformas de alojamiento y colaboración, no sinónimos de Git. El material recorre SCCS/RCS, CVS, SVN y Git (creado en 2005).
 
 ### Estados y zonas
+
 Working directory: archivos que editás. Staging/index: versión preparada para el próximo commit. Repositorio local: historial confirmado. Remoto: otro repositorio. git add prepara una instantánea del archivo; si volvés a editarlo necesitás agregar de nuevo esa versión. git commit guarda localmente. git push envía commits. git fetch actualiza referencias remotas; git pull obtiene e integra según su configuración.
 
 ### Comandos básicos
+
 
 
 ```text
@@ -457,17 +524,21 @@ git push -u origin develop
 ```
 
 ### SSH y configuración
+
 Una clave pública (.pub) se registra en el servicio. La privada queda protegida en tu equipo. SSH autentica el acceso; no reemplaza Git. Puede generarse con ssh-keygen o herramientas del sistema. Una frase de paso protege la clave privada. No compartas credenciales ni las incluyas en commits. .gitignore omite archivos no rastreados que coincidan; no borra del historial un archivo ya publicado.
 
 ### Trazabilidad y CI
+
 Un commit pequeño con motivo claro permite rastrear una decisión, comparar y revertir. PR o merge request agrega revisión y discusión en la plataforma. CI ejecuta verificaciones al integrar cambios; no implica por sí sola despliegue automático.
 
 Fuentes: Gestión de cambios.pdf, Parcial N°2 - 8 de octubre.pdf
 
 ## Ramas integración y versiones
+
 La rama de destino es la que está activa cuando ejecutás merge.
 
 ### Workflow develop → main
+
 Supuesto didáctico: origin existe, develop y main existen, tenés permiso de push y los cambios pertenecen a develop. Si hay trabajo de otra tarea o cambios sin guardar, revisalos antes de cambiar de rama. Si una actualización o integración falla, resolvé el problema antes de continuar.
 
 ```text
@@ -494,9 +565,11 @@ git status
 ```
 
 ### Conflictos
+
 Un conflicto puede ser de contenido o de modificación/eliminación. git status identifica archivos; editá el resultado correcto, eliminá marcadores <<<<<<<, ======= y >>>>>>>, ejecutá pruebas, git add archivo y git commit para terminar el merge. git merge --abort cancela una integración en curso. No ejecutes push hasta que la integración esté resuelta. En ramas protegidas, la integración pasa por PR y verificaciones obligatorias.
 
 ### SemVer
+
 
 
 | Cambio desde 2.3.4 | Nueva versión | Motivo |
@@ -508,6 +581,7 @@ Un conflicto puede ser de contenido o de modificación/eliminación. git status 
 | Información de build | 3.0.0+build.7 | No cambia precedencia |
 
 ### Rangos y tags
+
 En npm ^1.2.3 admite >=1.2.3 y <2.0.0; ~1.2.3 admite >=1.2.3 y <1.3.0. En versiones 0.x las reglas de caret son más restrictivas: no extrapoles la regla de 1.x. Composer ~1.2.3 y pip ~=1.2.3 restringen esa línea menor en el ejemplo del material; no concluyas que un gestor siempre es más conservador que otro: depende del rango escrito. Las versiones publicadas no se alteran: se crea otra versión.
 
 ```text
@@ -518,14 +592,17 @@ git describe --tags
 ```
 
 ### Automatización de versiones
+
 Un archivo de versión permite consultar la versión sin tener Git en producción. Herramientas de release pueden actualizar el número, crear tags y changelog. setuptools-scm obtiene versiones de tags para paquetes Python. Alpha y beta describen etapas previas; rc es una candidata. Pre-release es la categoría general, no un sinónimo obligatorio de rc.
 
 Fuentes: Gestión de cambios.pdf, Parcial N°2 - 8 de octubre.pdf
 
 ## Docker portabilidad y orquestación
+
 Una imagen empaqueta aplicación y dependencias; un contenedor ejecuta esa imagen.
 
 ### Conceptos
+
 
 
 | Término | Qué representa |
@@ -538,26 +615,33 @@ Una imagen empaqueta aplicación y dependencias; un contenedor ejecuta esa image
 | Kubernetes | Orquestación: despliegue, réplicas, tráfico, recuperación, escalado y actualización |
 
 ### Contenedores vs máquinas virtuales
+
 Una VM incluye un sistema operativo invitado y corre sobre un hipervisor. Contenedores comparten el kernel del entorno que los ejecuta; por eso son más livianos. Pueden coexistir: una VM Linux puede alojar varios contenedores. Portabilidad requiere compatibilidad de plataforma, arquitectura y kernel; la imagen no elimina cualquier diferencia imaginable.
 
 ### Ventajas
+
 Aislamiento de dependencias, versiones reproducibles, consistencia entre ambientes, arranque rápido y mantenimiento por reemplazo. Dockerfile y Compose documentan el entorno. Una imagen puede generar muchos contenedores. Kubernetes suele ejecutar imágenes OCI mediante runtimes como containerd; no necesita Docker Engine para cada nodo.
 
 ### Relación con calidad
+
 Reduce fallos causados por diferencias de ambientes y facilita despliegues repetibles. No demuestra corrección del código: hay que probar la aplicación, gestionar configuración externa y conservar datos persistentes cuando corresponda.
 
 Fuentes: Ingenieria_de_Software_II_Docker.pdf, Calidad de software.pdf
 
 ## Agentes de IA y responsabilidad profesional
+
 Un agente alterna interpretación, acción y verificación sobre un entorno de desarrollo.
 
 ### Ciclo del agente
+
 Percibe consignas, archivos y resultados; razona sobre un plan; actúa mediante edición, terminal o herramientas; verifica con pruebas y observaciones. Si falla, ajusta y repite. Un asistente conversacional puede sugerir código; un agente puede intervenir en el proyecto cuando tiene herramientas y permisos.
 
 ### Herramientas del material
+
 El apunte presenta Codex, Claude Code y OpenCode como ejemplos de agentes o plataformas de programación. Sus capacidades concretas dependen del modelo, permisos, integración y entorno. Para este examen importa explicar el ciclo y su uso para cambios verificables, no memorizar prestaciones comerciales.
 
 ### Responsabilidad del desarrollador
+
 
 
 - Leer y comprender cambios antes de aceptarlos.
@@ -567,23 +651,29 @@ El apunte presenta Codex, Claude Code y OpenCode como ejemplos de agentes o plat
 - Verificar que los resultados de IA se apoyen en datos y no en afirmaciones inventadas.
 
 ### IA conectada con métricas y CMMI
+
 Puede proponer tests, documentación y refactorización; clasificar defectos; detectar anomalías; predecir riesgos y ayudar a interpretar métricas. Para medir una mejora definí línea base, objetivo, piloto y comparación. La adopción de una herramienta no equivale a madurez: las prácticas sostenidas y sus resultados son la evidencia.
 
 Fuentes: Ingenieria_de_Software_II_Agentes_IA.pdf, Calidad de software.pdf, Métricas_compressed.pdf, Parcial N°2 - 8 de octubre.pdf
 
 ## Cómo preparar una respuesta de parcial
+
 Cada requisito necesita una solución y cada resultado necesita una justificación.
 
 ### Patrones en los modelos
+
 Muebles Express: Strategy para variantes del cálculo/configuración, Factory Method para creación por tipo y Observer para suscripción a novedades del pedido. Builder puede complementar configuración paso a paso, si se requiere; no reemplaza justificar los patrones pedidos. YouTubeDownloader: Facade. SoftMetrics: Abstract Factory para familias y Adapter para interfaces incompatibles.
 
 ### Modelo 2024
+
 Alarmas: Composite para sensores simples y arrays de sensores; estado conectado/desconectado puede ser un booleano, sin imponer State. Cada compuesto obtiene la media de las medidas según una política declarada y compara su propio umbral. GestorUsuarios: Singleton. Lotes impresos: Observer para farmacéutico y registro. Operador que coordina Facturacion y Compras: Facade.
 
 ### Casos integrales
+
 Expedientes combina Composite (organismos), Singleton (GestorUsuarios) y Observer (auditoría/alertas). Publicaciones combina Factory Method (adjuntos nuevos), Composite (carpetas), Observer (mail/auditoría) y Singleton (GestorContenido). Conservá las clases de dominio existentes e incorporá las responsabilidades faltantes.
 
 ### Rúbrica personal
+
 
 
 - ¿Cité el requisito exacto que resuelve cada patrón?
@@ -599,6 +689,7 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 ## Índice de práctica
 
 ### Nivel 1 Reconocer
+
 - e01 Reconocé Singleton
 - e02 Reconocé Factory Method
 - e03 Reconocé Abstract Factory
@@ -613,6 +704,7 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 - e12 Reconocer un agente
 
 ### Nivel 2 Distinguir
+
 - e13 Un docente por estudiante
 - e14 Fábrica simple o Factory Method
 - e15 Familias coherentes
@@ -625,6 +717,7 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 - e22 Proceso o producto
 
 ### Nivel 3 Modelar
+
 - e23 Configuración global
 - e24 Registro compartido
 - e25 Administrador de base de datos
@@ -651,6 +744,7 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 - e46 Operador de facturación
 
 ### Nivel 4 Argumentar y medir
+
 - e47 Empresa reactiva
 - e48 Clínica después de organizarse
 - e49 Sistemas universitarios
@@ -671,6 +765,7 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 - e64 Un plan real de mejora
 
 ### Nivel 5 Resolver un parcial
+
 - e65 Expedientes y organismos
 - e66 Publicaciones y adjuntos
 - e67 Multimedia extensible
@@ -684,28 +779,28 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 
 ## Documentos revisados
 
-- [02 - Creacionales - Patrones de diseño.pdf](../02%20-%20Creacionales%20-%20Patrones%20de%20diseño.pdf)
-- [03 - Estructurales - Patrones de diseño.pdf](../03%20-%20Estructurales%20-%20Patrones%20de%20diseño.pdf)
-- [04 - Comportamiento - Patrones de diseño.pdf](../04%20-%20Comportamiento%20-%20Patrones%20de%20diseño.pdf)
-- [Calidad de software.pdf](../Calidad%20de%20software.pdf)
-- [Ej. Patrones de Diseño.pdf](../Ej.%20Patrones%20de%20Diseño.pdf)
-- [Ejercicios de patrones.pdf](../Ejercicios%20de%20patrones.pdf)
-- [Ejercicios_patrones_singleton_subir.pdf](../Ejercicios_patrones_singleton_subir.pdf)
-- [Gestión de cambios.pdf](../Gestión%20de%20cambios.pdf)
-- [Guia Nº1 Ejercicios - Patrones crecionales.pdf](../Guia%20Nº1%20Ejercicios%20-%20Patrones%20crecionales.pdf)
-- [Guia Nº2 Ejercicios - Patrones estructurales.docx](../Guia%20Nº2%20Ejercicios%20-%20Patrones%20estructurales.docx)
-- [Guia Nº3 Ejercicios - Patrones de comportamiento.docx](../Guia%20Nº3%20Ejercicios%20-%20Patrones%20de%20comportamiento.docx)
-- [Ingenieria_de_Software_II_Agentes_IA.pdf](../Ingenieria_de_Software_II_Agentes_IA.pdf)
-- [Ingenieria_de_Software_II_Docker.pdf](../Ingenieria_de_Software_II_Docker.pdf)
-- [Introducción patrones de diseño.pdf](../Introducción%20patrones%20de%20diseño.pdf)
-- [IS2 - Calidad de Software - Ejercicios prácticos.pdf](../IS2%20-%20Calidad%20de%20Software%20-%20Ejercicios%20prácticos.pdf)
-- [Modelo Parcial 2024.docx](../Modelo%20Parcial%202024.docx)
-- [Métricas_compressed.pdf](../Métricas_compressed.pdf)
-- [Parcial N°2 - 8 de octubre.pdf](../Parcial%20N°2%20-%208%20de%20octubre.pdf)
-- [practica 1 patrones.pdf](../practica%201%20patrones.pdf)
-- [Practica 2  CMMI.pdf](../Practica%202%20%20CMMI.pdf)
-- [practica 2 patrones.pdf](../practica%202%20patrones.pdf)
-- [PRACTICA ADICIONAL DE PATRONES.pdf](../PRACTICA%20ADICIONAL%20DE%20PATRONES.pdf)
-- [Practica_03_patrones_subir.pdf](../Practica_03_patrones_subir.pdf)
-- [Practica_integral_patrones1.pdf](../Practica_integral_patrones1.pdf)
-- [Practica_Metricas_3_Enunciados.pdf](../Practica_Metricas_3_Enunciados.pdf)
+- [02 - Creacionales - Patrones de diseño.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/02.pdf)
+- [03 - Estructurales - Patrones de diseño.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/03.pdf)
+- [04 - Comportamiento - Patrones de diseño.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/04.pdf)
+- [Calidad de software.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/05.pdf)
+- [Ej. Patrones de Diseño.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/06.pdf)
+- [Ejercicios de patrones.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/07.pdf)
+- [Ejercicios_patrones_singleton_subir.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/08.pdf)
+- [Gestión de cambios.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/09.pdf)
+- [Guia Nº1 Ejercicios - Patrones crecionales.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/10.pdf)
+- [Guia Nº2 Ejercicios - Patrones estructurales.docx](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/11.docx)
+- [Guia Nº3 Ejercicios - Patrones de comportamiento.docx](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/12.docx)
+- [Ingenieria_de_Software_II_Agentes_IA.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/13.pdf)
+- [Ingenieria_de_Software_II_Docker.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/14.pdf)
+- [Introducción patrones de diseño.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/15.pdf)
+- [IS2 - Calidad de Software - Ejercicios prácticos.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/16.pdf)
+- [Modelo Parcial 2024.docx](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/17.docx)
+- [Métricas_compressed.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/18.pdf)
+- [Parcial N°2 - 8 de octubre.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/19.pdf)
+- [practica 1 patrones.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/20.pdf)
+- [Practica 2  CMMI.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/21.pdf)
+- [practica 2 patrones.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/22.pdf)
+- [PRACTICA ADICIONAL DE PATRONES.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/23.pdf)
+- [Practica_03_patrones_subir.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/24.pdf)
+- [Practica_integral_patrones1.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/25.pdf)
+- [Practica_Metricas_3_Enunciados.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/26.pdf)
