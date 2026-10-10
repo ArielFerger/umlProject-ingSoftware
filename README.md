@@ -1,3 +1,65 @@
+# UML Studio — umlProject-ingSoftware
+
+Editor UML y espacio de estudio de Ingeniería de Software II, con interfaz en español.
+
+**Aplicación:** https://uml-studio-ariel.arielfeger.chatgpt.site/
+
+**Teoría y práctica:** https://uml-studio-ariel.arielfeger.chatgpt.site/estudio
+
+## Qué incluye
+
+- Editor Mermaid con vista gráfica, movimiento de clases, conexiones, menú con click derecho, deshacer/rehacer e importación/exportación.
+- Animaciones y controles adaptados a pantallas pequeñas, teclado y preferencias de movimiento reducido.
+- 17 temas de teoría, 8 fichas de patrones UML, 74 ejercicios distribuidos en 5 niveles y 3 simulacros.
+- Resumen descargable y los 25 documentos originales del curso en `public/estudio/`.
+- Progreso de estudio guardado en el navegador y diagramas guardados por usuario en D1.
+- Código fuente, dependencias fijadas, migraciones y pruebas del editor.
+
+Las respuestas de opción múltiple y numéricas tienen corrección automática. Las respuestas de desarrollo y los diagramas se revisan con una rúbrica.
+
+## Ejecutar en tu computadora
+
+Necesitás Node.js 22.13 o superior y Git. Desde una terminal:
+
+```sh
+git clone https://github.com/ArielFerger/umlProject-ingSoftware.git
+cd umlProject-ingSoftware
+npm run install:ci
+npm run build
+```
+
+En una instalación nueva, aplicá las dos migraciones a la base local, en este orden:
+
+```sh
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_famous_puma.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_numerous_ma_gnuci.sql
+npm run dev
+```
+
+Abrí `http://localhost:5173/signin-with-chatgpt?return_to=%2F` para iniciar la sesión de desarrollo. El estudio está en `/estudio`. El entorno local usa una cuenta de prueba y una base separada de la aplicación publicada.
+
+Para verificar el editor:
+
+```sh
+npm test
+node node_modules/typescript/bin/tsc --noEmit
+```
+
+## Estructura del proyecto
+
+- `app/` y `components/`: pantallas, estilos y editor.
+- `lib/`: operaciones UML, persistencia y contenido de estudio.
+- `public/estudio/`: resumen y fuentes originales.
+- `db/` y `drizzle/`: esquema y migraciones.
+- `tests/`: pruebas de metadatos y operaciones sobre clases.
+- `scripts/` y `build/`: ejecución y configuración de la plataforma.
+
+El repositorio contiene el código y el material del proyecto. Los diagramas personales alojados en D1 y el progreso del navegador se conservan en sus respectivos almacenamientos; podés exportarlos desde la aplicación. Las dependencias instaladas, compilaciones, credenciales y archivos temporales están excluidos mediante `.gitignore`.
+
+La configuración `.openai/hosting.json` identifica la aplicación existente en Sites. Publicar cambios requiere acceso a ese proyecto. Las instrucciones técnicas de la base del proyecto se conservan debajo.
+
+---
+
 # vinext-starter
 
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
