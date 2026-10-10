@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root { color-scheme: light; --ink: #28332f; --muted: #737d78; --line: #e1e6e3; --green: #267253; --green-soft: #e9f3ed; --surface: #f8faf9; }
+:root { color-scheme: light; --ink: #28332f; --muted: #566b61; --line: #e1e6e3; --green: #267253; --green-soft: #e9f3ed; --surface: #f8faf9; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 14px; color: var(--ink); background: white; }

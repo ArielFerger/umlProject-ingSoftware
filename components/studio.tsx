@@ -117,6 +117,12 @@ export default function Studio() {
 
   useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 600) setView("diagram"); }, [load]);
   useEffect(() => {
+    const narrow = window.matchMedia("(max-width: 800px)");
+    const collapse = (event: MediaQueryListEvent) => { if (event.matches) setSideOpen(false); };
+    narrow.addEventListener("change", collapse);
+    return () => narrow.removeEventListener("change", collapse);
+  }, []);
+  useEffect(() => {
     if (!documents.some(d => saved.current.get(d.id) !== signature(d))) {
       if (saveState === "pending") setSaveState("saved");
       return;
@@ -321,7 +327,7 @@ export default function Studio() {
             <IconButton title="Código y diagrama" active={view === "split"} onClick={() => setView("split")}><Columns2 size={16} /></IconButton>
             <IconButton title="Solo código" active={view === "code"} onClick={() => setView("code")}><Code2 size={17} /></IconButton>
             <IconButton title="Solo diagrama" active={view === "diagram"} onClick={() => setView("diagram")}><Eye size={17} /></IconButton>
-          </div><span className="toolbar-divider" /><IconButton title="Deshacer" onClick={() => editor.current?.undo()} disabled={view === "diagram"}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" onClick={() => editor.current?.redo()} disabled={view === "diagram"}><Redo2 size={16} /></IconButton></div>
+          </div><span className="toolbar-divider" /><IconButton title="Deshacer" onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
           <div className="toolbar-right"><span className="theme-label">Tema</span><select aria-label="Tema del diagrama" value={current.theme} onChange={e => edit({ theme: e.target.value as DiagramInput["theme"] })}><option value="studio">Studio</option><option value="neutral">Neutro</option><option value="dark">Oscuro</option></select>
             <IconButton title="Notas y proyecto" active={!!current.notes} onClick={() => { setNotes(current.notes); setNewProject(current.project); openModal("notes"); }}><StickyNote size={16} /></IconButton>
             <IconButton title="Duplicar diagrama" onClick={() => void create({ ...current, name: current.name + " (copia)" })}><Copy size={16} /></IconButton>
@@ -340,7 +346,7 @@ export default function Studio() {
             <div className="code-footer"><span>{current.source.split("\n").length} líneas</span><span>UTF-8</span></div>
           </section>
           <section className="canvas-pane"><div className="pane-header"><span><Shapes size={15} />Diagrama</span><span className="live-label"><span />Vista en vivo</span></div>
-            <DiagramPreview diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)}
+            <DiagramPreview diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
               onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}
               onGuide={kind => { setGuideKind(kind); openModal("guide"); }} />

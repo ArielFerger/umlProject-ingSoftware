@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./study.css";
+import "./canvas-interactions.css";
 
 export const metadata: Metadata = {
   title: "UML Studio",

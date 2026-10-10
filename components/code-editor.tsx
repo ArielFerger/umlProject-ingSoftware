@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { basicSetup } from "codemirror";
-import { undo, redo, indentWithTab } from "@codemirror/commands";
+import { undo, redo, indentWithTab, isolateHistory } from "@codemirror/commands";
 
 export type EditorHandle = { undo: () => void; redo: () => void; insert: (text: string) => void };
 
@@ -35,7 +35,7 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
           ".cm-scroller": { fontFamily: "'Cascadia Code', 'SFMono-Regular', Consolas, monospace", lineHeight: "1.85" },
           ".cm-content": { padding: "18px 0 60px" },
           ".cm-line": { padding: "0 16px" },
-          ".cm-gutters": { backgroundColor: "#fcfcfd", color: "#a0a6af", border: "none", paddingRight: "5px" },
+          ".cm-gutters": { backgroundColor: "#fcfcfd", color: "#687b70", border: "none", paddingRight: "5px" },
           ".cm-activeLine": { backgroundColor: "#edf4f1" },
           ".cm-activeLineGutter": { backgroundColor: "#edf4f1", color: "#347960" },
           "&.cm-focused": { outline: "none" },
@@ -48,7 +48,7 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
   }, []);
   useEffect(() => {
     const v = view.current;
-    if (v && v.state.doc.toString() !== value) v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value } });
+    if (v && v.state.doc.toString() !== value) v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value }, annotations: isolateHistory.of("full") });
   }, [value]);
   return <div ref={host} className="code-editor" />;
 });

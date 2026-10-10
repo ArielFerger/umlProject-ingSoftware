@@ -7,6 +7,8 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 - `components/studio.tsx`: workspace, document lifecycle, modals, import/export.
 - `components/code-editor.tsx`: CodeMirror editing and history.
 - `components/diagram-preview.tsx`: Mermaid rendering, pan and zoom.
+- `components/canvas-menu.tsx`, `lib/class-actions.ts`: accessible context menus and targeted class mutations. Preserve unrelated declarations, annotations, relationships and canvas metadata.
+- `app/canvas-interactions.css`: contextual controls and purposeful motion; honor reduced-motion preferences.
 - `app/globals.css`: responsive application layout and print styles.
 - `lib/diagrams.ts`: shared validation, seven diagram templates, file interchange.
 - `lib/store.ts`: authenticated D1 persistence and optimistic revision checks.
@@ -20,6 +22,8 @@ Keep the interface in Spanish. Use Mermaid as the canonical diagram engine. Use 
 Class positions and arrow appearance are saved as a structured JSON Mermaid comment beginning with `%% uml-studio: `. Preserve this comment when changing a saved diagram's source. `lib/canvas.ts` validates and reads/writes this metadata; `lib/svg-canvas.ts` routes the SVG connections when classes move. Exported JSON and Mermaid include these settings; SVG and PNG preserve the visual placement.
 
 Study exercises reuse CodeEditor and DiagramPreview. Transfer creates a new diagram only when requested; reopening an exercise diagram must not overwrite saved edits. Reasoning and UML are self-assessed with a rubric; only multiple-choice and numerical answers are graded automatically. Keep course assumptions and original source links when revising educational content.
+
+DiagramPreview enables class editing only when `onSourceChange` is provided. Reference and solution diagrams stay read-only. Context menus use the popover top layer and mount inside the active dialog when applicable. Source changes from forms and canvas actions are isolated in CodeMirror history so each gesture can be undone. Run `npm test` for canvas metadata and class mutation tests.
 
 ## Editing saved diagrams from chat
 
