@@ -1,7 +1,7 @@
 import type { CanvasSettings, Point } from "./canvas";
 
 export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string };
-export type EdgeGeometry = { id: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point };
+export type EdgeGeometry = { id: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string };
 export type CanvasModel = { nodes: ClassGeometry[]; edges: EdgeGeometry[] };
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -64,15 +64,16 @@ function layoutRoute(edge: EdgeGeometry, startGap: number, endGap: number) {
   return { path, start: first, end: last, label: edge.labelPosition || points[Math.floor(points.length / 2)] };
 }
 
-function terminal(root: SVGElement, text: string, point: Point, other: Point, size: number, dark: boolean, start: boolean) {
+function terminal(root: SVGElement, text: string, point: Point, other: Point, size: number, dark: boolean, start: boolean, edgeId: string) {
   if (!text || text === "none") return;
   const direction = normalize(point, other), sign = start ? 1 : -1;
   const label = document.createElementNS(SVG_NS, "text");
   label.textContent = text;
+  label.setAttribute("data-edge-id", edgeId);
   label.setAttribute("x", String(point.x + direction.x * 18 - direction.y * 17 * sign));
   label.setAttribute("y", String(point.y + direction.y * 18 + direction.x * 17 * sign));
   label.setAttribute("text-anchor", "middle"); label.setAttribute("dominant-baseline", "middle");
-  label.style.cssText = `font-size:${size}px;fill:${dark ? "#e4edf1" : "#314957"};stroke:${dark ? "#1d2c36" : "white"};stroke-width:5px;paint-order:stroke;font-family:'Source Sans 3 Variable',sans-serif;pointer-events:none;`;
+  label.style.cssText = `font-size:${size}px;fill:${dark ? "#e4edf1" : "#314957"};stroke:${dark ? "#1d2c36" : "white"};stroke-width:5px;paint-order:stroke;font-family:'Source Sans 3 Variable',sans-serif;pointer-events:all;cursor:pointer;`;
   root.appendChild(label);
 }
 
@@ -101,6 +102,10 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
   }
   for (const path of root.querySelectorAll<SVGPathElement>(".edgePaths path")) path.style.strokeWidth = String(settings.lineWidth);
   root.querySelectorAll(".edgeTerminals,.studio-terminals").forEach(el => el.remove());
+  root.querySelector(".studio-edge-hitareas")?.remove();
+  const hitareas = document.createElementNS(SVG_NS, "g");
+  hitareas.setAttribute("class", "studio-edge-hitareas");
+  root.querySelector(".edgePaths")?.appendChild(hitareas);
   const terminals = document.createElementNS(SVG_NS, "g"); terminals.setAttribute("class", "studio-terminals");
   root.querySelector(".edgeLabels")?.appendChild(terminals);
   const pairCounts = new Map<string, number>();
@@ -117,16 +122,33 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     const geometry = (atLayout ? layoutRoute(edge, startGap, endGap) : null) || route(a, b, startGap, endGap, count * 28);
     path.setAttribute("d", geometry.path);
     path.setAttribute("data-source", a.name); path.setAttribute("data-target", b.name);
+    path.setAttribute("data-edge-id", edge.id); path.classList.add("studio-edge-line");
+    const hit = document.createElementNS(SVG_NS, "path");
+    hit.setAttribute("d", geometry.path); hit.setAttribute("class", "studio-edge-hit");
+    const target = document.createElementNS(SVG_NS, "g");
+    target.setAttribute("class", "studio-edge-target"); target.setAttribute("data-edge-id", edge.id);
+    target.setAttribute("tabindex", "0"); target.setAttribute("role", "button");
+    target.setAttribute("aria-label", `Relación ${a.name} con ${b.name}${edge.label ? `: ${edge.label}` : ""}`);
+    target.setAttribute("aria-pressed", "false"); target.appendChild(hit);
+    // Horizontal and vertical paths have a zero-height/width geometric box.
+    // Give the focusable group a real box without altering the visible line.
+    const anchor = document.createElementNS(SVG_NS, "circle");
+    const middle = path.getPointAtLength(path.getTotalLength() / 2);
+    anchor.setAttribute("cx", String(middle.x)); anchor.setAttribute("cy", String(middle.y));
+    anchor.setAttribute("r", "1"); anchor.setAttribute("fill", "transparent"); anchor.style.pointerEvents = "none";
+    target.appendChild(anchor); hitareas.appendChild(target);
     const label = Array.from(root.querySelectorAll<SVGGElement>(".edgeLabel")).find(el => el.querySelector("[data-id]")?.getAttribute("data-id") === edge.id);
-    if (label) label.setAttribute("transform", `translate(${geometry.label.x}, ${geometry.label.y}) scale(${settings.labelSize / 14})`);
-    terminal(terminals, edge.startLabelRight || "", geometry.start, geometry.end, settings.labelSize * .85, dark, true);
-    terminal(terminals, edge.endLabelLeft || "", geometry.end, geometry.start, settings.labelSize * .85, dark, false);
+    if (label) { label.setAttribute("transform", `translate(${geometry.label.x}, ${geometry.label.y}) scale(${settings.labelSize / 14})`); label.setAttribute("data-edge-id", edge.id); label.style.pointerEvents = "all"; label.style.cursor = "pointer"; }
+    terminal(terminals, edge.startLabelRight || "", geometry.start, geometry.end, settings.labelSize * .85, dark, true, edge.id);
+    terminal(terminals, edge.endLabelLeft || "", geometry.end, geometry.start, settings.labelSize * .85, dark, false, edge.id);
   }
   return Object.fromEntries(nodes.map(n => [n.name, { x: n.x, y: n.y }]));
 }
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
+  clone.querySelectorAll(".studio-edge-hitareas").forEach(el => el.remove());
+  clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });
   const box = root.getBBox();

@@ -12,13 +12,14 @@ import RelationGuide, { RelationSymbol } from "./relation-guide";
 import { RELATIONS, appendRelation, cleanSource, readCanvas, relationInfo, writeCanvas } from "@/lib/canvas";
 import { classMembers, setClassMembers } from "@/lib/class-actions";
 import ClassProperties from "./class-properties";
+import { browserStorage, studioRequest } from "@/lib/studio-request";
 
 const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database };
 type ModalKind = "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
 type Revision = { revision: number; createdAt: string; diagram: Diagram };
 
 async function api<T>(method = "GET", data?: unknown, query = ""): Promise<T> {
-  const response = await fetch("/api/diagrams" + query, {
+  const response = await studioRequest("/api/diagrams" + query, {
     method, headers: data ? { "Content-Type": "application/json" } : undefined,
     body: data ? JSON.stringify(data) : undefined,
   });
@@ -289,10 +290,10 @@ export default function Studio() {
       <div className="header-actions">
         <ThemePicker /><Link href="/git" className="btn header-quiet header-git-link" aria-label="Laboratorio Git"><GitBranch size={16} /><span>Git Lab</span></Link>
         <span className={"save-status " + saveState} aria-live="polite">
-          {saveState === "saving" ? <LoaderCircle size={14} className="spin" /> : saveState === "error" ? <CloudOff size={15} /> : <Cloud size={15} />}
-          {saveState === "saved" ? "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
+          {saveState === "saving" ? <LoaderCircle size={14} className="spin" /> : saveState === "error" ? <CloudOff size={15} /> : browserStorage ? <Save size={15} /> : <Cloud size={15} />}
+          {saveState === "saved" ? browserStorage ? "Guardado en este navegador" : "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
         </span>
-        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button><button className="btn header-quiet chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>Conectar con ChatGPT</span></button>
+        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button><button className="btn header-quiet chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>{browserStorage ? "Compartir JSON" : "Conectar con ChatGPT"}</span></button>
       </div>
     </header>
 
@@ -349,7 +350,7 @@ export default function Studio() {
             <div className="document-breadcrumb"><Folder size={13} /><span>{current.project}</span><ChevronRight size={12} /><span>{TYPE_LABELS[current.type]}</span></div>
             <input className="name-input" aria-label="Nombre del diagrama" value={current.name} maxLength={100} onChange={e => edit({ name: e.target.value })} onBlur={() => { if (!current.name.trim()) edit({ name: "Sin titulo" }); }} />
           </div>
-          <div className="document-actions"><IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title="Actualizar desde el chat" onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
+          <div className="document-actions"><IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title={browserStorage ? "Recargar diagramas" : "Actualizar desde el chat"} onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
             <button className="btn export-btn" aria-label="Exportar diagrama" onClick={() => openModal("export")}><Download size={16} /><span>Exportar</span></button>
           </div>
         </div>
@@ -406,7 +407,7 @@ export default function Studio() {
         </div>
         <footer className="statusbar"><span><GitBranch size={12} />{TYPE_LABELS[current.type]}</span><span>{blocks.length ? blocks.length + " clases" : current.source.length + " caracteres"}</span><span className="statusbar-hint"><Keyboard size={12} />Ctrl / ⌘ + S para guardar</span><span className="statusbar-end">Versión {current.revision}<span className="statusbar-separator" />{new Date(current.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span></footer>
       </> : <div className="workspace-empty">
-        {loading ? <><LoaderCircle size={28} className="spin" /><h2>Abriendo tu espacio</h2></> : loadError ? <><CloudOff size={30} /><h2>No pudimos cargar tus diagramas</h2><p>{loadError}</p><button className="btn primary" onClick={() => void load()}><RefreshCw size={16} />Reintentar</button><a className="text-btn" href="/signin-with-chatgpt?return_to=%2F">Iniciar sesión</a></> : <><Shapes size={40} /><h2>Tu próximo diagrama empieza acá</h2><button className="btn primary" onClick={beginNew}><Plus size={17} />Crear diagrama</button></>}
+        {loading ? <><LoaderCircle size={28} className="spin" /><h2>Abriendo tu espacio</h2></> : loadError ? <><CloudOff size={30} /><h2>No pudimos cargar tus diagramas</h2><p>{loadError}</p><button className="btn primary" onClick={() => void load()}><RefreshCw size={16} />Reintentar</button>{!browserStorage && <a className="text-btn" href="/signin-with-chatgpt?return_to=%2F">Iniciar sesión</a>}</> : <><Shapes size={40} /><h2>Tu próximo diagrama empieza acá</h2><button className="btn primary" onClick={beginNew}><Plus size={17} />Crear diagrama</button></>}
       </div>}
     </section>
 
@@ -460,6 +461,6 @@ export default function Studio() {
 
     {modal === "delete" && current && <Modal title="Eliminar diagrama" onClose={() => setModal(null)}><div className="modal-body"><p>Se eliminara <strong>{current.name}</strong> y su historial de versiones.</p><p>Descarga una copia antes de continuar si querés conservarlo.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn danger" disabled={working} onClick={() => void removeCurrent()}><Trash2 size={16} />Eliminar</button></div></Modal>}
 
-    {modal === "chat" && <Modal title="Editar desde el chat" onClose={() => setModal(null)}><div className="modal-body chat-modal"><div className="chat-modal-icon"><MessageSquare size={26} /></div><p>Conecta el plugin personal <strong>UML Studio</strong> en Codex o ChatGPT para que pueda leer y modificar tus diagramas guardados.</p><div className="chat-example">&ldquo;En Tienda online, agregá una clase Cupon relacionada con Pedido.&rdquo;</div><p>También podes adjuntar el archivo JSON del diagrama en este chat.</p><p className="form-hint">Despues de un cambio en el chat, usa Actualizar para cargar la nueva versión.</p></div><div className="modal-footer"><button className="btn" onClick={() => { if (current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); }} disabled={!current}><Download size={16} />Descargar JSON</button><button className="btn primary" onClick={() => setModal(null)}>Entendido</button></div></Modal>}
+    {modal === "chat" && <Modal title={browserStorage ? "Compartir diagrama" : "Editar desde el chat"} onClose={() => setModal(null)}><div className="modal-body chat-modal"><div className="chat-modal-icon"><MessageSquare size={26} /></div>{browserStorage ? <p>Tus diagramas se guardan en este navegador. Descargá un <strong>Proyecto JSON</strong> para conservar una copia o compartirlo en Codex o ChatGPT.</p> : <p>Conecta el plugin personal <strong>UML Studio</strong> en Codex o ChatGPT para que pueda leer y modificar tus diagramas guardados.</p>}<div className="chat-example">&ldquo;En Tienda online, agregá una clase Cupon relacionada con Pedido.&rdquo;</div><p>También podes adjuntar el archivo JSON del diagrama en este chat.</p><p className="form-hint">{browserStorage ? "Importá el JSON que recibas para abrir el diagrama actualizado. Cada navegador conserva su propio espacio." : "Despues de un cambio en el chat, usa Actualizar para cargar la nueva versión."}</p></div><div className="modal-footer"><button className="btn" onClick={() => { if (current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); }} disabled={!current}><Download size={16} />Descargar JSON</button><button className="btn primary" onClick={() => setModal(null)}>Entendido</button></div></Modal>}
   </main>;
 }

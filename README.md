@@ -21,6 +21,24 @@ Las respuestas de opción múltiple y numéricas tienen corrección automática.
 
 ## Ejecutar en tu computadora
 
+### Deploy en Vercel
+
+Importá `ArielFerger/umlProject-ingSoftware` en Vercel con **Framework Preset: Next.js**, **Root Directory: `./`** y **Node.js: 24.x**. `vercel.json` configura `npm run build:vercel`; dejá el directorio de salida automático de Next.js (`.next`). Si el proyecto ya tenía un override de Vite/Vinext o `dist`, quitá ese override. `npm run build` también elige Next.js cuando Vercel establece `VERCEL=1`.
+
+Esta variante no necesita credenciales de Cloudflare. Los diagramas y las últimas 30 versiones de cada documento se guardan en **IndexedDB de este navegador y dominio**; Estudio, Git y los temas conservan su progreso local. El guardado compara revisiones dentro de una transacción para rechazar cambios obsoletos de otra ventana. La interfaz indica **Guardado en este navegador**. Exportá **Proyecto JSON** para respaldar o trasladar documentos entre dispositivos o dominios; el conector `/mcp` de Sites corresponde a la variante alojada con D1.
+
+Para probar exactamente la compilación de Vercel:
+
+```sh
+npm ci --include=dev --include=optional
+npm run build:vercel
+npm run start:vercel -- --hostname 127.0.0.1 --port 3002
+```
+
+Abrí `http://localhost:3002`. Para desarrollo con Next.js: `npm run dev:vercel -- --port 3002`. Las rutas `/`, `/estudio` y `/git` están disponibles. Docker y Sites siguen usando la compilación Worker y su almacenamiento D1, separado del espacio del navegador en Vercel.
+
+Referencias: [deploy de Next.js](https://nextjs.org/docs/pages/getting-started/deploying) y [configuración de compilación de Vercel](https://vercel.com/docs/builds/configure-a-build).
+
 ### Con Docker (recomendado)
 
 ```sh
@@ -76,6 +94,7 @@ El rediseño usa Impeccable: `init`, `layout`, `distill`, `typeset`, `animate` y
 - **Lienzo** es la vista inicial. **Dividir** muestra código y diagrama; **Código** conserva el editor Mermaid completo.
 - El explorador reúne los documentos y las herramientas de inserción. El panel derecho muestra propiedades, clases, conexiones y notas.
 - Seleccioná una clase para editar sus miembros en el panel. Arrastrala para moverla, o usá las flechas del teclado cuando tiene foco.
+- Seleccioná una relación desde la línea, la etiqueta o las multiplicidades. El área de clic conserva su ancho al cambiar el zoom. La selección resalta la flecha y muestra sus extremos; **Editar** o doble clic permite cambiar tipo, etiqueta y multiplicidades. **Tab** recorre las relaciones, **Enter/Espacio** selecciona, **F2** edita y **Escape** deselecciona. Eliminar una relación conserva sus clases y se puede deshacer.
 - El zoom inicial prioriza la lectura. **Ajustar al lienzo** muestra el diagrama completo; arrastrar el fondo desplaza la vista.
 - Las fuentes se sirven localmente: Source Sans 3 para la interfaz e IBM Plex Mono para código y miembros UML. El movimiento reducido conserva el feedback mediante color y opacidad.
 - El selector de tema está en la cabecera del editor, Estudio y Git Lab. El lienzo con tema Studio acompaña los temas oscuros; los temas explícitos guardados en un diagrama mantienen su elección.

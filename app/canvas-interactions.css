@@ -18,6 +18,20 @@ input, textarea, .cm-content { caret-color: var(--accent); }
 .sidebar-tool:hover > svg:first-child { transform: translateX(2px); }
 .sidebar-tool > svg { transition: transform var(--motion-fast) var(--ease-arrive); }
 .diagram-art g[data-class] > g.outer-path > path { transition: stroke 120ms, stroke-width 120ms, fill 120ms; }
+.studio-edge-hit { fill: none; stroke: transparent; stroke-width: 22px; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
+.studio-edge-target:focus-visible { outline: none; }
+.studio-edge-target:focus-visible .studio-edge-hit { stroke: var(--accent); stroke-opacity: .2; }
+.studio-edge-line.edge-selected, .studio-edge-line.edge-hovered { stroke: var(--accent) !important; stroke-width: var(--edge-emphasis-width, 3.5px) !important; }
+.studio-edge-line.edge-selected { vector-effect: non-scaling-stroke; }
+.edgeLabel.edge-selected text { fill: var(--accent) !important; font-weight: 650; }
+.relation-selection { position: absolute; top: 12px; left: 12px; z-index: 4; max-width: calc(100% - 24px); display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-control); }
+.relation-selection > svg { color: var(--accent); flex-shrink: 0; }
+.relation-selection > div { min-width: 0; }
+.relation-selection strong, .relation-selection span { display: block; overflow-wrap: anywhere; font-size: 13px; line-height: 1.4; }
+.relation-selection > div > span { color: var(--muted); font-size: 12px; }
+.relation-selection .btn, .relation-selection .icon-btn { flex-shrink: 0; }
+.relation-cardinality { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .relation-selection { gap: 6px; flex-wrap: wrap; } .relation-selection > div { flex: 1; } .relation-selection > .btn { padding: 0 9px; } .relation-cardinality { grid-template-columns: 1fr; } }
 .canvas-context-menu { position: fixed; inset: auto; margin: 0; z-index: 100; width: 276px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); overflow: auto; background: var(--menu-surface); color: var(--menu-ink); border: 0; padding: 7px; border-radius: var(--radius-overlay); box-shadow: 0 8px 30px #20344026; font-size: 13px; transform-origin: top left; animation: context-unfold var(--motion-menu) var(--ease-arrive) both; scrollbar-color: var(--line) transparent; }
 .canvas-context-menu.context-dark { --menu-surface: #263e4c; --menu-ink: #e4edf1; --menu-muted: #b9d0dc; --menu-hover: #375666; --menu-danger: #ffb6b9; }
 .context-title { padding: 9px 11px 12px; color: var(--menu-muted); font-weight: 600; overflow-wrap: anywhere; }

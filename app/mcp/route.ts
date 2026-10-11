@@ -15,6 +15,7 @@ const tools = [
 ];
 
 export async function POST(request: Request) {
+  if (process.env.NEXT_PUBLIC_UML_STORAGE === "browser") return Response.json({ error: "Los diagramas se guardan en el navegador. Compartilos mediante Proyecto JSON; el conector de Sites no está disponible en esta versión." }, { status: 501 });
   let id: unknown = null;
   try {
     const message = await request.json() as { id?: unknown; method: string; params?: { name?: string; arguments?: unknown; protocolVersion?: string } };

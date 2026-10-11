@@ -8,6 +8,7 @@ import { classSnippet, classMembers, classNames, duplicateClass, removeClass, se
 import CanvasMenu, { MenuAction } from "./canvas-menu";
 import Modal from "./modal";
 import { useAppTheme } from "./theme-picker";
+import { sourceRelations, updateRelation, removeRelation, type SourceRelation } from "@/lib/relation-actions";
 
 let renderQueue: Promise<unknown> = Promise.resolve();
 let renderNumber = 0;
@@ -29,6 +30,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const viewport = useRef<HTMLDivElement>(null);
   const art = useRef<HTMLDivElement>(null);
   const model = useRef<CanvasModel>({ nodes: [], edges: [] });
+  const relationSources = useRef(new Map<string, SourceRelation>());
   const positions = useRef<Record<string, Point>>({});
   const [result, setResult] = useState<SvgResult | null>(null);
   const markup = useMemo(() => ({ __html: result?.svg || "" }), [result]);
@@ -41,6 +43,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [origin, setOrigin] = useState("");
   const [localSelection, setLocalSelection] = useState("");
   const selectedNode = selectedClass ?? localSelection;
+  const [selectedEdge, setSelectedEdge] = useState("");
+  const [hoveredEdge, setHoveredEdge] = useState("");
+  const [edgeForm, setEdgeForm] = useState<(SourceRelation & { edgeId: string }) | null>(null);
+  const [edgeDelete, setEdgeDelete] = useState<SourceRelation | null>(null);
   const drag = useRef<Drag | null>(null);
   const fittedId = useRef("");
   const renderedId = useRef("");
@@ -123,6 +129,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             });
           }
           model.current = { nodes, edges };
+          const relations = sourceRelations(content), used = new Set<number>();
+          relationSources.current = new Map(edges.flatMap(edge => {
+            const relation = relations.find(r => !used.has(r.line) && r.from === edge.start && r.to === edge.end);
+            if (!relation) return [];
+            used.add(relation.line); return [[edge.id, relation] as const];
+          }));
           renderedId.current = diagram.id;
           setResult({ svg: new XMLSerializer().serializeToString(live), width, height });
           setBusy(false);
@@ -162,7 +174,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass]);
 
   useEffect(() => {
-    setMode("move"); setOrigin(""); setSelectedNode(""); setContext(null); setClassForm(null); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = "";
+    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = "";
   }, [diagram.id]);
   useEffect(() => {
     const svg = root();
@@ -172,12 +184,32 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     });
   }, [origin, selectedNode, result]);
   useEffect(() => {
+    root()?.querySelectorAll<SVGElement>("[data-edge-id]").forEach(element => {
+      const id = element.getAttribute("data-edge-id");
+      element.classList.toggle("edge-selected", id === selectedEdge);
+      element.classList.toggle("edge-hovered", id === hoveredEdge);
+      if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", String(id === selectedEdge));
+    });
+  }, [selectedEdge, hoveredEdge, result, settings]);
+  useEffect(() => { setSelectedEdge(""); setHoveredEdge(""); }, [content]);
+  useEffect(() => {
     if (!viewport.current) return;
     const observer = new ResizeObserver(() => { if (root()) fit(true); });
     observer.observe(viewport.current); return () => observer.disconnect();
   }, [fit]);
 
-  function setSelectedNode(name: string) { setLocalSelection(name); callbacks.current.onSelectionChange?.(name); }
+  function setSelectedNode(name: string) { if (name) setSelectedEdge(""); setLocalSelection(name); callbacks.current.onSelectionChange?.(name); }
+  function selectEdge(id: string) {
+    if (busy || error) return;
+    setSelectedNode(""); setSelectedEdge(id); setOrigin(""); setMode("move"); setContext(null);
+  }
+  function editEdge(id: string) {
+    const relation = relationSources.current.get(id);
+    if (!relation || !callbacks.current.onSourceChange) return;
+    setFormError(""); setEdgeForm({ ...relation, edgeId: id });
+  }
+  const chosenEdge = model.current.edges.find(edge => edge.id === selectedEdge);
+  const chosenRelation = relationSources.current.get(selectedEdge);
   function selectClass(name: string) {
     if (busy || error) return;
     setSelectedNode(name);
@@ -298,10 +330,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {isClass && mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><span>{origin ? origin + " → " + relation.destination : relation.origin + " → " + relation.destination}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
     <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
       onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
-      onContextMenu={e => { e.preventDefault(); drag.current = null; const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); }}
+      onContextMenu={e => { e.preventDefault(); drag.current = null; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { selectEdge(edgeId); return; } const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); }}
       onPointerDown={e => {
         if (e.button !== 0) return;
         if ((e.target as Element).closest("button,.error-panel")) return;
+        const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
+        if (edgeId) { e.preventDefault(); selectEdge(edgeId); Array.from(root()?.querySelectorAll<SVGElement>(".studio-edge-target") || []).find(el => el.getAttribute("data-edge-id") === edgeId)?.focus({ preventScroll: true }); return; }
         const node = (e.target as Element).closest("[data-class]");
         const name = node?.getAttribute("data-class");
         if (name && !busy && !error) {
@@ -311,6 +345,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         e.currentTarget.setPointerCapture(e.pointerId);
       }}
       onPointerMove={e => {
+        if (!drag.current) { setHoveredEdge((e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id") || ""); return; }
         const d = drag.current; if (!d) return;
         const dx = e.clientX - d.x, dy = e.clientY - d.y;
         if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
@@ -321,7 +356,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         const d = drag.current; drag.current = null;
         if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
         if (!d) return;
-        if (!d.name) { if (!d.moved) setSelectedNode(""); return; }
+        if (!d.name) { if (!d.moved) { setSelectedNode(""); setSelectedEdge(""); } return; }
         if (!d.moved) selectClass(d.name);
         else if (mode === "move") {
           callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
@@ -332,10 +367,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         }
       }}
       onPointerCancel={() => { drag.current = null; const svg = root(); if (svg && isClass) positions.current = applyCanvas(svg, model.current, settingsRef.current, dark); }}
-      onDoubleClick={e => { const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name && mode === "move" && !busy && !error) openClass(name); }}
+      onPointerLeave={() => setHoveredEdge("")}
+      onDoubleClick={e => { const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name && mode === "move" && !busy && !error) openClass(name); }}
       onKeyDown={e => {
+        const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
+        if (edgeId && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectEdge(edgeId); return; }
+        if (edgeId && e.key === "F2") { e.preventDefault(); editEdge(edgeId); return; }
         if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); return; }
-        if (e.key === "Escape") { setOrigin(""); setMode("move"); setSelectedNode(""); return; }
+        if (e.key === "Escape") { setOrigin(""); setMode("move"); setSelectedNode(""); setSelectedEdge(""); return; }
         const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (!name || busy || error) return;
         if (e.key === "Enter") { e.preventDefault(); if (mode === "connect") selectClass(name); else openClass(name); }
         const vectors: Record<string, Point> = { ArrowLeft: { x: -10, y: 0 }, ArrowRight: { x: 10, y: 0 }, ArrowUp: { x: 0, y: -10 }, ArrowDown: { x: 0, y: 10 } };
@@ -346,11 +385,16 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       }}
       onWheel={e => { if (e.ctrlKey || e.metaKey) changeZoom(e.deltaY < 0 ? .1 : -.1); }}>
       {result && <div ref={art} className={"diagram-art " + (error ? "invalid-art" : "")}
-        style={{ width: result.width, height: result.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
+        style={{ width: result.width, height: result.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, "--edge-emphasis-width": `${settings.lineWidth + 1.5}px` } as React.CSSProperties}
         dangerouslySetInnerHTML={markup} />}
       {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
       {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-      {!busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">Arrastrá el lienzo para moverte · clic derecho para ver acciones</span></span>}
+      {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
+        <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
+        {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
+        <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
+      </div>}
+      {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">Clic en una flecha para seleccionarla · doble clic para editar · arrastrá el fondo para moverte</span></span>}
       {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
       <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
         <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
@@ -360,6 +404,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       </div>
     </div>
     {context && <CanvasMenu x={context.x} y={context.y} title={context.name || "Opciones del lienzo"} actions={actions} onClose={closeContext} dark={dark} container={viewport.current?.closest("dialog") || undefined} />}
+    {edgeForm && <Modal title="Editar relación" onClose={() => setEdgeForm(null)}><form onSubmit={e => { e.preventDefault(); try { callbacks.current.onSourceChange?.(updateRelation(diagram.source, edgeForm, edgeForm)); setEdgeForm(null); setSelectedEdge(""); setFeedback("Relación actualizada. Podés recuperar el cambio con Deshacer."); } catch (error) { setFormError((error as Error).message); } }}><div className="modal-body">
+      <p><strong>{edgeForm.from}</strong> — <strong>{edgeForm.to}</strong></p>
+      <label>Tipo de relación<select value={edgeForm.kind} onChange={e => setEdgeForm({ ...edgeForm, kind: e.target.value })}>{!RELATIONS.some(r => r.value === edgeForm.kind) && <option value={edgeForm.kind}>{edgeForm.kind} (actual)</option>}{RELATIONS.map(r => <option key={r.value} value={r.value}>{r.name}</option>)}</select></label>
+      <label>Etiqueta<input autoFocus maxLength={200} value={edgeForm.label} placeholder="Por ejemplo: realiza" onChange={e => setEdgeForm({ ...edgeForm, label: e.target.value })} /></label>
+      <div className="relation-cardinality"><label>Multiplicidad de {edgeForm.from}<input maxLength={30} placeholder="1" value={edgeForm.fromCard} onChange={e => setEdgeForm({ ...edgeForm, fromCard: e.target.value })} /></label><label>Multiplicidad de {edgeForm.to}<input maxLength={30} placeholder="0..*" value={edgeForm.toCard} onChange={e => setEdgeForm({ ...edgeForm, toCard: e.target.value })} /></label></div>
+      <p className="form-hint">Se conserva el código de las otras relaciones y la posición de las clases.</p>
+      {formError && <p className="form-error" role="alert">{formError}</p>}
+    </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setEdgeForm(null)}>Cancelar</button><button className="btn primary"><Check size={16} />Aplicar cambios</button></div></form></Modal>}
+    {edgeDelete && <Modal title="Eliminar relación" onClose={() => setEdgeDelete(null)}><div className="modal-body"><p>Se quitará la relación entre <strong>{edgeDelete.from}</strong> y <strong>{edgeDelete.to}</strong>. Las clases se conservan.</p><p>Podés recuperarla con Deshacer.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setEdgeDelete(null)}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(removeRelation(diagram.source, edgeDelete)); setEdgeDelete(null); setSelectedEdge(""); setFeedback("Relación eliminada. Podés recuperarla con Deshacer."); } catch (error) { setFormError((error as Error).message); } }}><Trash2 size={16} />Eliminar relación</button></div></Modal>}
     {classForm && <Modal title={classForm.editing ? "Editar clase" : "Agregar clase"} onClose={() => setClassForm(null)}><form onSubmit={e => { e.preventDefault(); saveClass(); }}><div className="modal-body">
       <label>Nombre<input required autoFocus maxLength={120} disabled={classForm.editing} value={classForm.name} placeholder="Por ejemplo: Cliente" onChange={e => setClassForm({ ...classForm, name: e.target.value })} /></label>
       <label>Atributos y métodos<textarea rows={8} className="mono" value={classForm.body} onChange={e => setClassForm({ ...classForm, body: e.target.value })} /></label>

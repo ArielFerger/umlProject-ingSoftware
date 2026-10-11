@@ -9,6 +9,7 @@ import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
 import RelationGuide from "./relation-guide";
 import Modal from "./modal";
+import { studioRequest } from "@/lib/studio-request";
 
 type View = "ruta" | "teoria" | "patrones" | "practica" | "simulacros" | "fuentes";
 type Run = { id: string; deadline: number; finished: boolean };
@@ -64,7 +65,7 @@ export default function Study() {
 
   useEffect(() => {
     let live = true;
-    fetch("/api/study-profile").then(async response => {
+    studioRequest("/api/study-profile").then(async response => {
       const body = await response.json() as { owner?: string; error?: string };
       if (!response.ok || !body.owner) throw new Error(body.error || "Inicia sesión para guardar tu progreso.");
       if (!live) return;
@@ -128,7 +129,7 @@ export default function Study() {
         window.location.assign("/?diagram=" + encodeURIComponent(entry.diagramId) + "&ejercicio=" + current.id);
         return;
       }
-      const response = await fetch("/api/diagrams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: current.title, project: "Práctica IS II", type: "class", theme: "studio", source, notes: current.prompt + "\n\nVolver al ejercicio: /estudio?ejercicio=" + current.id }) });
+      const response = await studioRequest("/api/diagrams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: current.title, project: "Práctica IS II", type: "class", theme: "studio", source, notes: current.prompt + "\n\nVolver al ejercicio: /estudio?ejercicio=" + current.id }) });
       const saved = await response.json() as Diagram & { error?: string };
       if (!response.ok) throw new Error(saved.error || "No se pudo crear el diagrama de práctica.");
       const p = { ...progressRef.current, entries: { ...progressRef.current.entries, [current.id]: { ...entry, draft: source, diagramId: saved.id } } };
@@ -141,7 +142,7 @@ export default function Study() {
     if (!current || !entry.diagramId) return;
     setBusy(true);
     try {
-      const response = await fetch("/api/diagrams?id=" + encodeURIComponent(entry.diagramId)); const saved = await response.json() as Diagram & { error?: string };
+      const response = await studioRequest("/api/diagrams?id=" + encodeURIComponent(entry.diagramId)); const saved = await response.json() as Diagram & { error?: string };
       if (!response.ok) throw new Error(saved.error || "No se pudo leer el diagrama.");
       updateEntry(current.id, { draft: saved.source }); setNotice("Se cargó la versión guardada en UML Studio en tu borrador de práctica.");
     } catch (e) { setNotice((e as Error).message); }

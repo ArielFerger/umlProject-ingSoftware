@@ -4,16 +4,17 @@
   "exclusions": [],
   "targets": {
     "app/globals.css": "a0752d59136643f5850d1c5e78910af30bc7d696e0b99ef178dab08d5f831308",
-    "app/canvas-interactions.css": "c0253bf037191b492f187ebd87dd606fb096c4d4535d8bd38a467aa4fa75771d",
+    "app/canvas-interactions.css": "a5fc24f08094158686162714bc11b121d0472d583f4fc88d7301d3d4f3e53114",
     "app/study.css": "7788d60cc74fc7113cfdb8b225eb50f95e697a1e5f49a59072497dfb5fdca436",
     "app/git.css": "36ec73dfb8d09c1e1927132d6b561d6eedb5bcf386031a5bbc00425d6fd58f56",
     "app/themes.css": "bca25ba7ee8c618aea987b21b42d0c8b525a56299f315908df2dd361ae5f5399",
     "app/layout.tsx": "e814b87a5eab66fa65788b57c964d2dc48d3079e9b04244ffe0f93d615aad6d8",
-    "components/studio.tsx": "787a5b21077b7d6447991dc28dec2361fe3f2bf256a3c25e326792c17edec03c",
+    "components/studio.tsx": "c54839ca5288b66c18e28ede1602277d4319e9da50bee8655f18428de4730748",
     "components/class-properties.tsx": "cf3261e1e1a66643931bbab1a45163c7e6fcb5da3accf4a397b1e6266ce1614b",
     "components/code-editor.tsx": "ee9e97ed39461a1dea8486c0c2dc7a0f5ee06772566650bcfefc52a8c97751d9",
-    "components/diagram-preview.tsx": "64140da08668c35bdf9b5531b9d463862117333be0acfc4df743e4b3bd19b826",
+    "components/diagram-preview.tsx": "c63ff5a59fd0fb65633347daeec4721b8e3c1842cfcb9b81624e215748a4dbfb",
     "components/git-lab.tsx": "ba825b0223fa3ecef1fb308a1525f5d964d1b37ea4267703930be16d1873a5ca",
     "components/theme-picker.tsx": "3ec085a8524ac58477ffd9e933332a1b72cb61a3fc13f1817257dd30e98a9d4a"
-  }
+  },
+  "generatedAt": "2026-10-11T03:20:25.353348+00:00"
 }

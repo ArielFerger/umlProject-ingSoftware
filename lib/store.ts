@@ -6,6 +6,7 @@ export class StoreError extends Error {
 }
 
 export function ownerFrom(request: Request) {
+  if (process.env.NEXT_PUBLIC_UML_STORAGE === "browser") throw new StoreError("En esta versión los diagramas se guardan en el navegador. Exportá un proyecto JSON para compartirlo.", 501);
   const owner = request.headers.get("oai-authenticated-user-id");
   if (!owner) throw new StoreError("Inicia sesión para acceder a tus diagramas.", 401);
   return owner;

@@ -1,15 +1,493 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T01:38:39.471151+00:00",
+  "generatedAt": "2026-10-11T03:12:25.029134+00:00",
   "title": "Design System: UML Studio",
   "extensions": {
     "colorMeta": {
       "ink": {
         "role": "neutral",
-        "displayName": "Claro · tinta",
-        "cssVariable": "--ink",
-        "theme": "light",
-        "source": "app/globals.css :root",
+        "displayName": "Ink",
+        "canonical": "#253b48",
+        "tonalRamp": [
+          "oklch(15% 0.0360 235.23)",
+          "oklch(26% 0.0360 235.23)",
+          "oklch(38% 0.0360 235.23)",
+          "oklch(49% 0.0360 235.23)",
+          "oklch(61% 0.0360 235.23)",
+          "oklch(72% 0.0360 235.23)",
+          "oklch(84% 0.0360 235.23)",
+          "oklch(95% 0.0360 235.23)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#536874",
+        "tonalRamp": [
+          "oklch(15% 0.0316 233.28)",
+          "oklch(26% 0.0316 233.28)",
+          "oklch(38% 0.0316 233.28)",
+          "oklch(49% 0.0316 233.28)",
+          "oklch(61% 0.0316 233.28)",
+          "oklch(72% 0.0316 233.28)",
+          "oklch(84% 0.0316 233.28)",
+          "oklch(95% 0.0316 233.28)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#dde5e9",
+        "tonalRamp": [
+          "oklch(15% 0.0102 228.90)",
+          "oklch(26% 0.0102 228.90)",
+          "oklch(38% 0.0102 228.90)",
+          "oklch(49% 0.0102 228.90)",
+          "oklch(61% 0.0102 228.90)",
+          "oklch(72% 0.0102 228.90)",
+          "oklch(84% 0.0102 228.90)",
+          "oklch(95% 0.0102 228.90)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent",
+        "canonical": "#1a647b",
+        "tonalRamp": [
+          "oklch(15% 0.0783 223.48)",
+          "oklch(26% 0.0783 223.48)",
+          "oklch(38% 0.0783 223.48)",
+          "oklch(49% 0.0783 223.48)",
+          "oklch(61% 0.0783 223.48)",
+          "oklch(72% 0.0783 223.48)",
+          "oklch(84% 0.0783 223.48)",
+          "oklch(95% 0.0783 223.48)"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Accent hover",
+        "canonical": "#124e62",
+        "tonalRamp": [
+          "oklch(15% 0.0673 225.22)",
+          "oklch(26% 0.0673 225.22)",
+          "oklch(38% 0.0673 225.22)",
+          "oklch(49% 0.0673 225.22)",
+          "oklch(61% 0.0673 225.22)",
+          "oklch(72% 0.0673 225.22)",
+          "oklch(84% 0.0673 225.22)",
+          "oklch(95% 0.0673 225.22)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Accent soft",
+        "canonical": "#e5f0f4",
+        "tonalRamp": [
+          "oklch(15% 0.0129 221.43)",
+          "oklch(26% 0.0129 221.43)",
+          "oklch(38% 0.0129 221.43)",
+          "oklch(49% 0.0129 221.43)",
+          "oklch(61% 0.0129 221.43)",
+          "oklch(72% 0.0129 221.43)",
+          "oklch(84% 0.0129 221.43)",
+          "oklch(95% 0.0129 221.43)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#f5f8fa",
+        "tonalRamp": [
+          "oklch(15% 0.0042 236.50)",
+          "oklch(26% 0.0042 236.50)",
+          "oklch(38% 0.0042 236.50)",
+          "oklch(49% 0.0042 236.50)",
+          "oklch(61% 0.0042 236.50)",
+          "oklch(72% 0.0042 236.50)",
+          "oklch(84% 0.0042 236.50)",
+          "oklch(95% 0.0042 236.50)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Rail",
+        "canonical": "#203440",
+        "tonalRamp": [
+          "oklch(15% 0.0336 235.67)",
+          "oklch(26% 0.0336 235.67)",
+          "oklch(38% 0.0336 235.67)",
+          "oklch(49% 0.0336 235.67)",
+          "oklch(61% 0.0336 235.67)",
+          "oklch(72% 0.0336 235.67)",
+          "oklch(84% 0.0336 235.67)",
+          "oklch(95% 0.0336 235.67)"
+        ]
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "Danger",
+        "canonical": "#a63d43",
+        "tonalRamp": [
+          "oklch(15% 0.1385 20.18)",
+          "oklch(26% 0.1385 20.18)",
+          "oklch(38% 0.1385 20.18)",
+          "oklch(49% 0.1385 20.18)",
+          "oklch(61% 0.1385 20.18)",
+          "oklch(72% 0.1385 20.18)",
+          "oklch(84% 0.1385 20.18)",
+          "oklch(95% 0.1385 20.18)"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field",
+        "canonical": "#fafcfd",
+        "tonalRamp": [
+          "oklch(15% 0.0025 228.78)",
+          "oklch(26% 0.0025 228.78)",
+          "oklch(38% 0.0025 228.78)",
+          "oklch(49% 0.0025 228.78)",
+          "oklch(61% 0.0025 228.78)",
+          "oklch(72% 0.0025 228.78)",
+          "oklch(84% 0.0025 228.78)",
+          "oklch(95% 0.0025 228.78)"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover",
+        "canonical": "#eaf0f4",
+        "tonalRamp": [
+          "oklch(15% 0.0084 236.56)",
+          "oklch(26% 0.0084 236.56)",
+          "oklch(38% 0.0084 236.56)",
+          "oklch(49% 0.0084 236.56)",
+          "oklch(61% 0.0084 236.56)",
+          "oklch(72% 0.0084 236.56)",
+          "oklch(84% 0.0084 236.56)",
+          "oklch(95% 0.0084 236.56)"
+        ]
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Selected",
+        "canonical": "#dfeef3",
+        "tonalRamp": [
+          "oklch(15% 0.0173 219.66)",
+          "oklch(26% 0.0173 219.66)",
+          "oklch(38% 0.0173 219.66)",
+          "oklch(49% 0.0173 219.66)",
+          "oklch(61% 0.0173 219.66)",
+          "oklch(72% 0.0173 219.66)",
+          "oklch(84% 0.0173 219.66)",
+          "oklch(95% 0.0173 219.66)"
+        ]
+      },
+      "selected-ink": {
+        "role": "neutral",
+        "displayName": "Selected ink",
+        "canonical": "#164e63",
+        "tonalRamp": [
+          "oklch(15% 0.0664 227.39)",
+          "oklch(26% 0.0664 227.39)",
+          "oklch(38% 0.0664 227.39)",
+          "oklch(49% 0.0664 227.39)",
+          "oklch(61% 0.0664 227.39)",
+          "oklch(72% 0.0664 227.39)",
+          "oklch(84% 0.0664 227.39)",
+          "oklch(95% 0.0664 227.39)"
+        ]
+      },
+      "code-surface": {
+        "role": "neutral",
+        "displayName": "Code surface",
+        "canonical": "#f8fafc",
+        "tonalRamp": [
+          "oklch(15% 0.0034 247.86)",
+          "oklch(26% 0.0034 247.86)",
+          "oklch(38% 0.0034 247.86)",
+          "oklch(49% 0.0034 247.86)",
+          "oklch(61% 0.0034 247.86)",
+          "oklch(72% 0.0034 247.86)",
+          "oklch(84% 0.0034 247.86)",
+          "oklch(95% 0.0034 247.86)"
+        ]
+      },
+      "code-ink": {
+        "role": "neutral",
+        "displayName": "Code ink",
+        "canonical": "#314957",
+        "tonalRamp": [
+          "oklch(15% 0.0379 234.64)",
+          "oklch(26% 0.0379 234.64)",
+          "oklch(38% 0.0379 234.64)",
+          "oklch(49% 0.0379 234.64)",
+          "oklch(61% 0.0379 234.64)",
+          "oklch(72% 0.0379 234.64)",
+          "oklch(84% 0.0379 234.64)",
+          "oklch(95% 0.0379 234.64)"
+        ]
+      },
+      "code-line": {
+        "role": "neutral",
+        "displayName": "Code line",
+        "canonical": "#e8f1f5",
+        "tonalRamp": [
+          "oklch(15% 0.0110 225.98)",
+          "oklch(26% 0.0110 225.98)",
+          "oklch(38% 0.0110 225.98)",
+          "oklch(49% 0.0110 225.98)",
+          "oklch(61% 0.0110 225.98)",
+          "oklch(72% 0.0110 225.98)",
+          "oklch(84% 0.0110 225.98)",
+          "oklch(95% 0.0110 225.98)"
+        ]
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Selection",
+        "canonical": "#c9e3ec",
+        "tonalRamp": [
+          "oklch(15% 0.0302 220.60)",
+          "oklch(26% 0.0302 220.60)",
+          "oklch(38% 0.0302 220.60)",
+          "oklch(49% 0.0302 220.60)",
+          "oklch(61% 0.0302 220.60)",
+          "oklch(72% 0.0302 220.60)",
+          "oklch(84% 0.0302 220.60)",
+          "oklch(95% 0.0302 220.60)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "canonical": "#f8fbfc",
+        "tonalRamp": [
+          "oklch(15% 0.0035 219.53)",
+          "oklch(26% 0.0035 219.53)",
+          "oklch(38% 0.0035 219.53)",
+          "oklch(49% 0.0035 219.53)",
+          "oklch(61% 0.0035 219.53)",
+          "oklch(72% 0.0035 219.53)",
+          "oklch(84% 0.0035 219.53)",
+          "oklch(95% 0.0035 219.53)"
+        ]
+      },
+      "canvas-dot": {
+        "role": "neutral",
+        "displayName": "Canvas dot",
+        "canonical": "#cbdce3",
+        "tonalRamp": [
+          "oklch(15% 0.0207 224.32)",
+          "oklch(26% 0.0207 224.32)",
+          "oklch(38% 0.0207 224.32)",
+          "oklch(49% 0.0207 224.32)",
+          "oklch(61% 0.0207 224.32)",
+          "oklch(72% 0.0207 224.32)",
+          "oklch(84% 0.0207 224.32)",
+          "oklch(95% 0.0207 224.32)"
+        ]
+      },
+      "positive": {
+        "role": "neutral",
+        "displayName": "Positive",
+        "canonical": "#276e62",
+        "tonalRamp": [
+          "oklch(15% 0.0729 179.98)",
+          "oklch(26% 0.0729 179.98)",
+          "oklch(38% 0.0729 179.98)",
+          "oklch(49% 0.0729 179.98)",
+          "oklch(61% 0.0729 179.98)",
+          "oklch(72% 0.0729 179.98)",
+          "oklch(84% 0.0729 179.98)",
+          "oklch(95% 0.0729 179.98)"
+        ]
+      },
+      "warning-soft": {
+        "role": "neutral",
+        "displayName": "Warning soft",
+        "canonical": "#fcf2e0",
+        "tonalRamp": [
+          "oklch(15% 0.0261 82.39)",
+          "oklch(26% 0.0261 82.39)",
+          "oklch(38% 0.0261 82.39)",
+          "oklch(49% 0.0261 82.39)",
+          "oklch(61% 0.0261 82.39)",
+          "oklch(72% 0.0261 82.39)",
+          "oklch(84% 0.0261 82.39)",
+          "oklch(95% 0.0261 82.39)"
+        ]
+      },
+      "warning-ink": {
+        "role": "neutral",
+        "displayName": "Warning ink",
+        "canonical": "#795822",
+        "tonalRamp": [
+          "oklch(15% 0.0824 76.70)",
+          "oklch(26% 0.0824 76.70)",
+          "oklch(38% 0.0824 76.70)",
+          "oklch(49% 0.0824 76.70)",
+          "oklch(61% 0.0824 76.70)",
+          "oklch(72% 0.0824 76.70)",
+          "oklch(84% 0.0824 76.70)",
+          "oklch(95% 0.0824 76.70)"
+        ]
+      },
+      "error-soft": {
+        "role": "neutral",
+        "displayName": "Error soft",
+        "canonical": "#fcf0f1",
+        "tonalRamp": [
+          "oklch(15% 0.0130 11.54)",
+          "oklch(26% 0.0130 11.54)",
+          "oklch(38% 0.0130 11.54)",
+          "oklch(49% 0.0130 11.54)",
+          "oklch(61% 0.0130 11.54)",
+          "oklch(72% 0.0130 11.54)",
+          "oklch(84% 0.0130 11.54)",
+          "oklch(95% 0.0130 11.54)"
+        ]
+      },
+      "git-work": {
+        "role": "secondary",
+        "displayName": "Git work",
+        "canonical": "#2a638a",
+        "tonalRamp": [
+          "oklch(15% 0.0865 241.69)",
+          "oklch(26% 0.0865 241.69)",
+          "oklch(38% 0.0865 241.69)",
+          "oklch(49% 0.0865 241.69)",
+          "oklch(61% 0.0865 241.69)",
+          "oklch(72% 0.0865 241.69)",
+          "oklch(84% 0.0865 241.69)",
+          "oklch(95% 0.0865 241.69)"
+        ]
+      },
+      "git-work-soft": {
+        "role": "secondary",
+        "displayName": "Git work soft",
+        "canonical": "#e9f1f8",
+        "tonalRamp": [
+          "oklch(15% 0.0127 244.26)",
+          "oklch(26% 0.0127 244.26)",
+          "oklch(38% 0.0127 244.26)",
+          "oklch(49% 0.0127 244.26)",
+          "oklch(61% 0.0127 244.26)",
+          "oklch(72% 0.0127 244.26)",
+          "oklch(84% 0.0127 244.26)",
+          "oklch(95% 0.0127 244.26)"
+        ]
+      },
+      "git-stage": {
+        "role": "secondary",
+        "displayName": "Git stage",
+        "canonical": "#97521e",
+        "tonalRamp": [
+          "oklch(15% 0.1118 53.51)",
+          "oklch(26% 0.1118 53.51)",
+          "oklch(38% 0.1118 53.51)",
+          "oklch(49% 0.1118 53.51)",
+          "oklch(61% 0.1118 53.51)",
+          "oklch(72% 0.1118 53.51)",
+          "oklch(84% 0.1118 53.51)",
+          "oklch(95% 0.1118 53.51)"
+        ]
+      },
+      "git-stage-soft": {
+        "role": "secondary",
+        "displayName": "Git stage soft",
+        "canonical": "#fbf0e6",
+        "tonalRamp": [
+          "oklch(15% 0.0179 64.93)",
+          "oklch(26% 0.0179 64.93)",
+          "oklch(38% 0.0179 64.93)",
+          "oklch(49% 0.0179 64.93)",
+          "oklch(61% 0.0179 64.93)",
+          "oklch(72% 0.0179 64.93)",
+          "oklch(84% 0.0179 64.93)",
+          "oklch(95% 0.0179 64.93)"
+        ]
+      },
+      "git-local": {
+        "role": "secondary",
+        "displayName": "Git local",
+        "canonical": "#347353",
+        "tonalRamp": [
+          "oklch(15% 0.0835 159.12)",
+          "oklch(26% 0.0835 159.12)",
+          "oklch(38% 0.0835 159.12)",
+          "oklch(49% 0.0835 159.12)",
+          "oklch(61% 0.0835 159.12)",
+          "oklch(72% 0.0835 159.12)",
+          "oklch(84% 0.0835 159.12)",
+          "oklch(95% 0.0835 159.12)"
+        ]
+      },
+      "git-local-soft": {
+        "role": "secondary",
+        "displayName": "Git local soft",
+        "canonical": "#edf5ef",
+        "tonalRamp": [
+          "oklch(15% 0.0116 153.67)",
+          "oklch(26% 0.0116 153.67)",
+          "oklch(38% 0.0116 153.67)",
+          "oklch(49% 0.0116 153.67)",
+          "oklch(61% 0.0116 153.67)",
+          "oklch(72% 0.0116 153.67)",
+          "oklch(84% 0.0116 153.67)",
+          "oklch(95% 0.0116 153.67)"
+        ]
+      },
+      "git-remote": {
+        "role": "secondary",
+        "displayName": "Git remote",
+        "canonical": "#846111",
+        "tonalRamp": [
+          "oklch(15% 0.1001 82.11)",
+          "oklch(26% 0.1001 82.11)",
+          "oklch(38% 0.1001 82.11)",
+          "oklch(49% 0.1001 82.11)",
+          "oklch(61% 0.1001 82.11)",
+          "oklch(72% 0.1001 82.11)",
+          "oklch(84% 0.1001 82.11)",
+          "oklch(95% 0.1001 82.11)"
+        ]
+      },
+      "git-remote-soft": {
+        "role": "secondary",
+        "displayName": "Git remote soft",
+        "canonical": "#fcf6e2",
+        "tonalRamp": [
+          "oklch(15% 0.0270 93.10)",
+          "oklch(26% 0.0270 93.10)",
+          "oklch(38% 0.0270 93.10)",
+          "oklch(49% 0.0270 93.10)",
+          "oklch(61% 0.0270 93.10)",
+          "oklch(72% 0.0270 93.10)",
+          "oklch(84% 0.0270 93.10)",
+          "oklch(95% 0.0270 93.10)"
+        ]
+      },
+      "graphite-ink": {
+        "role": "neutral",
+        "displayName": "Graphite ink",
+        "canonical": "#e2e7eb",
         "tonalRamp": [
           "oklch(15% 0.0077 241.67)",
           "oklch(26% 0.0077 241.67)",
@@ -19,16 +497,12 @@
           "oklch(72% 0.0077 241.67)",
           "oklch(84% 0.0077 241.67)",
           "oklch(95% 0.0077 241.67)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "muted": {
+      "graphite-muted": {
         "role": "neutral",
-        "displayName": "Claro · texto secundario",
-        "cssVariable": "--muted",
-        "theme": "light",
-        "source": "app/globals.css :root",
+        "displayName": "Graphite muted",
+        "canonical": "#aebbc6",
         "tonalRamp": [
           "oklch(15% 0.0213 243.49)",
           "oklch(26% 0.0213 243.49)",
@@ -38,16 +512,12 @@
           "oklch(72% 0.0213 243.49)",
           "oklch(84% 0.0213 243.49)",
           "oklch(95% 0.0213 243.49)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "line": {
+      "graphite-line": {
         "role": "neutral",
-        "displayName": "Claro · separador",
-        "cssVariable": "--line",
-        "theme": "light",
-        "source": "app/globals.css :root",
+        "displayName": "Graphite line",
+        "canonical": "#3a444e",
         "tonalRamp": [
           "oklch(15% 0.0216 248.39)",
           "oklch(26% 0.0216 248.39)",
@@ -57,92 +527,12 @@
           "oklch(72% 0.0216 248.39)",
           "oklch(84% 0.0216 248.39)",
           "oklch(95% 0.0216 248.39)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "accent": {
-        "role": "primary",
-        "displayName": "Claro · acento",
-        "cssVariable": "--accent",
-        "theme": "light",
-        "source": "app/globals.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0595 218.44)",
-          "oklch(26% 0.0595 218.44)",
-          "oklch(38% 0.0595 218.44)",
-          "oklch(49% 0.0595 218.44)",
-          "oklch(61% 0.0595 218.44)",
-          "oklch(72% 0.0595 218.44)",
-          "oklch(84% 0.0595 218.44)",
-          "oklch(95% 0.0595 218.44)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "accent-hover": {
-        "role": "primary",
-        "displayName": "Claro · acento al pasar",
-        "cssVariable": "--accent-hover",
-        "theme": "light",
-        "source": "app/globals.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0464 215.44)",
-          "oklch(26% 0.0464 215.44)",
-          "oklch(38% 0.0464 215.44)",
-          "oklch(49% 0.0464 215.44)",
-          "oklch(61% 0.0464 215.44)",
-          "oklch(72% 0.0464 215.44)",
-          "oklch(84% 0.0464 215.44)",
-          "oklch(95% 0.0464 215.44)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "accent-soft": {
-        "role": "primary",
-        "displayName": "Claro · acento tenue",
-        "cssVariable": "--accent-soft",
-        "theme": "light",
-        "source": "app/globals.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0277 225.77)",
-          "oklch(26% 0.0277 225.77)",
-          "oklch(38% 0.0277 225.77)",
-          "oklch(49% 0.0277 225.77)",
-          "oklch(61% 0.0277 225.77)",
-          "oklch(72% 0.0277 225.77)",
-          "oklch(84% 0.0277 225.77)",
-          "oklch(95% 0.0277 225.77)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "surface": {
+      "graphite-paper": {
         "role": "neutral",
-        "displayName": "Claro · superficie secundaria",
-        "cssVariable": "--surface",
-        "theme": "light",
-        "source": "app/globals.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0167 248.48)",
-          "oklch(26% 0.0167 248.48)",
-          "oklch(38% 0.0167 248.48)",
-          "oklch(49% 0.0167 248.48)",
-          "oklch(61% 0.0167 248.48)",
-          "oklch(72% 0.0167 248.48)",
-          "oklch(84% 0.0167 248.48)",
-          "oklch(95% 0.0167 248.48)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "paper": {
-        "role": "neutral",
-        "displayName": "Claro · superficie principal",
-        "cssVariable": "--paper",
-        "theme": "light",
-        "source": "app/globals.css :root",
+        "displayName": "Graphite paper",
+        "canonical": "#242b33",
         "tonalRamp": [
           "oklch(15% 0.0177 251.89)",
           "oklch(26% 0.0177 251.89)",
@@ -152,54 +542,27 @@
           "oklch(72% 0.0177 251.89)",
           "oklch(84% 0.0177 251.89)",
           "oklch(95% 0.0177 251.89)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "rail": {
+      "graphite-surface": {
         "role": "neutral",
-        "displayName": "Claro · navegación grafito",
-        "cssVariable": "--rail",
-        "theme": "light",
-        "source": "app/globals.css :root",
+        "displayName": "Graphite surface",
+        "canonical": "#1d242b",
         "tonalRamp": [
-          "oklch(15% 0.0172 248.61)",
-          "oklch(26% 0.0172 248.61)",
-          "oklch(38% 0.0172 248.61)",
-          "oklch(49% 0.0172 248.61)",
-          "oklch(61% 0.0172 248.61)",
-          "oklch(72% 0.0172 248.61)",
-          "oklch(84% 0.0172 248.61)",
-          "oklch(95% 0.0172 248.61)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0167 248.48)",
+          "oklch(26% 0.0167 248.48)",
+          "oklch(38% 0.0167 248.48)",
+          "oklch(49% 0.0167 248.48)",
+          "oklch(61% 0.0167 248.48)",
+          "oklch(72% 0.0167 248.48)",
+          "oklch(84% 0.0167 248.48)",
+          "oklch(95% 0.0167 248.48)"
+        ]
       },
-      "danger": {
-        "role": "tertiary",
-        "displayName": "Claro · error y eliminación",
-        "cssVariable": "--danger",
-        "theme": "light",
-        "source": "app/globals.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0927 13.45)",
-          "oklch(26% 0.0927 13.45)",
-          "oklch(38% 0.0927 13.45)",
-          "oklch(49% 0.0927 13.45)",
-          "oklch(61% 0.0927 13.45)",
-          "oklch(72% 0.0927 13.45)",
-          "oklch(84% 0.0927 13.45)",
-          "oklch(95% 0.0927 13.45)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "field": {
+      "graphite-field": {
         "role": "neutral",
-        "displayName": "Claro · campo",
-        "cssVariable": "--field",
-        "theme": "light",
-        "source": "app/themes.css :root",
+        "displayName": "Graphite field",
+        "canonical": "#20272e",
         "tonalRamp": [
           "oklch(15% 0.0165 248.44)",
           "oklch(26% 0.0165 248.44)",
@@ -209,434 +572,72 @@
           "oklch(72% 0.0165 248.44)",
           "oklch(84% 0.0165 248.44)",
           "oklch(95% 0.0165 248.44)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "hover": {
-        "role": "neutral",
-        "displayName": "Claro · superficie al pasar",
-        "cssVariable": "--hover",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0215 243.05)",
-          "oklch(26% 0.0215 243.05)",
-          "oklch(38% 0.0215 243.05)",
-          "oklch(49% 0.0215 243.05)",
-          "oklch(61% 0.0215 243.05)",
-          "oklch(72% 0.0215 243.05)",
-          "oklch(84% 0.0215 243.05)",
-          "oklch(95% 0.0215 243.05)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "selected": {
-        "role": "neutral",
-        "displayName": "Claro · selección",
-        "cssVariable": "--selected",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0314 225.28)",
-          "oklch(26% 0.0314 225.28)",
-          "oklch(38% 0.0314 225.28)",
-          "oklch(49% 0.0314 225.28)",
-          "oklch(61% 0.0314 225.28)",
-          "oklch(72% 0.0314 225.28)",
-          "oklch(84% 0.0314 225.28)",
-          "oklch(95% 0.0314 225.28)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "selected-ink": {
-        "role": "primary",
-        "displayName": "Claro · texto seleccionado",
-        "cssVariable": "--selected-ink",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0410 215.91)",
-          "oklch(26% 0.0410 215.91)",
-          "oklch(38% 0.0410 215.91)",
-          "oklch(49% 0.0410 215.91)",
-          "oklch(61% 0.0410 215.91)",
-          "oklch(72% 0.0410 215.91)",
-          "oklch(84% 0.0410 215.91)",
-          "oklch(95% 0.0410 215.91)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "code-surface": {
-        "role": "neutral",
-        "displayName": "Claro · fondo de código",
-        "cssVariable": "--code-surface",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0167 248.49)",
-          "oklch(26% 0.0167 248.49)",
-          "oklch(38% 0.0167 248.49)",
-          "oklch(49% 0.0167 248.49)",
-          "oklch(61% 0.0167 248.49)",
-          "oklch(72% 0.0167 248.49)",
-          "oklch(84% 0.0167 248.49)",
-          "oklch(95% 0.0167 248.49)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "code-ink": {
-        "role": "neutral",
-        "displayName": "Claro · tinta de código",
-        "cssVariable": "--code-ink",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0152 235.39)",
-          "oklch(26% 0.0152 235.39)",
-          "oklch(38% 0.0152 235.39)",
-          "oklch(49% 0.0152 235.39)",
-          "oklch(61% 0.0152 235.39)",
-          "oklch(72% 0.0152 235.39)",
-          "oklch(84% 0.0152 235.39)",
-          "oklch(95% 0.0152 235.39)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "code-line": {
-        "role": "neutral",
-        "displayName": "Claro · línea activa",
-        "cssVariable": "--code-line",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0264 237.75)",
-          "oklch(26% 0.0264 237.75)",
-          "oklch(38% 0.0264 237.75)",
-          "oklch(49% 0.0264 237.75)",
-          "oklch(61% 0.0264 237.75)",
-          "oklch(72% 0.0264 237.75)",
-          "oklch(84% 0.0264 237.75)",
-          "oklch(95% 0.0264 237.75)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "selection": {
-        "role": "neutral",
-        "displayName": "Claro · selección de texto",
-        "cssVariable": "--selection",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0431 230.63)",
-          "oklch(26% 0.0431 230.63)",
-          "oklch(38% 0.0431 230.63)",
-          "oklch(49% 0.0431 230.63)",
-          "oklch(61% 0.0431 230.63)",
-          "oklch(72% 0.0431 230.63)",
-          "oklch(84% 0.0431 230.63)",
-          "oklch(95% 0.0431 230.63)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "canvas": {
-        "role": "neutral",
-        "displayName": "Claro · fondo de exportación Studio",
-        "cssVariable": "--canvas",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0221 245.95)",
-          "oklch(26% 0.0221 245.95)",
-          "oklch(38% 0.0221 245.95)",
-          "oklch(49% 0.0221 245.95)",
-          "oklch(61% 0.0221 245.95)",
-          "oklch(72% 0.0221 245.95)",
-          "oklch(84% 0.0221 245.95)",
-          "oklch(95% 0.0221 245.95)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "positive": {
-        "role": "tertiary",
-        "displayName": "Claro · confirmación",
-        "cssVariable": "--positive",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0670 166.45)",
-          "oklch(26% 0.0670 166.45)",
-          "oklch(38% 0.0670 166.45)",
-          "oklch(49% 0.0670 166.45)",
-          "oklch(61% 0.0670 166.45)",
-          "oklch(72% 0.0670 166.45)",
-          "oklch(84% 0.0670 166.45)",
-          "oklch(95% 0.0670 166.45)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "warning-soft": {
-        "role": "tertiary",
-        "displayName": "Claro · aviso tenue",
-        "cssVariable": "--warning-soft",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0275 82.93)",
-          "oklch(26% 0.0275 82.93)",
-          "oklch(38% 0.0275 82.93)",
-          "oklch(49% 0.0275 82.93)",
-          "oklch(61% 0.0275 82.93)",
-          "oklch(72% 0.0275 82.93)",
-          "oklch(84% 0.0275 82.93)",
-          "oklch(95% 0.0275 82.93)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "warning-ink": {
-        "role": "tertiary",
-        "displayName": "Claro · tinta de aviso",
-        "cssVariable": "--warning-ink",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0715 80.57)",
-          "oklch(26% 0.0715 80.57)",
-          "oklch(38% 0.0715 80.57)",
-          "oklch(49% 0.0715 80.57)",
-          "oklch(61% 0.0715 80.57)",
-          "oklch(72% 0.0715 80.57)",
-          "oklch(84% 0.0715 80.57)",
-          "oklch(95% 0.0715 80.57)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "error-soft": {
-        "role": "tertiary",
-        "displayName": "Claro · error tenue",
-        "cssVariable": "--error-soft",
-        "theme": "light",
-        "source": "app/themes.css :root",
-        "tonalRamp": [
-          "oklch(15% 0.0381 3.69)",
-          "oklch(26% 0.0381 3.69)",
-          "oklch(38% 0.0381 3.69)",
-          "oklch(49% 0.0381 3.69)",
-          "oklch(61% 0.0381 3.69)",
-          "oklch(72% 0.0381 3.69)",
-          "oklch(84% 0.0381 3.69)",
-          "oklch(95% 0.0381 3.69)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "graphite-ink": {
-        "role": "neutral",
-        "displayName": "Grafito · tinta",
-        "cssVariable": "--ink",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
-        "tonalRamp": [
-          "oklch(15% 0.0208 248.05)",
-          "oklch(26% 0.0208 248.05)",
-          "oklch(38% 0.0208 248.05)",
-          "oklch(49% 0.0208 248.05)",
-          "oklch(61% 0.0208 248.05)",
-          "oklch(72% 0.0208 248.05)",
-          "oklch(84% 0.0208 248.05)",
-          "oklch(95% 0.0208 248.05)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "graphite-muted": {
-        "role": "neutral",
-        "displayName": "Grafito · texto secundario",
-        "cssVariable": "--muted",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
-        "tonalRamp": [
-          "oklch(15% 0.0355 245.56)",
-          "oklch(26% 0.0355 245.56)",
-          "oklch(38% 0.0355 245.56)",
-          "oklch(49% 0.0355 245.56)",
-          "oklch(61% 0.0355 245.56)",
-          "oklch(72% 0.0355 245.56)",
-          "oklch(84% 0.0355 245.56)",
-          "oklch(95% 0.0355 245.56)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "graphite-line": {
-        "role": "neutral",
-        "displayName": "Grafito · separador",
-        "cssVariable": "--line",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
-        "tonalRamp": [
-          "oklch(15% 0.0456 251.40)",
-          "oklch(26% 0.0456 251.40)",
-          "oklch(38% 0.0456 251.40)",
-          "oklch(49% 0.0456 251.40)",
-          "oklch(61% 0.0456 251.40)",
-          "oklch(72% 0.0456 251.40)",
-          "oklch(84% 0.0456 251.40)",
-          "oklch(95% 0.0456 251.40)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "graphite-paper": {
-        "role": "neutral",
-        "displayName": "Grafito · superficie principal",
-        "cssVariable": "--paper",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
-        "tonalRamp": [
-          "oklch(15% 0.0436 249.76)",
-          "oklch(26% 0.0436 249.76)",
-          "oklch(38% 0.0436 249.76)",
-          "oklch(49% 0.0436 249.76)",
-          "oklch(61% 0.0436 249.76)",
-          "oklch(72% 0.0436 249.76)",
-          "oklch(84% 0.0436 249.76)",
-          "oklch(95% 0.0436 249.76)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "graphite-surface": {
-        "role": "neutral",
-        "displayName": "Grafito · superficie secundaria",
-        "cssVariable": "--surface",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
-        "tonalRamp": [
-          "oklch(15% 0.0411 252.46)",
-          "oklch(26% 0.0411 252.46)",
-          "oklch(38% 0.0411 252.46)",
-          "oklch(49% 0.0411 252.46)",
-          "oklch(61% 0.0411 252.46)",
-          "oklch(72% 0.0411 252.46)",
-          "oklch(84% 0.0411 252.46)",
-          "oklch(95% 0.0411 252.46)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
-      },
-      "graphite-field": {
-        "role": "neutral",
-        "displayName": "Grafito · campo",
-        "cssVariable": "--field",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
-        "tonalRamp": [
-          "oklch(15% 0.0451 252.29)",
-          "oklch(26% 0.0451 252.29)",
-          "oklch(38% 0.0451 252.29)",
-          "oklch(49% 0.0451 252.29)",
-          "oklch(61% 0.0451 252.29)",
-          "oklch(72% 0.0451 252.29)",
-          "oklch(84% 0.0451 252.29)",
-          "oklch(95% 0.0451 252.29)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
       "graphite-accent": {
         "role": "primary",
-        "displayName": "Grafito · acento",
-        "cssVariable": "--accent",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite accent",
+        "canonical": "#91c6d6",
         "tonalRamp": [
-          "oklch(15% 0.0758 231.45)",
-          "oklch(26% 0.0758 231.45)",
-          "oklch(38% 0.0758 231.45)",
-          "oklch(49% 0.0758 231.45)",
-          "oklch(61% 0.0758 231.45)",
-          "oklch(72% 0.0758 231.45)",
-          "oklch(84% 0.0758 231.45)",
-          "oklch(95% 0.0758 231.45)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0595 218.44)",
+          "oklch(26% 0.0595 218.44)",
+          "oklch(38% 0.0595 218.44)",
+          "oklch(49% 0.0595 218.44)",
+          "oklch(61% 0.0595 218.44)",
+          "oklch(72% 0.0595 218.44)",
+          "oklch(84% 0.0595 218.44)",
+          "oklch(95% 0.0595 218.44)"
+        ]
       },
       "graphite-accent-hover": {
         "role": "primary",
-        "displayName": "Grafito · acento al pasar",
-        "cssVariable": "--accent-hover",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite accent hover",
+        "canonical": "#b2dce7",
         "tonalRamp": [
-          "oklch(15% 0.0518 230.33)",
-          "oklch(26% 0.0518 230.33)",
-          "oklch(38% 0.0518 230.33)",
-          "oklch(49% 0.0518 230.33)",
-          "oklch(61% 0.0518 230.33)",
-          "oklch(72% 0.0518 230.33)",
-          "oklch(84% 0.0518 230.33)",
-          "oklch(95% 0.0518 230.33)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0464 215.44)",
+          "oklch(26% 0.0464 215.44)",
+          "oklch(38% 0.0464 215.44)",
+          "oklch(49% 0.0464 215.44)",
+          "oklch(61% 0.0464 215.44)",
+          "oklch(72% 0.0464 215.44)",
+          "oklch(84% 0.0464 215.44)",
+          "oklch(95% 0.0464 215.44)"
+        ]
       },
       "graphite-accent-soft": {
         "role": "primary",
-        "displayName": "Grafito · acento tenue",
-        "cssVariable": "--accent-soft",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite accent soft",
+        "canonical": "#30434b",
         "tonalRamp": [
-          "oklch(15% 0.0593 244.13)",
-          "oklch(26% 0.0593 244.13)",
-          "oklch(38% 0.0593 244.13)",
-          "oklch(49% 0.0593 244.13)",
-          "oklch(61% 0.0593 244.13)",
-          "oklch(72% 0.0593 244.13)",
-          "oklch(84% 0.0593 244.13)",
-          "oklch(95% 0.0593 244.13)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0277 225.77)",
+          "oklch(26% 0.0277 225.77)",
+          "oklch(38% 0.0277 225.77)",
+          "oklch(49% 0.0277 225.77)",
+          "oklch(61% 0.0277 225.77)",
+          "oklch(72% 0.0277 225.77)",
+          "oklch(84% 0.0277 225.77)",
+          "oklch(95% 0.0277 225.77)"
+        ]
       },
       "graphite-rail": {
         "role": "neutral",
-        "displayName": "Grafito · navegación grafito",
-        "cssVariable": "--rail",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite rail",
+        "canonical": "#151c23",
         "tonalRamp": [
-          "oklch(15% 0.0342 249.77)",
-          "oklch(26% 0.0342 249.77)",
-          "oklch(38% 0.0342 249.77)",
-          "oklch(49% 0.0342 249.77)",
-          "oklch(61% 0.0342 249.77)",
-          "oklch(72% 0.0342 249.77)",
-          "oklch(84% 0.0342 249.77)",
-          "oklch(95% 0.0342 249.77)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0172 248.61)",
+          "oklch(26% 0.0172 248.61)",
+          "oklch(38% 0.0172 248.61)",
+          "oklch(49% 0.0172 248.61)",
+          "oklch(61% 0.0172 248.61)",
+          "oklch(72% 0.0172 248.61)",
+          "oklch(84% 0.0172 248.61)",
+          "oklch(95% 0.0172 248.61)"
+        ]
       },
       "graphite-danger": {
-        "role": "tertiary",
-        "displayName": "Grafito · error y eliminación",
-        "cssVariable": "--danger",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "role": "neutral",
+        "displayName": "Graphite danger",
+        "canonical": "#f4a6ad",
         "tonalRamp": [
           "oklch(15% 0.0927 13.45)",
           "oklch(26% 0.0927 13.45)",
@@ -646,168 +647,147 @@
           "oklch(72% 0.0927 13.45)",
           "oklch(84% 0.0927 13.45)",
           "oklch(95% 0.0927 13.45)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
       "graphite-hover": {
         "role": "neutral",
-        "displayName": "Grafito · superficie al pasar",
-        "cssVariable": "--hover",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite hover",
+        "canonical": "#303b44",
         "tonalRamp": [
-          "oklch(15% 0.0482 246.37)",
-          "oklch(26% 0.0482 246.37)",
-          "oklch(38% 0.0482 246.37)",
-          "oklch(49% 0.0482 246.37)",
-          "oklch(61% 0.0482 246.37)",
-          "oklch(72% 0.0482 246.37)",
-          "oklch(84% 0.0482 246.37)",
-          "oklch(95% 0.0482 246.37)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0215 243.05)",
+          "oklch(26% 0.0215 243.05)",
+          "oklch(38% 0.0215 243.05)",
+          "oklch(49% 0.0215 243.05)",
+          "oklch(61% 0.0215 243.05)",
+          "oklch(72% 0.0215 243.05)",
+          "oklch(84% 0.0215 243.05)",
+          "oklch(95% 0.0215 243.05)"
+        ]
       },
       "graphite-selected": {
         "role": "neutral",
-        "displayName": "Grafito · selección",
-        "cssVariable": "--selected",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite selected",
+        "canonical": "#30464f",
         "tonalRamp": [
-          "oklch(15% 0.0584 239.84)",
-          "oklch(26% 0.0584 239.84)",
-          "oklch(38% 0.0584 239.84)",
-          "oklch(49% 0.0584 239.84)",
-          "oklch(61% 0.0584 239.84)",
-          "oklch(72% 0.0584 239.84)",
-          "oklch(84% 0.0584 239.84)",
-          "oklch(95% 0.0584 239.84)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0314 225.28)",
+          "oklch(26% 0.0314 225.28)",
+          "oklch(38% 0.0314 225.28)",
+          "oklch(49% 0.0314 225.28)",
+          "oklch(61% 0.0314 225.28)",
+          "oklch(72% 0.0314 225.28)",
+          "oklch(84% 0.0314 225.28)",
+          "oklch(95% 0.0314 225.28)"
+        ]
       },
       "graphite-selected-ink": {
-        "role": "primary",
-        "displayName": "Grafito · texto seleccionado",
-        "cssVariable": "--selected-ink",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "role": "neutral",
+        "displayName": "Graphite selected ink",
+        "canonical": "#c0e5ef",
         "tonalRamp": [
-          "oklch(15% 0.0443 228.05)",
-          "oklch(26% 0.0443 228.05)",
-          "oklch(38% 0.0443 228.05)",
-          "oklch(49% 0.0443 228.05)",
-          "oklch(61% 0.0443 228.05)",
-          "oklch(72% 0.0443 228.05)",
-          "oklch(84% 0.0443 228.05)",
-          "oklch(95% 0.0443 228.05)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0410 215.91)",
+          "oklch(26% 0.0410 215.91)",
+          "oklch(38% 0.0410 215.91)",
+          "oklch(49% 0.0410 215.91)",
+          "oklch(61% 0.0410 215.91)",
+          "oklch(72% 0.0410 215.91)",
+          "oklch(84% 0.0410 215.91)",
+          "oklch(95% 0.0410 215.91)"
+        ]
       },
       "graphite-code-surface": {
         "role": "neutral",
-        "displayName": "Grafito · fondo de código",
-        "cssVariable": "--code-surface",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite code surface",
+        "canonical": "#1c232a",
         "tonalRamp": [
-          "oklch(15% 0.0427 253.66)",
-          "oklch(26% 0.0427 253.66)",
-          "oklch(38% 0.0427 253.66)",
-          "oklch(49% 0.0427 253.66)",
-          "oklch(61% 0.0427 253.66)",
-          "oklch(72% 0.0427 253.66)",
-          "oklch(84% 0.0427 253.66)",
-          "oklch(95% 0.0427 253.66)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0167 248.49)",
+          "oklch(26% 0.0167 248.49)",
+          "oklch(38% 0.0167 248.49)",
+          "oklch(49% 0.0167 248.49)",
+          "oklch(61% 0.0167 248.49)",
+          "oklch(72% 0.0167 248.49)",
+          "oklch(84% 0.0167 248.49)",
+          "oklch(95% 0.0167 248.49)"
+        ]
       },
       "graphite-code-ink": {
         "role": "neutral",
-        "displayName": "Grafito · tinta de código",
-        "cssVariable": "--code-ink",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite code ink",
+        "canonical": "#d7e2e9",
         "tonalRamp": [
-          "oklch(15% 0.0247 242.36)",
-          "oklch(26% 0.0247 242.36)",
-          "oklch(38% 0.0247 242.36)",
-          "oklch(49% 0.0247 242.36)",
-          "oklch(61% 0.0247 242.36)",
-          "oklch(72% 0.0247 242.36)",
-          "oklch(84% 0.0247 242.36)",
-          "oklch(95% 0.0247 242.36)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0152 235.39)",
+          "oklch(26% 0.0152 235.39)",
+          "oklch(38% 0.0152 235.39)",
+          "oklch(49% 0.0152 235.39)",
+          "oklch(61% 0.0152 235.39)",
+          "oklch(72% 0.0152 235.39)",
+          "oklch(84% 0.0152 235.39)",
+          "oklch(95% 0.0152 235.39)"
+        ]
       },
       "graphite-code-line": {
         "role": "neutral",
-        "displayName": "Grafito · línea activa",
-        "cssVariable": "--code-line",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite code line",
+        "canonical": "#2b3a44",
         "tonalRamp": [
-          "oklch(15% 0.0491 248.55)",
-          "oklch(26% 0.0491 248.55)",
-          "oklch(38% 0.0491 248.55)",
-          "oklch(49% 0.0491 248.55)",
-          "oklch(61% 0.0491 248.55)",
-          "oklch(72% 0.0491 248.55)",
-          "oklch(84% 0.0491 248.55)",
-          "oklch(95% 0.0491 248.55)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0264 237.75)",
+          "oklch(26% 0.0264 237.75)",
+          "oklch(38% 0.0264 237.75)",
+          "oklch(49% 0.0264 237.75)",
+          "oklch(61% 0.0264 237.75)",
+          "oklch(72% 0.0264 237.75)",
+          "oklch(84% 0.0264 237.75)",
+          "oklch(95% 0.0264 237.75)"
+        ]
       },
       "graphite-selection": {
         "role": "neutral",
-        "displayName": "Grafito · selección de texto",
-        "cssVariable": "--selection",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite selection",
+        "canonical": "#3b5968",
         "tonalRamp": [
-          "oklch(15% 0.0582 241.01)",
-          "oklch(26% 0.0582 241.01)",
-          "oklch(38% 0.0582 241.01)",
-          "oklch(49% 0.0582 241.01)",
-          "oklch(61% 0.0582 241.01)",
-          "oklch(72% 0.0582 241.01)",
-          "oklch(84% 0.0582 241.01)",
-          "oklch(95% 0.0582 241.01)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0431 230.63)",
+          "oklch(26% 0.0431 230.63)",
+          "oklch(38% 0.0431 230.63)",
+          "oklch(49% 0.0431 230.63)",
+          "oklch(61% 0.0431 230.63)",
+          "oklch(72% 0.0431 230.63)",
+          "oklch(84% 0.0431 230.63)",
+          "oklch(95% 0.0431 230.63)"
+        ]
       },
       "graphite-canvas": {
         "role": "neutral",
-        "displayName": "Grafito · fondo de exportación Studio",
-        "cssVariable": "--canvas",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "displayName": "Graphite canvas",
+        "canonical": "#1b252e",
         "tonalRamp": [
-          "oklch(15% 0.0400 249.79)",
-          "oklch(26% 0.0400 249.79)",
-          "oklch(38% 0.0400 249.79)",
-          "oklch(49% 0.0400 249.79)",
-          "oklch(61% 0.0400 249.79)",
-          "oklch(72% 0.0400 249.79)",
-          "oklch(84% 0.0400 249.79)",
-          "oklch(95% 0.0400 249.79)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0221 245.95)",
+          "oklch(26% 0.0221 245.95)",
+          "oklch(38% 0.0221 245.95)",
+          "oklch(49% 0.0221 245.95)",
+          "oklch(61% 0.0221 245.95)",
+          "oklch(72% 0.0221 245.95)",
+          "oklch(84% 0.0221 245.95)",
+          "oklch(95% 0.0221 245.95)"
+        ]
+      },
+      "graphite-canvas-dot": {
+        "role": "neutral",
+        "displayName": "Graphite canvas dot",
+        "canonical": "#3b4e5c",
+        "tonalRamp": [
+          "oklch(15% 0.0334 240.52)",
+          "oklch(26% 0.0334 240.52)",
+          "oklch(38% 0.0334 240.52)",
+          "oklch(49% 0.0334 240.52)",
+          "oklch(61% 0.0334 240.52)",
+          "oklch(72% 0.0334 240.52)",
+          "oklch(84% 0.0334 240.52)",
+          "oklch(95% 0.0334 240.52)"
+        ]
       },
       "graphite-positive": {
-        "role": "tertiary",
-        "displayName": "Grafito · confirmación",
-        "cssVariable": "--positive",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "role": "neutral",
+        "displayName": "Graphite positive",
+        "canonical": "#9bd3bb",
         "tonalRamp": [
           "oklch(15% 0.0670 166.45)",
           "oklch(26% 0.0670 166.45)",
@@ -817,35 +797,27 @@
           "oklch(72% 0.0670 166.45)",
           "oklch(84% 0.0670 166.45)",
           "oklch(95% 0.0670 166.45)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
       "graphite-warning-soft": {
-        "role": "tertiary",
-        "displayName": "Grafito · aviso tenue",
-        "cssVariable": "--warning-soft",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "role": "neutral",
+        "displayName": "Graphite warning soft",
+        "canonical": "#3a3223",
         "tonalRamp": [
-          "oklch(15% 0.0219 84.49)",
-          "oklch(26% 0.0219 84.49)",
-          "oklch(38% 0.0219 84.49)",
-          "oklch(49% 0.0219 84.49)",
-          "oklch(61% 0.0219 84.49)",
-          "oklch(72% 0.0219 84.49)",
-          "oklch(84% 0.0219 84.49)",
-          "oklch(95% 0.0219 84.49)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+          "oklch(15% 0.0275 82.93)",
+          "oklch(26% 0.0275 82.93)",
+          "oklch(38% 0.0275 82.93)",
+          "oklch(49% 0.0275 82.93)",
+          "oklch(61% 0.0275 82.93)",
+          "oklch(72% 0.0275 82.93)",
+          "oklch(84% 0.0275 82.93)",
+          "oklch(95% 0.0275 82.93)"
+        ]
       },
       "graphite-warning-ink": {
-        "role": "tertiary",
-        "displayName": "Grafito · tinta de aviso",
-        "cssVariable": "--warning-ink",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "role": "neutral",
+        "displayName": "Graphite warning ink",
+        "canonical": "#eed1a0",
         "tonalRamp": [
           "oklch(15% 0.0715 80.57)",
           "oklch(26% 0.0715 80.57)",
@@ -855,16 +827,372 @@
           "oklch(72% 0.0715 80.57)",
           "oklch(84% 0.0715 80.57)",
           "oklch(95% 0.0715 80.57)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
       "graphite-error-soft": {
-        "role": "tertiary",
-        "displayName": "Grafito · error tenue",
-        "cssVariable": "--error-soft",
-        "theme": "graphite",
-        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "role": "neutral",
+        "displayName": "Graphite error soft",
+        "canonical": "#452c32",
+        "tonalRamp": [
+          "oklch(15% 0.0381 3.69)",
+          "oklch(26% 0.0381 3.69)",
+          "oklch(38% 0.0381 3.69)",
+          "oklch(49% 0.0381 3.69)",
+          "oklch(61% 0.0381 3.69)",
+          "oklch(72% 0.0381 3.69)",
+          "oklch(84% 0.0381 3.69)",
+          "oklch(95% 0.0381 3.69)"
+        ]
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night ink",
+        "canonical": "#dce8f4",
+        "tonalRamp": [
+          "oklch(15% 0.0208 248.05)",
+          "oklch(26% 0.0208 248.05)",
+          "oklch(38% 0.0208 248.05)",
+          "oklch(49% 0.0208 248.05)",
+          "oklch(61% 0.0208 248.05)",
+          "oklch(72% 0.0208 248.05)",
+          "oklch(84% 0.0208 248.05)",
+          "oklch(95% 0.0208 248.05)"
+        ]
+      },
+      "night-muted": {
+        "role": "neutral",
+        "displayName": "Night muted",
+        "canonical": "#abc0d3",
+        "tonalRamp": [
+          "oklch(15% 0.0355 245.56)",
+          "oklch(26% 0.0355 245.56)",
+          "oklch(38% 0.0355 245.56)",
+          "oklch(49% 0.0355 245.56)",
+          "oklch(61% 0.0355 245.56)",
+          "oklch(72% 0.0355 245.56)",
+          "oklch(84% 0.0355 245.56)",
+          "oklch(95% 0.0355 245.56)"
+        ]
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Night line",
+        "canonical": "#30445a",
+        "tonalRamp": [
+          "oklch(15% 0.0456 251.40)",
+          "oklch(26% 0.0456 251.40)",
+          "oklch(38% 0.0456 251.40)",
+          "oklch(49% 0.0456 251.40)",
+          "oklch(61% 0.0456 251.40)",
+          "oklch(72% 0.0456 251.40)",
+          "oklch(84% 0.0456 251.40)",
+          "oklch(95% 0.0456 251.40)"
+        ]
+      },
+      "night-paper": {
+        "role": "neutral",
+        "displayName": "Night paper",
+        "canonical": "#14273a",
+        "tonalRamp": [
+          "oklch(15% 0.0436 249.76)",
+          "oklch(26% 0.0436 249.76)",
+          "oklch(38% 0.0436 249.76)",
+          "oklch(49% 0.0436 249.76)",
+          "oklch(61% 0.0436 249.76)",
+          "oklch(72% 0.0436 249.76)",
+          "oklch(84% 0.0436 249.76)",
+          "oklch(95% 0.0436 249.76)"
+        ]
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Night surface",
+        "canonical": "#102032",
+        "tonalRamp": [
+          "oklch(15% 0.0411 252.46)",
+          "oklch(26% 0.0411 252.46)",
+          "oklch(38% 0.0411 252.46)",
+          "oklch(49% 0.0411 252.46)",
+          "oklch(61% 0.0411 252.46)",
+          "oklch(72% 0.0411 252.46)",
+          "oklch(84% 0.0411 252.46)",
+          "oklch(95% 0.0411 252.46)"
+        ]
+      },
+      "night-field": {
+        "role": "neutral",
+        "displayName": "Night field",
+        "canonical": "#112337",
+        "tonalRamp": [
+          "oklch(15% 0.0451 252.29)",
+          "oklch(26% 0.0451 252.29)",
+          "oklch(38% 0.0451 252.29)",
+          "oklch(49% 0.0451 252.29)",
+          "oklch(61% 0.0451 252.29)",
+          "oklch(72% 0.0451 252.29)",
+          "oklch(84% 0.0451 252.29)",
+          "oklch(95% 0.0451 252.29)"
+        ]
+      },
+      "night-accent": {
+        "role": "primary",
+        "displayName": "Night accent",
+        "canonical": "#88c4e3",
+        "tonalRamp": [
+          "oklch(15% 0.0758 231.45)",
+          "oklch(26% 0.0758 231.45)",
+          "oklch(38% 0.0758 231.45)",
+          "oklch(49% 0.0758 231.45)",
+          "oklch(61% 0.0758 231.45)",
+          "oklch(72% 0.0758 231.45)",
+          "oklch(84% 0.0758 231.45)",
+          "oklch(95% 0.0758 231.45)"
+        ]
+      },
+      "night-accent-hover": {
+        "role": "primary",
+        "displayName": "Night accent hover",
+        "canonical": "#b3dcf1",
+        "tonalRamp": [
+          "oklch(15% 0.0518 230.33)",
+          "oklch(26% 0.0518 230.33)",
+          "oklch(38% 0.0518 230.33)",
+          "oklch(49% 0.0518 230.33)",
+          "oklch(61% 0.0518 230.33)",
+          "oklch(72% 0.0518 230.33)",
+          "oklch(84% 0.0518 230.33)",
+          "oklch(95% 0.0518 230.33)"
+        ]
+      },
+      "night-accent-soft": {
+        "role": "primary",
+        "displayName": "Night accent soft",
+        "canonical": "#23445e",
+        "tonalRamp": [
+          "oklch(15% 0.0593 244.13)",
+          "oklch(26% 0.0593 244.13)",
+          "oklch(38% 0.0593 244.13)",
+          "oklch(49% 0.0593 244.13)",
+          "oklch(61% 0.0593 244.13)",
+          "oklch(72% 0.0593 244.13)",
+          "oklch(84% 0.0593 244.13)",
+          "oklch(95% 0.0593 244.13)"
+        ]
+      },
+      "night-rail": {
+        "role": "neutral",
+        "displayName": "Night rail",
+        "canonical": "#0b1927",
+        "tonalRamp": [
+          "oklch(15% 0.0342 249.77)",
+          "oklch(26% 0.0342 249.77)",
+          "oklch(38% 0.0342 249.77)",
+          "oklch(49% 0.0342 249.77)",
+          "oklch(61% 0.0342 249.77)",
+          "oklch(72% 0.0342 249.77)",
+          "oklch(84% 0.0342 249.77)",
+          "oklch(95% 0.0342 249.77)"
+        ]
+      },
+      "night-danger": {
+        "role": "neutral",
+        "displayName": "Night danger",
+        "canonical": "#f4a6ad",
+        "tonalRamp": [
+          "oklch(15% 0.0927 13.45)",
+          "oklch(26% 0.0927 13.45)",
+          "oklch(38% 0.0927 13.45)",
+          "oklch(49% 0.0927 13.45)",
+          "oklch(61% 0.0927 13.45)",
+          "oklch(72% 0.0927 13.45)",
+          "oklch(84% 0.0927 13.45)",
+          "oklch(95% 0.0927 13.45)"
+        ]
+      },
+      "night-hover": {
+        "role": "neutral",
+        "displayName": "Night hover",
+        "canonical": "#1e364b",
+        "tonalRamp": [
+          "oklch(15% 0.0482 246.37)",
+          "oklch(26% 0.0482 246.37)",
+          "oklch(38% 0.0482 246.37)",
+          "oklch(49% 0.0482 246.37)",
+          "oklch(61% 0.0482 246.37)",
+          "oklch(72% 0.0482 246.37)",
+          "oklch(84% 0.0482 246.37)",
+          "oklch(95% 0.0482 246.37)"
+        ]
+      },
+      "night-selected": {
+        "role": "neutral",
+        "displayName": "Night selected",
+        "canonical": "#244860",
+        "tonalRamp": [
+          "oklch(15% 0.0584 239.84)",
+          "oklch(26% 0.0584 239.84)",
+          "oklch(38% 0.0584 239.84)",
+          "oklch(49% 0.0584 239.84)",
+          "oklch(61% 0.0584 239.84)",
+          "oklch(72% 0.0584 239.84)",
+          "oklch(84% 0.0584 239.84)",
+          "oklch(95% 0.0584 239.84)"
+        ]
+      },
+      "night-selected-ink": {
+        "role": "neutral",
+        "displayName": "Night selected ink",
+        "canonical": "#c2e6f7",
+        "tonalRamp": [
+          "oklch(15% 0.0443 228.05)",
+          "oklch(26% 0.0443 228.05)",
+          "oklch(38% 0.0443 228.05)",
+          "oklch(49% 0.0443 228.05)",
+          "oklch(61% 0.0443 228.05)",
+          "oklch(72% 0.0443 228.05)",
+          "oklch(84% 0.0443 228.05)",
+          "oklch(95% 0.0443 228.05)"
+        ]
+      },
+      "night-code-surface": {
+        "role": "neutral",
+        "displayName": "Night code surface",
+        "canonical": "#102033",
+        "tonalRamp": [
+          "oklch(15% 0.0427 253.66)",
+          "oklch(26% 0.0427 253.66)",
+          "oklch(38% 0.0427 253.66)",
+          "oklch(49% 0.0427 253.66)",
+          "oklch(61% 0.0427 253.66)",
+          "oklch(72% 0.0427 253.66)",
+          "oklch(84% 0.0427 253.66)",
+          "oklch(95% 0.0427 253.66)"
+        ]
+      },
+      "night-code-ink": {
+        "role": "neutral",
+        "displayName": "Night code ink",
+        "canonical": "#d5e5f2",
+        "tonalRamp": [
+          "oklch(15% 0.0247 242.36)",
+          "oklch(26% 0.0247 242.36)",
+          "oklch(38% 0.0247 242.36)",
+          "oklch(49% 0.0247 242.36)",
+          "oklch(61% 0.0247 242.36)",
+          "oklch(72% 0.0247 242.36)",
+          "oklch(84% 0.0247 242.36)",
+          "oklch(95% 0.0247 242.36)"
+        ]
+      },
+      "night-code-line": {
+        "role": "neutral",
+        "displayName": "Night code line",
+        "canonical": "#1e354b",
+        "tonalRamp": [
+          "oklch(15% 0.0491 248.55)",
+          "oklch(26% 0.0491 248.55)",
+          "oklch(38% 0.0491 248.55)",
+          "oklch(49% 0.0491 248.55)",
+          "oklch(61% 0.0491 248.55)",
+          "oklch(72% 0.0491 248.55)",
+          "oklch(84% 0.0491 248.55)",
+          "oklch(95% 0.0491 248.55)"
+        ]
+      },
+      "night-selection": {
+        "role": "neutral",
+        "displayName": "Night selection",
+        "canonical": "#31546d",
+        "tonalRamp": [
+          "oklch(15% 0.0582 241.01)",
+          "oklch(26% 0.0582 241.01)",
+          "oklch(38% 0.0582 241.01)",
+          "oklch(49% 0.0582 241.01)",
+          "oklch(61% 0.0582 241.01)",
+          "oklch(72% 0.0582 241.01)",
+          "oklch(84% 0.0582 241.01)",
+          "oklch(95% 0.0582 241.01)"
+        ]
+      },
+      "night-canvas": {
+        "role": "neutral",
+        "displayName": "Night canvas",
+        "canonical": "#102132",
+        "tonalRamp": [
+          "oklch(15% 0.0400 249.79)",
+          "oklch(26% 0.0400 249.79)",
+          "oklch(38% 0.0400 249.79)",
+          "oklch(49% 0.0400 249.79)",
+          "oklch(61% 0.0400 249.79)",
+          "oklch(72% 0.0400 249.79)",
+          "oklch(84% 0.0400 249.79)",
+          "oklch(95% 0.0400 249.79)"
+        ]
+      },
+      "night-canvas-dot": {
+        "role": "neutral",
+        "displayName": "Night canvas dot",
+        "canonical": "#314b60",
+        "tonalRamp": [
+          "oklch(15% 0.0477 243.72)",
+          "oklch(26% 0.0477 243.72)",
+          "oklch(38% 0.0477 243.72)",
+          "oklch(49% 0.0477 243.72)",
+          "oklch(61% 0.0477 243.72)",
+          "oklch(72% 0.0477 243.72)",
+          "oklch(84% 0.0477 243.72)",
+          "oklch(95% 0.0477 243.72)"
+        ]
+      },
+      "night-positive": {
+        "role": "neutral",
+        "displayName": "Night positive",
+        "canonical": "#9bd3bb",
+        "tonalRamp": [
+          "oklch(15% 0.0670 166.45)",
+          "oklch(26% 0.0670 166.45)",
+          "oklch(38% 0.0670 166.45)",
+          "oklch(49% 0.0670 166.45)",
+          "oklch(61% 0.0670 166.45)",
+          "oklch(72% 0.0670 166.45)",
+          "oklch(84% 0.0670 166.45)",
+          "oklch(95% 0.0670 166.45)"
+        ]
+      },
+      "night-warning-soft": {
+        "role": "neutral",
+        "displayName": "Night warning soft",
+        "canonical": "#3a3428",
+        "tonalRamp": [
+          "oklch(15% 0.0219 84.49)",
+          "oklch(26% 0.0219 84.49)",
+          "oklch(38% 0.0219 84.49)",
+          "oklch(49% 0.0219 84.49)",
+          "oklch(61% 0.0219 84.49)",
+          "oklch(72% 0.0219 84.49)",
+          "oklch(84% 0.0219 84.49)",
+          "oklch(95% 0.0219 84.49)"
+        ]
+      },
+      "night-warning-ink": {
+        "role": "neutral",
+        "displayName": "Night warning ink",
+        "canonical": "#eed1a0",
+        "tonalRamp": [
+          "oklch(15% 0.0715 80.57)",
+          "oklch(26% 0.0715 80.57)",
+          "oklch(38% 0.0715 80.57)",
+          "oklch(49% 0.0715 80.57)",
+          "oklch(61% 0.0715 80.57)",
+          "oklch(72% 0.0715 80.57)",
+          "oklch(84% 0.0715 80.57)",
+          "oklch(95% 0.0715 80.57)"
+        ]
+      },
+      "night-error-soft": {
+        "role": "neutral",
+        "displayName": "Night error soft",
+        "canonical": "#432e38",
         "tonalRamp": [
           "oklch(15% 0.0346 349.03)",
           "oklch(26% 0.0346 349.03)",
@@ -874,16 +1202,12 @@
           "oklch(72% 0.0346 349.03)",
           "oklch(84% 0.0346 349.03)",
           "oklch(95% 0.0346 349.03)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-ink": {
+      "paper-ink": {
         "role": "neutral",
-        "displayName": "Noche azul · tinta",
-        "cssVariable": "--ink",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper ink",
+        "canonical": "#3c423e",
         "tonalRamp": [
           "oklch(15% 0.0104 156.68)",
           "oklch(26% 0.0104 156.68)",
@@ -893,16 +1217,12 @@
           "oklch(72% 0.0104 156.68)",
           "oklch(84% 0.0104 156.68)",
           "oklch(95% 0.0104 156.68)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-muted": {
+      "paper-muted": {
         "role": "neutral",
-        "displayName": "Noche azul · texto secundario",
-        "cssVariable": "--muted",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper muted",
+        "canonical": "#60695f",
         "tonalRamp": [
           "oklch(15% 0.0190 142.47)",
           "oklch(26% 0.0190 142.47)",
@@ -912,16 +1232,12 @@
           "oklch(72% 0.0190 142.47)",
           "oklch(84% 0.0190 142.47)",
           "oklch(95% 0.0190 142.47)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-line": {
+      "paper-line": {
         "role": "neutral",
-        "displayName": "Noche azul · separador",
-        "cssVariable": "--line",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper line",
+        "canonical": "#dcded3",
         "tonalRamp": [
           "oklch(15% 0.0149 115.06)",
           "oklch(26% 0.0149 115.06)",
@@ -931,16 +1247,12 @@
           "oklch(72% 0.0149 115.06)",
           "oklch(84% 0.0149 115.06)",
           "oklch(95% 0.0149 115.06)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-paper": {
+      "paper-paper": {
         "role": "neutral",
-        "displayName": "Noche azul · superficie principal",
-        "cssVariable": "--paper",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper paper",
+        "canonical": "#fffef8",
         "tonalRamp": [
           "oklch(15% 0.0080 98.87)",
           "oklch(26% 0.0080 98.87)",
@@ -950,16 +1262,12 @@
           "oklch(72% 0.0080 98.87)",
           "oklch(84% 0.0080 98.87)",
           "oklch(95% 0.0080 98.87)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-surface": {
+      "paper-surface": {
         "role": "neutral",
-        "displayName": "Noche azul · superficie secundaria",
-        "cssVariable": "--surface",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper surface",
+        "canonical": "#f5f4ea",
         "tonalRamp": [
           "oklch(15% 0.0133 102.01)",
           "oklch(26% 0.0133 102.01)",
@@ -969,16 +1277,12 @@
           "oklch(72% 0.0133 102.01)",
           "oklch(84% 0.0133 102.01)",
           "oklch(95% 0.0133 102.01)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-field": {
+      "paper-field": {
         "role": "neutral",
-        "displayName": "Noche azul · campo",
-        "cssVariable": "--field",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper field",
+        "canonical": "#faf9ef",
         "tonalRamp": [
           "oklch(15% 0.0132 102.01)",
           "oklch(26% 0.0132 102.01)",
@@ -988,16 +1292,12 @@
           "oklch(72% 0.0132 102.01)",
           "oklch(84% 0.0132 102.01)",
           "oklch(95% 0.0132 102.01)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-accent": {
+      "paper-accent": {
         "role": "primary",
-        "displayName": "Noche azul · acento",
-        "cssVariable": "--accent",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper accent",
+        "canonical": "#4b6652",
         "tonalRamp": [
           "oklch(15% 0.0452 152.47)",
           "oklch(26% 0.0452 152.47)",
@@ -1007,16 +1307,12 @@
           "oklch(72% 0.0452 152.47)",
           "oklch(84% 0.0452 152.47)",
           "oklch(95% 0.0452 152.47)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-accent-hover": {
+      "paper-accent-hover": {
         "role": "primary",
-        "displayName": "Noche azul · acento al pasar",
-        "cssVariable": "--accent-hover",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper accent hover",
+        "canonical": "#354d3b",
         "tonalRamp": [
           "oklch(15% 0.0423 151.88)",
           "oklch(26% 0.0423 151.88)",
@@ -1026,16 +1322,12 @@
           "oklch(72% 0.0423 151.88)",
           "oklch(84% 0.0423 151.88)",
           "oklch(95% 0.0423 151.88)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-accent-soft": {
+      "paper-accent-soft": {
         "role": "primary",
-        "displayName": "Noche azul · acento tenue",
-        "cssVariable": "--accent-soft",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper accent soft",
+        "canonical": "#e8eee3",
         "tonalRamp": [
           "oklch(15% 0.0159 130.42)",
           "oklch(26% 0.0159 130.42)",
@@ -1045,16 +1337,12 @@
           "oklch(72% 0.0159 130.42)",
           "oklch(84% 0.0159 130.42)",
           "oklch(95% 0.0159 130.42)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-rail": {
+      "paper-rail": {
         "role": "neutral",
-        "displayName": "Noche azul · navegación grafito",
-        "cssVariable": "--rail",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper rail",
+        "canonical": "#303e32",
         "tonalRamp": [
           "oklch(15% 0.0276 148.93)",
           "oklch(26% 0.0276 148.93)",
@@ -1064,16 +1352,12 @@
           "oklch(72% 0.0276 148.93)",
           "oklch(84% 0.0276 148.93)",
           "oklch(95% 0.0276 148.93)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-hover": {
+      "paper-hover": {
         "role": "neutral",
-        "displayName": "Noche azul · superficie al pasar",
-        "cssVariable": "--hover",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper hover",
+        "canonical": "#eeeee1",
         "tonalRamp": [
           "oklch(15% 0.0172 106.72)",
           "oklch(26% 0.0172 106.72)",
@@ -1083,16 +1367,12 @@
           "oklch(72% 0.0172 106.72)",
           "oklch(84% 0.0172 106.72)",
           "oklch(95% 0.0172 106.72)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-selected": {
+      "paper-selected": {
         "role": "neutral",
-        "displayName": "Noche azul · selección",
-        "cssVariable": "--selected",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper selected",
+        "canonical": "#e2e9d8",
         "tonalRamp": [
           "oklch(15% 0.0238 125.20)",
           "oklch(26% 0.0238 125.20)",
@@ -1102,16 +1382,12 @@
           "oklch(72% 0.0238 125.20)",
           "oklch(84% 0.0238 125.20)",
           "oklch(95% 0.0238 125.20)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-selected-ink": {
-        "role": "primary",
-        "displayName": "Noche azul · texto seleccionado",
-        "cssVariable": "--selected-ink",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+      "paper-selected-ink": {
+        "role": "neutral",
+        "displayName": "Paper selected ink",
+        "canonical": "#344e3a",
         "tonalRamp": [
           "oklch(15% 0.0462 151.05)",
           "oklch(26% 0.0462 151.05)",
@@ -1121,16 +1397,12 @@
           "oklch(72% 0.0462 151.05)",
           "oklch(84% 0.0462 151.05)",
           "oklch(95% 0.0462 151.05)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-code-surface": {
+      "paper-code-surface": {
         "role": "neutral",
-        "displayName": "Noche azul · fondo de código",
-        "cssVariable": "--code-surface",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper code surface",
+        "canonical": "#faf9f0",
         "tonalRamp": [
           "oklch(15% 0.0119 101.48)",
           "oklch(26% 0.0119 101.48)",
@@ -1140,16 +1412,12 @@
           "oklch(72% 0.0119 101.48)",
           "oklch(84% 0.0119 101.48)",
           "oklch(95% 0.0119 101.48)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-code-ink": {
+      "paper-code-ink": {
         "role": "neutral",
-        "displayName": "Noche azul · tinta de código",
-        "cssVariable": "--code-ink",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper code ink",
+        "canonical": "#414c41",
         "tonalRamp": [
           "oklch(15% 0.0230 145.13)",
           "oklch(26% 0.0230 145.13)",
@@ -1159,16 +1427,12 @@
           "oklch(72% 0.0230 145.13)",
           "oklch(84% 0.0230 145.13)",
           "oklch(95% 0.0230 145.13)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-code-line": {
+      "paper-code-line": {
         "role": "neutral",
-        "displayName": "Noche azul · línea activa",
-        "cssVariable": "--code-line",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper code line",
+        "canonical": "#eeeee1",
         "tonalRamp": [
           "oklch(15% 0.0172 106.72)",
           "oklch(26% 0.0172 106.72)",
@@ -1178,16 +1442,12 @@
           "oklch(72% 0.0172 106.72)",
           "oklch(84% 0.0172 106.72)",
           "oklch(95% 0.0172 106.72)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-selection": {
+      "paper-selection": {
         "role": "neutral",
-        "displayName": "Noche azul · selección de texto",
-        "cssVariable": "--selection",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper selection",
+        "canonical": "#d5e3cf",
         "tonalRamp": [
           "oklch(15% 0.0308 136.15)",
           "oklch(26% 0.0308 136.15)",
@@ -1197,16 +1457,12 @@
           "oklch(72% 0.0308 136.15)",
           "oklch(84% 0.0308 136.15)",
           "oklch(95% 0.0308 136.15)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "night-canvas": {
+      "paper-canvas": {
         "role": "neutral",
-        "displayName": "Noche azul · fondo de exportación Studio",
-        "cssVariable": "--canvas",
-        "theme": "night",
-        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "displayName": "Paper canvas",
+        "canonical": "#faf9f0",
         "tonalRamp": [
           "oklch(15% 0.0119 101.48)",
           "oklch(26% 0.0119 101.48)",
@@ -1216,16 +1472,27 @@
           "oklch(72% 0.0119 101.48)",
           "oklch(84% 0.0119 101.48)",
           "oklch(95% 0.0119 101.48)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-work": {
+      "paper-canvas-dot": {
+        "role": "neutral",
+        "displayName": "Paper canvas dot",
+        "canonical": "#d8dacc",
+        "tonalRamp": [
+          "oklch(15% 0.0190 113.38)",
+          "oklch(26% 0.0190 113.38)",
+          "oklch(38% 0.0190 113.38)",
+          "oklch(49% 0.0190 113.38)",
+          "oklch(61% 0.0190 113.38)",
+          "oklch(72% 0.0190 113.38)",
+          "oklch(84% 0.0190 113.38)",
+          "oklch(95% 0.0190 113.38)"
+        ]
+      },
+      "dark-git-work": {
         "role": "secondary",
-        "displayName": "Papel · trabajo azul",
-        "cssVariable": "--git-work",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git work",
+        "canonical": "#9ac7e7",
         "tonalRamp": [
           "oklch(15% 0.0657 239.57)",
           "oklch(26% 0.0657 239.57)",
@@ -1235,16 +1502,12 @@
           "oklch(72% 0.0657 239.57)",
           "oklch(84% 0.0657 239.57)",
           "oklch(95% 0.0657 239.57)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-work-soft": {
+      "dark-git-work-soft": {
         "role": "secondary",
-        "displayName": "Papel · trabajo azul tenue",
-        "cssVariable": "--git-work-soft",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git work soft",
+        "canonical": "#1d3547",
         "tonalRamp": [
           "oklch(15% 0.0442 242.34)",
           "oklch(26% 0.0442 242.34)",
@@ -1254,16 +1517,12 @@
           "oklch(72% 0.0442 242.34)",
           "oklch(84% 0.0442 242.34)",
           "oklch(95% 0.0442 242.34)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-stage": {
+      "dark-git-stage": {
         "role": "secondary",
-        "displayName": "Papel · índice naranja",
-        "cssVariable": "--git-stage",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git stage",
+        "canonical": "#f3ba8e",
         "tonalRamp": [
           "oklch(15% 0.0879 58.84)",
           "oklch(26% 0.0879 58.84)",
@@ -1273,16 +1532,12 @@
           "oklch(72% 0.0879 58.84)",
           "oklch(84% 0.0879 58.84)",
           "oklch(95% 0.0879 58.84)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-stage-soft": {
+      "dark-git-stage-soft": {
         "role": "secondary",
-        "displayName": "Papel · índice naranja tenue",
-        "cssVariable": "--git-stage-soft",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git stage soft",
+        "canonical": "#403020",
         "tonalRamp": [
           "oklch(15% 0.0352 66.04)",
           "oklch(26% 0.0352 66.04)",
@@ -1292,16 +1547,12 @@
           "oklch(72% 0.0352 66.04)",
           "oklch(84% 0.0352 66.04)",
           "oklch(95% 0.0352 66.04)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-local": {
+      "dark-git-local": {
         "role": "secondary",
-        "displayName": "Papel · local verde",
-        "cssVariable": "--git-local",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git local",
+        "canonical": "#9dd8b6",
         "tonalRamp": [
           "oklch(15% 0.0771 158.91)",
           "oklch(26% 0.0771 158.91)",
@@ -1311,16 +1562,12 @@
           "oklch(72% 0.0771 158.91)",
           "oklch(84% 0.0771 158.91)",
           "oklch(95% 0.0771 158.91)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-local-soft": {
+      "dark-git-local-soft": {
         "role": "secondary",
-        "displayName": "Papel · local verde tenue",
-        "cssVariable": "--git-local-soft",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git local soft",
+        "canonical": "#243c30",
         "tonalRamp": [
           "oklch(15% 0.0370 161.75)",
           "oklch(26% 0.0370 161.75)",
@@ -1330,16 +1577,12 @@
           "oklch(72% 0.0370 161.75)",
           "oklch(84% 0.0370 161.75)",
           "oklch(95% 0.0370 161.75)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-remote": {
+      "dark-git-remote": {
         "role": "secondary",
-        "displayName": "Papel · remoto amarillo",
-        "cssVariable": "--git-remote",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git remote",
+        "canonical": "#e8cc84",
         "tonalRamp": [
           "oklch(15% 0.0962 89.03)",
           "oklch(26% 0.0962 89.03)",
@@ -1349,16 +1592,12 @@
           "oklch(72% 0.0962 89.03)",
           "oklch(84% 0.0962 89.03)",
           "oklch(95% 0.0962 89.03)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
-      "paper-git-remote-soft": {
+      "dark-git-remote-soft": {
         "role": "secondary",
-        "displayName": "Papel · remoto amarillo tenue",
-        "cssVariable": "--git-remote-soft",
-        "theme": "paper",
-        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "displayName": "Dark git remote soft",
+        "canonical": "#3d3522",
         "tonalRamp": [
           "oklch(15% 0.0329 87.69)",
           "oklch(26% 0.0329 87.69)",
@@ -1368,14 +1607,12 @@
           "oklch(72% 0.0329 87.69)",
           "oklch(84% 0.0329 87.69)",
           "oklch(95% 0.0329 87.69)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+        ]
       },
       "dark-action-ink": {
         "role": "neutral",
-        "displayName": "texto de acción primaria · temas oscuros",
-        "source": "app/themes.css .btn.primary / .btn.danger",
+        "displayName": "Dark action ink",
+        "canonical": "#102532",
         "tonalRamp": [
           "oklch(15% 0.0366 237.73)",
           "oklch(26% 0.0366 237.73)",
@@ -1385,14 +1622,12 @@
           "oklch(72% 0.0366 237.73)",
           "oklch(84% 0.0366 237.73)",
           "oklch(95% 0.0366 237.73)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación de exploración, sin uso en la aplicación."
+        ]
       },
       "dark-danger-ink": {
         "role": "neutral",
-        "displayName": "texto de eliminación · temas oscuros",
-        "source": "app/themes.css .btn.primary / .btn.danger",
+        "displayName": "Dark danger ink",
+        "canonical": "#3b1c22",
         "tonalRamp": [
           "oklch(15% 0.0491 8.51)",
           "oklch(26% 0.0491 8.51)",
@@ -1402,9 +1637,22 @@
           "oklch(72% 0.0491 8.51)",
           "oklch(84% 0.0491 8.51)",
           "oklch(95% 0.0491 8.51)"
-        ],
-        "tonalRampStatus": "exploratory",
-        "tonalRampPurpose": "Derivación de exploración, sin uso en la aplicación."
+        ]
+      },
+      "action-ink": {
+        "role": "neutral",
+        "displayName": "Action ink",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
       }
     },
     "typographyMeta": {
@@ -1472,7 +1720,7 @@
     "themeMeta": {
       "light": {
         "displayName": "Claro",
-        "selector": ":root[data-app-theme=\"light\"]",
+        "selector": ":root",
         "source": "app/globals.css + app/themes.css",
         "colorRefs": {
           "ink": "{colors.ink}",
@@ -1494,16 +1742,25 @@
           "code-line": "{colors.code-line}",
           "selection": "{colors.selection}",
           "canvas": "{colors.canvas}",
+          "canvas-dot": "{colors.canvas-dot}",
           "positive": "{colors.positive}",
           "warning-soft": "{colors.warning-soft}",
           "warning-ink": "{colors.warning-ink}",
-          "error-soft": "{colors.error-soft}"
+          "error-soft": "{colors.error-soft}",
+          "git-work": "{colors.git-work}",
+          "git-work-soft": "{colors.git-work-soft}",
+          "git-stage": "{colors.git-stage}",
+          "git-stage-soft": "{colors.git-stage-soft}",
+          "git-local": "{colors.git-local}",
+          "git-local-soft": "{colors.git-local-soft}",
+          "git-remote": "{colors.git-remote}",
+          "git-remote-soft": "{colors.git-remote-soft}"
         }
       },
       "graphite": {
         "displayName": "Grafito",
         "selector": ":root[data-app-theme=\"graphite\"]",
-        "source": "app/themes.css",
+        "source": "app/globals.css + app/themes.css",
         "colorRefs": {
           "ink": "{colors.graphite-ink}",
           "muted": "{colors.graphite-muted}",
@@ -1524,16 +1781,25 @@
           "code-line": "{colors.graphite-code-line}",
           "selection": "{colors.graphite-selection}",
           "canvas": "{colors.graphite-canvas}",
+          "canvas-dot": "{colors.graphite-canvas-dot}",
           "positive": "{colors.graphite-positive}",
           "warning-soft": "{colors.graphite-warning-soft}",
           "warning-ink": "{colors.graphite-warning-ink}",
-          "error-soft": "{colors.graphite-error-soft}"
+          "error-soft": "{colors.graphite-error-soft}",
+          "git-work": "{colors.dark-git-work}",
+          "git-work-soft": "{colors.dark-git-work-soft}",
+          "git-stage": "{colors.dark-git-stage}",
+          "git-stage-soft": "{colors.dark-git-stage-soft}",
+          "git-local": "{colors.dark-git-local}",
+          "git-local-soft": "{colors.dark-git-local-soft}",
+          "git-remote": "{colors.dark-git-remote}",
+          "git-remote-soft": "{colors.dark-git-remote-soft}"
         }
       },
       "night": {
         "displayName": "Noche azul",
         "selector": ":root[data-app-theme=\"night\"]",
-        "source": "app/themes.css",
+        "source": "app/globals.css + app/themes.css",
         "colorRefs": {
           "ink": "{colors.night-ink}",
           "muted": "{colors.night-muted}",
@@ -1544,7 +1810,7 @@
           "surface": "{colors.night-surface}",
           "paper": "{colors.night-paper}",
           "rail": "{colors.night-rail}",
-          "danger": "{colors.danger}",
+          "danger": "{colors.night-danger}",
           "field": "{colors.night-field}",
           "hover": "{colors.night-hover}",
           "selected": "{colors.night-selected}",
@@ -1554,48 +1820,58 @@
           "code-line": "{colors.night-code-line}",
           "selection": "{colors.night-selection}",
           "canvas": "{colors.night-canvas}",
-          "positive": "{colors.positive}",
-          "warning-soft": "{colors.warning-soft}",
-          "warning-ink": "{colors.warning-ink}",
-          "error-soft": "{colors.error-soft}"
+          "canvas-dot": "{colors.night-canvas-dot}",
+          "positive": "{colors.night-positive}",
+          "warning-soft": "{colors.night-warning-soft}",
+          "warning-ink": "{colors.night-warning-ink}",
+          "error-soft": "{colors.night-error-soft}",
+          "git-work": "{colors.dark-git-work}",
+          "git-work-soft": "{colors.dark-git-work-soft}",
+          "git-stage": "{colors.dark-git-stage}",
+          "git-stage-soft": "{colors.dark-git-stage-soft}",
+          "git-local": "{colors.dark-git-local}",
+          "git-local-soft": "{colors.dark-git-local-soft}",
+          "git-remote": "{colors.dark-git-remote}",
+          "git-remote-soft": "{colors.dark-git-remote-soft}"
         }
       },
       "paper": {
         "displayName": "Papel",
         "selector": ":root[data-app-theme=\"paper\"]",
-        "source": "app/themes.css",
+        "source": "app/globals.css + app/themes.css",
         "colorRefs": {
-          "ink": "{colors.ink}",
-          "muted": "{colors.muted}",
-          "line": "{colors.line}",
-          "accent": "{colors.accent}",
-          "accent-hover": "{colors.accent-hover}",
-          "accent-soft": "{colors.accent-soft}",
-          "surface": "{colors.surface}",
-          "paper": "{colors.paper}",
-          "rail": "{colors.rail}",
+          "ink": "{colors.paper-ink}",
+          "muted": "{colors.paper-muted}",
+          "line": "{colors.paper-line}",
+          "accent": "{colors.paper-accent}",
+          "accent-hover": "{colors.paper-accent-hover}",
+          "accent-soft": "{colors.paper-accent-soft}",
+          "surface": "{colors.paper-surface}",
+          "paper": "{colors.paper-paper}",
+          "rail": "{colors.paper-rail}",
           "danger": "{colors.danger}",
-          "field": "{colors.field}",
-          "hover": "{colors.hover}",
-          "selected": "{colors.selected}",
-          "selected-ink": "{colors.selected-ink}",
-          "code-surface": "{colors.code-surface}",
-          "code-ink": "{colors.code-ink}",
-          "code-line": "{colors.code-line}",
-          "selection": "{colors.selection}",
-          "canvas": "{colors.canvas}",
+          "field": "{colors.paper-field}",
+          "hover": "{colors.paper-hover}",
+          "selected": "{colors.paper-selected}",
+          "selected-ink": "{colors.paper-selected-ink}",
+          "code-surface": "{colors.paper-code-surface}",
+          "code-ink": "{colors.paper-code-ink}",
+          "code-line": "{colors.paper-code-line}",
+          "selection": "{colors.paper-selection}",
+          "canvas": "{colors.paper-canvas}",
+          "canvas-dot": "{colors.paper-canvas-dot}",
           "positive": "{colors.positive}",
           "warning-soft": "{colors.warning-soft}",
           "warning-ink": "{colors.warning-ink}",
           "error-soft": "{colors.error-soft}",
-          "git-work": "{colors.paper-git-work}",
-          "git-work-soft": "{colors.paper-git-work-soft}",
-          "git-stage": "{colors.paper-git-stage}",
-          "git-stage-soft": "{colors.paper-git-stage-soft}",
-          "git-local": "{colors.paper-git-local}",
-          "git-local-soft": "{colors.paper-git-local-soft}",
-          "git-remote": "{colors.paper-git-remote}",
-          "git-remote-soft": "{colors.paper-git-remote-soft}"
+          "git-work": "{colors.git-work}",
+          "git-work-soft": "{colors.git-work-soft}",
+          "git-stage": "{colors.git-stage}",
+          "git-stage-soft": "{colors.git-stage-soft}",
+          "git-local": "{colors.git-local}",
+          "git-local-soft": "{colors.git-local-soft}",
+          "git-remote": "{colors.git-remote}",
+          "git-remote-soft": "{colors.git-remote-soft}"
         }
       }
     },

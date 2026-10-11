@@ -12,6 +12,8 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 - `app/globals.css`: responsive application layout and print styles.
 - `lib/diagrams.ts`: shared validation, seven diagram templates, file interchange.
 - `lib/store.ts`: authenticated D1 persistence and optimistic revision checks.
+- `lib/studio-request.ts`, `lib/browser-workspace.ts`: Vercel's browser-owned IndexedDB adapter; preserve transactional revision checks and history. Docker/Sites keep the authenticated D1 adapter.
+- `lib/relation-actions.ts`: mutate only the selected relationship, preserving other source lines and canvas metadata. SVG hit areas and selection classes must stay out of exports.
 - `components/study.tsx`, `app/estudio/`, `app/study.css`: IS II theory, exercises, study progress and mock exams.
 - `lib/study-data.json`: course content derived from Ariel's 25 documents; `public/estudio/` retains the originals and downloadable summary.
 - `lib/study.ts`: validated browser-local progress, scoped using the authenticated owner returned by `/api/study-profile`.
@@ -36,3 +38,15 @@ If the plugin is not connected, offer its existing installation through Sites, o
 ## Local development
 
 Run `node scripts/run-framework.mjs dev --port 5173`. The portable preview uses the development sign-in route `/signin-with-chatgpt?return_to=%2F`. Local schema migrations must be applied to `.wrangler/state`; production migrations are applied by Sites. Keep temporary previews, screenshots and local QA artifacts under the ignored `.sites-runtime/` directory.
+
+For Vercel, use `npm run build:vercel` and `npm run start:vercel -- --hostname 127.0.0.1 --port 3002`; `npm run dev:vercel` is the Next.js development alternative. Vercel builds use browser storage and do not provide the Sites MCP connector or a shared database. Never trust user-supplied Sites identity headers on Vercel. `vercel.json` selects the Next.js framework and build command.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -1,5 +1,7 @@
 # Verificación del rediseño UML Studio
 
+La extensión posterior de Vercel y selección de flechas se verifica en [verification-vercel.md](verification-vercel.md). Este informe conserva la evidencia del rediseño original.
+
 ## Resultado funcional
 
 - `npm run typecheck`, `npm test` y `npm run build`: aprobados dentro de la imagen Docker final, Node.js 24. Las 20 pruebas verifican metadatos UML, mutaciones de clases y semántica del simulador Git, incluido repositorio vacío, primer commit, remoto, conflictos y autocompletado sin ejecución.
