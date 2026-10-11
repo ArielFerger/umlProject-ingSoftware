@@ -393,6 +393,8 @@ Estudio conserva una extensión más amplia: controles de `study-control`, ejerc
 
 El trazo seleccionado usa el acento del tema. Un área transparente de trazo conserva su ancho en pantalla al cambiar el zoom; etiquetas y multiplicidades también seleccionan la relación. El foco de teclado se ve sobre el mismo trazo, sin cambiar el diagrama exportado. El control de selección reutiliza superficie, tinta, divisores y radio de los controles; el formulario reutiliza campos y botones existentes. En móvil el control puede envolver y las multiplicidades se apilan.
 
+La barra contextual de conexiones ocupa una fila propia encima del lienzo, sin tapar los nodos. Trazo, puntos y extremos reutilizan selectores y botones existentes. Los extremos son cuadrados de 10px y los puntos círculos de radio 5px, con área de interacción de radio 14px; conservan ese tamaño en pantalla al cambiar el zoom. La tinta de selección y la superficie del tema indican foco y hover. Los controles auxiliares desaparecen de las exportaciones. Extremos expande sus ajustes en la misma barra; en móvil las filas envuelven.
+
 ### Buttons
 
 Compactos y directos. La base tiene altura mínima de (36px), padding horizontal de (12px), texto `button` y radio `control`. La acción primaria usa acento; la secundaria usa superficie principal y borde; la quieta conserva fondo transparente y texto secundario; la destructiva usa `danger`. Las variantes oscuras cambian el texto de primaria y destructiva. El hover de la secundaria cambia a `surface` y borde (`#a9bec9`); la primaria usa `accent-hover`. El foco muestra outline de (2px) con offset de (3px), y disabled baja la opacidad a (.45). Exportar usa la navegación grafito como tratamiento particular.

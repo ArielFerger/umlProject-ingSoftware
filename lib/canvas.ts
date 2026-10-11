@@ -2,15 +2,24 @@ import { z } from "zod";
 
 const PREFIX = "%% uml-studio: ";
 const point = z.object({ x: z.number().finite().min(-20000).max(20000), y: z.number().finite().min(-20000).max(20000) });
+const anchor = z.object({ side: z.enum(["top", "right", "bottom", "left"]), offset: z.number().min(0).max(1) });
+export const edgeRouteSettings = z.object({
+  shape: z.enum(["straight", "curved", "orthogonal"]).default("curved"),
+  from: anchor.optional(), to: anchor.optional(),
+  points: z.array(point).max(20).default([]),
+});
+export type EdgeRoute = z.infer<typeof edgeRouteSettings>;
+export type EdgeAnchor = z.infer<typeof anchor>;
 export const canvasSettings = z.object({
   positions: z.record(point).default({}),
   lineWidth: z.number().min(1).max(6).default(2),
   arrowScale: z.number().min(1).max(3).default(1.4),
   labelSize: z.number().min(12).max(24).default(14),
+  routes: z.record(edgeRouteSettings).default({}),
 });
 export type CanvasSettings = z.infer<typeof canvasSettings>;
 export type Point = z.infer<typeof point>;
-export const DEFAULT_CANVAS: CanvasSettings = { positions: {}, lineWidth: 2, arrowScale: 1.4, labelSize: 14 };
+export const DEFAULT_CANVAS: CanvasSettings = { positions: {}, routes: {}, lineWidth: 2, arrowScale: 1.4, labelSize: 14 };
 
 export function readCanvas(source: string): CanvasSettings {
   const line = source.split(/\r?\n/).findLast(line => line.trimStart().startsWith(PREFIX));

@@ -1,7 +1,8 @@
 import type { CanvasSettings, Point } from "./canvas";
+import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint } from "./edge-routing";
 
 export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string };
-export type EdgeGeometry = { id: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string };
+export type EdgeGeometry = { id: string; routeKey?: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string };
 export type CanvasModel = { nodes: ClassGeometry[]; edges: EdgeGeometry[] };
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -16,34 +17,23 @@ export function measureClasses(root: SVGSVGElement): ClassGeometry[] {
   });
 }
 
-function border(node: ClassGeometry, toward: Point): Point {
-  const dx = toward.x - node.x, dy = toward.y - node.y;
-  const t = Math.min(node.width / 2 / (Math.abs(dx) || .001), node.height / 2 / (Math.abs(dy) || .001));
-  return { x: node.x + dx * t, y: node.y + dy * t };
-}
 function normalize(a: Point, b: Point) {
   const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   return { x: (b.x - a.x) / length, y: (b.y - a.y) / length };
 }
-function markerGap(ref: string | null, scale: number) {
+function markerGap(root: SVGSVGElement, ref: string | null, scale: number, start: boolean) {
   if (!ref) return 0;
-  return (/dependency/.test(ref) ? 6 : /lollipop/.test(ref) ? 13 : 18) * scale;
-}
-
-function route(a: ClassGeometry, b: ClassGeometry, startGap: number, endGap: number, offset: number) {
-  if (a.name === b.name) {
-    const sx = a.x + a.width / 2 + startGap, ex = a.x + a.width / 2 + endGap;
-    const reach = a.x + a.width / 2 + 100 + offset;
-    return { path: `M ${sx} ${a.y - 22} C ${reach} ${a.y - 90}, ${reach} ${a.y + 90}, ${ex} ${a.y + 22}`, label: { x: reach - 10, y: a.y }, start: { x: sx, y: a.y - 22 }, end: { x: ex, y: a.y + 22 } };
-  }
-  const origin = border(a, b), destination = border(b, a), dir = normalize(a, b);
-  const s = { x: origin.x + dir.x * startGap, y: origin.y + dir.y * startGap };
-  const e = { x: destination.x - dir.x * endGap, y: destination.y - dir.y * endGap };
-  const horizontal = Math.abs(dir.x) * a.height > Math.abs(dir.y) * a.width;
-  const pull = Math.max(35, Math.hypot(e.x - s.x, e.y - s.y) * .38);
-  const c1 = { x: s.x + (horizontal ? Math.sign(dir.x) * pull : 0) - dir.y * offset, y: s.y + (horizontal ? 0 : Math.sign(dir.y) * pull) + dir.x * offset };
-  const c2 = { x: e.x - (horizontal ? Math.sign(dir.x) * pull : 0) - dir.y * offset, y: e.y - (horizontal ? 0 : Math.sign(dir.y) * pull) + dir.x * offset };
-  return { path: `M ${s.x} ${s.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${e.x} ${e.y}`, label: { x: (s.x + 3 * c1.x + 3 * c2.x + e.x) / 8, y: (s.y + 3 * c1.y + 3 * c2.y + e.y) / 8 }, start: s, end: e };
+  const id = ref.match(/#([^)'"\s]+)/)?.[1];
+  const marker = id ? root.getElementById(id) as SVGMarkerElement | null : null;
+  if (!marker) return 0;
+  const boxes = Array.from(marker.children).flatMap(child => {
+    try { return [(child as SVGGraphicsElement).getBBox()]; } catch { return []; }
+  });
+  if (!boxes.length) return 0;
+  const min = Math.min(...boxes.map(b => b.x)), max = Math.max(...boxes.map(b => b.x + b.width));
+  const refX = Number(marker.dataset.baseRefX || 0);
+  // Place the actual marker tip on the class border, including margin variants.
+  return (start ? refX - min : max - refX) * scale;
 }
 
 function layoutRoute(edge: EdgeGeometry, startGap: number, endGap: number) {
@@ -115,11 +105,12 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     if (!a || !b || !path) continue;
     const pair = [a.name, b.name].sort().join("|");
     const count = pairCounts.get(pair) || 0; pairCounts.set(pair, count + 1);
-    const startGap = markerGap(path.getAttribute("marker-start"), settings.arrowScale), endGap = markerGap(path.getAttribute("marker-end"), settings.arrowScale);
+    const startGap = markerGap(root, path.getAttribute("marker-start"), settings.arrowScale, true), endGap = markerGap(root, path.getAttribute("marker-end"), settings.arrowScale, false);
     const originalA = model.nodes.find(n => n.name === a.name)!, originalB = model.nodes.find(n => n.name === b.name)!;
     const atLayout = Math.hypot(a.x - originalA.x, a.y - originalA.y, b.x - originalB.x, b.y - originalB.y) < .1;
     // Keep Mermaid's obstacle-aware layout until either endpoint is moved.
-    const geometry = (atLayout ? layoutRoute(edge, startGap, endGap) : null) || route(a, b, startGap, endGap, count * 28);
+    const custom = edge.routeKey ? settings.routes[edge.routeKey] : undefined;
+    const geometry = (!custom && atLayout ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, count * 28);
     path.setAttribute("d", geometry.path);
     path.setAttribute("data-source", a.name); path.setAttribute("data-target", b.name);
     path.setAttribute("data-edge-id", edge.id); path.classList.add("studio-edge-line");
@@ -138,16 +129,17 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     anchor.setAttribute("r", "1"); anchor.setAttribute("fill", "transparent"); anchor.style.pointerEvents = "none";
     target.appendChild(anchor); hitareas.appendChild(target);
     const label = Array.from(root.querySelectorAll<SVGGElement>(".edgeLabel")).find(el => el.querySelector("[data-id]")?.getAttribute("data-id") === edge.id);
-    if (label) { label.setAttribute("transform", `translate(${geometry.label.x}, ${geometry.label.y}) scale(${settings.labelSize / 14})`); label.setAttribute("data-edge-id", edge.id); label.style.pointerEvents = "all"; label.style.cursor = "pointer"; }
-    terminal(terminals, edge.startLabelRight || "", geometry.start, geometry.end, settings.labelSize * .85, dark, true, edge.id);
-    terminal(terminals, edge.endLabelLeft || "", geometry.end, geometry.start, settings.labelSize * .85, dark, false, edge.id);
+    const midpoint = path.getPointAtLength(path.getTotalLength() / 2);
+    if (label) { geometry.label = midpoint; label.setAttribute("transform", `translate(${geometry.label.x}, ${geometry.label.y}) scale(${settings.labelSize / 14})`); label.setAttribute("data-edge-id", edge.id); label.style.pointerEvents = "all"; label.style.cursor = "pointer"; }
+    terminal(terminals, edge.startLabelRight || "", geometry.start, "startToward" in geometry ? geometry.startToward as Point : geometry.end, settings.labelSize * .85, dark, true, edge.id);
+    terminal(terminals, edge.endLabelLeft || "", geometry.end, "endToward" in geometry ? geometry.endToward as Point : geometry.start, settings.labelSize * .85, dark, false, edge.id);
   }
   return Object.fromEntries(nodes.map(n => [n.name, { x: n.x, y: n.y }]));
 }
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });
@@ -156,4 +148,40 @@ export function exportCanvas(root: SVGSVGElement) {
   clone.setAttribute("viewBox", `${box.x - 35} ${box.y - 35} ${width} ${height}`);
   clone.setAttribute("width", String(width)); clone.setAttribute("height", String(height));
   return { svg: new XMLSerializer().serializeToString(clone), width, height };
+}
+
+export function edgeControls(root: SVGSVGElement, model: CanvasModel, settings: CanvasSettings, edgeId: string, zoom: number, editable: boolean) {
+  const focused = root.contains(document.activeElement) ? (document.activeElement as SVGElement)?.getAttribute("data-handle") : null;
+  root.querySelector(".studio-edge-controls")?.remove();
+  if (!editable || !edgeId) return;
+  const edge = model.edges.find(e => e.id === edgeId);
+  if (!edge?.routeKey) return;
+  const a = model.nodes.find(n => n.name === edge.start), b = model.nodes.find(n => n.name === edge.end);
+  const path = Array.from(root.querySelectorAll<SVGPathElement>(".studio-edge-line")).find(p => p.dataset.id === edgeId);
+  if (!a || !b || !path) return;
+  const placedA = { ...a, ...settings.positions[a.name] }, placedB = { ...b, ...settings.positions[b.name] };
+  const route = settings.routes[edge.routeKey] || DEFAULT_ROUTE;
+  const geometry = routeEdge(placedA, placedB, route);
+  const first = path.getPointAtLength(0), last = path.getPointAtLength(path.getTotalLength());
+  const origin = route.from ? geometry.origin : anchorPoint(placedA, nearestAnchor(placedA, first));
+  const destination = route.to ? geometry.destination : anchorPoint(placedB, nearestAnchor(placedB, last));
+  const group = document.createElementNS(SVG_NS, "g"); group.setAttribute("class", "studio-edge-controls");
+  const handles = [{ point: origin, kind: "from", label: `Mover origen en ${a.name}` }, { point: destination, kind: "to", label: `Mover destino en ${b.name}` },
+    ...geometry.points.map((point, i) => ({ point, kind: String(i), label: `Mover punto ${i + 1} de la relación` }))];
+  if (!route.points.length) { const middle = path.getPointAtLength(path.getTotalLength() / 2); handles.push({ point: middle, kind: "new", label: "Doblar relación" }); }
+  for (const { point, kind, label } of handles) {
+    const handle = document.createElementNS(SVG_NS, "g");
+    handle.setAttribute("class", "edge-handle"); handle.setAttribute("data-edge-id", edgeId); handle.setAttribute("data-handle", kind);
+    handle.setAttribute("data-x", String(point.x)); handle.setAttribute("data-y", String(point.y));
+    handle.setAttribute("role", "button"); handle.setAttribute("tabindex", "0"); handle.setAttribute("aria-label", label);
+    handle.setAttribute("transform", `translate(${point.x},${point.y}) scale(${1 / zoom})`);
+    const hit = document.createElementNS(SVG_NS, "circle"); hit.setAttribute("r", "14"); hit.setAttribute("fill", "transparent"); hit.style.pointerEvents = "all";
+    const visible = document.createElementNS(SVG_NS, kind === "from" || kind === "to" ? "rect" : "circle");
+    if (visible.tagName === "rect") { visible.setAttribute("x", "-5"); visible.setAttribute("y", "-5"); visible.setAttribute("width", "10"); visible.setAttribute("height", "10"); visible.setAttribute("rx", "2"); }
+    else visible.setAttribute("r", "5");
+    visible.setAttribute("class", "edge-handle-dot");
+    handle.appendChild(hit); handle.appendChild(visible); group.appendChild(handle);
+  }
+  (root.querySelector("g.root") || root).appendChild(group);
+  if (focused) Array.from(group.querySelectorAll<SVGElement>("[data-handle]")).find(el => el.dataset.handle === focused)?.focus({ preventScroll: true });
 }

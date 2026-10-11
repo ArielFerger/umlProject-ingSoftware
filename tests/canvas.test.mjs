@@ -5,7 +5,7 @@ import { DEFAULT_CANVAS, RELATIONS, appendRelation, cleanSource, readCanvas, wri
 const source = "classDiagram\nclass Equipo\nclass Jugador\nEquipo o-- Jugador : agrupa\n%% comentario personal\n";
 
 test("canvas settings survive a source round trip without changing Mermaid", () => {
-  const settings = { positions: { Equipo: { x: -120, y: 800 }, Jugador: { x: 320, y: 200 } }, lineWidth: 6, arrowScale: 3, labelSize: 24 };
+  const settings = { positions: { Equipo: { x: -120, y: 800 }, Jugador: { x: 320, y: 200 } }, routes: {}, lineWidth: 6, arrowScale: 3, labelSize: 24 };
   const saved = writeCanvas(source, settings);
   assert.deepEqual(readCanvas(saved), settings);
   assert.equal(cleanSource(saved), source.trimEnd());

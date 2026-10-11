@@ -2,8 +2,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Move, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2 } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
-import { CanvasSettings, Point, RelationKind, RELATIONS, cleanSource, readCanvas, relationInfo, writeCanvas } from "@/lib/canvas";
-import { CanvasModel, applyCanvas, measureClasses, exportCanvas } from "@/lib/svg-canvas";
+import { CanvasSettings, Point, RelationKind, RELATIONS, cleanSource, readCanvas, relationInfo, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
+import { CanvasModel, applyCanvas, measureClasses, exportCanvas, edgeControls } from "@/lib/svg-canvas";
+import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
 import Modal from "./modal";
@@ -13,7 +14,7 @@ import { sourceRelations, updateRelation, removeRelation, type SourceRelation } 
 let renderQueue: Promise<unknown> = Promise.resolve();
 let renderNumber = 0;
 export type SvgResult = { svg: string; width: number; height: number };
-type Drag = { kind: "node" | "pan"; name?: string; x: number; y: number; start: Point; moved: boolean };
+type Drag = { kind: "node" | "pan" | "edge"; name?: string; x: number; y: number; start: Point; moved: boolean; edgeId?: string; handle?: string; next?: CanvasSettings };
 
 export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false }: {
   diagram: Diagram; onRendered: (result: SvgResult | null) => void; onClassClick: (name: string) => void;
@@ -129,10 +130,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             });
           }
           model.current = { nodes, edges };
-          const relations = sourceRelations(content), used = new Set<number>();
+          const relations = sourceRelations(content), used = new Set<number>(), counts = new Map<string, number>();
           relationSources.current = new Map(edges.flatMap(edge => {
             const relation = relations.find(r => !used.has(r.line) && r.from === edge.start && r.to === edge.end);
             if (!relation) return [];
+            const pair = JSON.stringify([relation.from, relation.to]), occurrence = counts.get(pair) || 0;
+            counts.set(pair, occurrence + 1); edge.routeKey = relationRouteKey(relation.from, relation.to, occurrence);
             used.add(relation.line); return [[edge.id, relation] as const];
           }));
           renderedId.current = diagram.id;
@@ -184,13 +187,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     });
   }, [origin, selectedNode, result]);
   useEffect(() => {
+    const svg = root();
+    if (svg && !busy && !error) edgeControls(svg, model.current, settings, selectedEdge, zoom, !!onSourceChange);
     root()?.querySelectorAll<SVGElement>("[data-edge-id]").forEach(element => {
       const id = element.getAttribute("data-edge-id");
       element.classList.toggle("edge-selected", id === selectedEdge);
       element.classList.toggle("edge-hovered", id === hoveredEdge);
       if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", String(id === selectedEdge));
     });
-  }, [selectedEdge, hoveredEdge, result, settings]);
+  }, [selectedEdge, hoveredEdge, result, settings, zoom, busy, error, onSourceChange]);
   useEffect(() => { setSelectedEdge(""); setHoveredEdge(""); }, [content]);
   useEffect(() => {
     if (!viewport.current) return;
@@ -210,6 +215,51 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }
   const chosenEdge = model.current.edges.find(edge => edge.id === selectedEdge);
   const chosenRelation = relationSources.current.get(selectedEdge);
+  const chosenRoute = chosenEdge?.routeKey ? settings.routes[chosenEdge.routeKey] || DEFAULT_ROUTE : DEFAULT_ROUTE;
+  function changeRoute(patch: Partial<EdgeRoute>) {
+    if (!chosenEdge?.routeKey || !callbacks.current.onSourceChange) return;
+    changeSettings({ routes: { ...settingsRef.current.routes, [chosenEdge.routeKey]: { ...chosenRoute, ...patch } } });
+  }
+  function resetRoute() {
+    if (!chosenEdge?.routeKey) return;
+    const routes = { ...settingsRef.current.routes }; delete routes[chosenEdge.routeKey]; changeSettings({ routes });
+  }
+  function clientPoint(x: number, y: number): Point {
+    const matrix = root()?.getScreenCTM();
+    if (!matrix) return { x: 0, y: 0 };
+    const point = new DOMPoint(x, y).matrixTransform(matrix.inverse());
+    return { x: Math.max(-19000, Math.min(19000, point.x)), y: Math.max(-19000, Math.min(19000, point.y)) };
+  }
+  function moveEdgeHandle(edgeId: string, handle: string, point: Point, current = settingsRef.current): CanvasSettings {
+    point = { x: Math.max(-19000, Math.min(19000, point.x)), y: Math.max(-19000, Math.min(19000, point.y)) };
+    const edge = model.current.edges.find(edge => edge.id === edgeId);
+    if (!edge?.routeKey) return current;
+    const route = current.routes[edge.routeKey] || DEFAULT_ROUTE;
+    const next: EdgeRoute = { ...route, points: [...route.points] };
+    if (handle === "from" || handle === "to") {
+      const node = model.current.nodes.find(node => node.name === (handle === "from" ? edge.start : edge.end));
+      if (node) next[handle] = nearestAnchor({ ...node, ...positions.current[node.name] }, point);
+    } else {
+      const nodes = model.current.nodes.filter(n => n.name === edge.start || n.name === edge.end).map(n => ({ ...n, ...positions.current[n.name] }));
+      point = outsidePoint(point, nodes);
+      if (handle === "new") { if (next.points.length < 20) next.points.push(point); }
+      else if (next.points[Number(handle)]) next.points[Number(handle)] = point;
+    }
+    return { ...current, positions: { ...positions.current }, routes: { ...current.routes, [edge.routeKey]: next } };
+  }
+  function showSettings(next: CanvasSettings, edgeId = selectedEdge) {
+    const svg = root(); if (!svg) return;
+    positions.current = applyCanvas(svg, model.current, next, dark);
+    edgeControls(svg, model.current, next, edgeId, zoom, !!callbacks.current.onSourceChange);
+    svg.querySelectorAll<SVGElement>("[data-edge-id]").forEach(el => el.classList.toggle("edge-selected", el.getAttribute("data-edge-id") === edgeId));
+  }
+  function addBend() {
+    if (!chosenEdge || chosenRoute.points.length >= 20) return;
+    const path = Array.from(root()?.querySelectorAll<SVGPathElement>(".studio-edge-line") || []).find(p => p.dataset.id === selectedEdge);
+    if (!path) return;
+    const point = path.getPointAtLength(path.getTotalLength() * (chosenRoute.points.length ? .65 : .5));
+    changeRoute({ points: [...chosenRoute.points, { x: point.x, y: point.y }] });
+  }
   function selectClass(name: string) {
     if (busy || error) return;
     setSelectedNode(name);
@@ -328,6 +378,23 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <button className="icon-btn canvas-options" aria-label="Opciones del lienzo" title="Opciones del lienzo (clic derecho)" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); openContext(box.right - 256, box.bottom + 8, model.current.nodes.some(node => node.name === selectedNode) ? selectedNode : ""); }}><MoreHorizontal size={19} /></button>
     </div>
     {isClass && mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><span>{origin ? origin + " → " + relation.destination : relation.origin + " → " + relation.destination}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
+      {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
+        <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
+        {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
+        <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
+        {onSourceChange && chosenEdge.routeKey && <div className="relation-routing">
+          <label>Trazo<select aria-label="Forma de la conexión" value={settings.routes[chosenEdge.routeKey]?.shape || "automatic"} onChange={e => e.target.value === "automatic" ? resetRoute() : changeRoute({ shape: e.target.value as EdgeRoute["shape"] })}>
+            <option value="automatic">Automático</option><option value="straight">Recta</option><option value="curved">Curva</option><option value="orthogonal">En ángulo</option>
+          </select></label>
+          <button className="btn" aria-label="Agregar punto de conexión" disabled={chosenRoute.points.length >= 20} onClick={addBend}><Plus size={14} />Punto</button>
+          <button className="icon-btn" aria-label="Quitar último punto de conexión" title="Quitar último punto" disabled={!chosenRoute.points.length} onClick={() => changeRoute({ points: chosenRoute.points.slice(0, -1) })}><Minus size={15} /></button>
+          <button className="icon-btn" aria-label="Restaurar recorrido automático" title="Restaurar recorrido automático" disabled={!settings.routes[chosenEdge.routeKey]} onClick={resetRoute}><RotateCcw size={15} /></button>
+          <details className="edge-anchors"><summary>Extremos</summary><div className="edge-anchor-fields">
+            {(["from", "to"] as const).map(end => <label key={end}>{end === "from" ? "Origen" : "Destino"}<select aria-label={`Lado de ${end === "from" ? "origen" : "destino"}`} value={chosenRoute[end]?.side || "automatic"} onChange={e => changeRoute({ [end]: e.target.value === "automatic" ? undefined : { side: e.target.value as EdgeAnchor["side"], offset: .5 } })}><option value="automatic">Automático</option><option value="top">Arriba</option><option value="right">Derecha</option><option value="bottom">Abajo</option><option value="left">Izquierda</option></select></label>)}
+          </div></details>
+          <span className="edge-route-hint">Arrastrá extremos y puntos. Supr quita un punto.</span>
+        </div>}
+      </div>}
     <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
       onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
       onContextMenu={e => { e.preventDefault(); drag.current = null; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { selectEdge(edgeId); return; } const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); }}
@@ -335,6 +402,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         if (e.button !== 0) return;
         if ((e.target as Element).closest("button,.error-panel")) return;
         const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
+        const handle = (e.target as Element).closest("[data-handle]");
+        if (edgeId && handle && onSourceChange && !busy && !error) {
+          e.preventDefault();
+          drag.current = { kind: "edge", edgeId, handle: handle.getAttribute("data-handle")!, x: e.clientX, y: e.clientY, start: clientPoint(e.clientX, e.clientY), moved: false };
+          e.currentTarget.setPointerCapture(e.pointerId); return;
+        }
         if (edgeId) { e.preventDefault(); selectEdge(edgeId); Array.from(root()?.querySelectorAll<SVGElement>(".studio-edge-target") || []).find(el => el.getAttribute("data-edge-id") === edgeId)?.focus({ preventScroll: true }); return; }
         const node = (e.target as Element).closest("[data-class]");
         const name = node?.getAttribute("data-class");
@@ -349,13 +422,20 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         const d = drag.current; if (!d) return;
         const dx = e.clientX - d.x, dy = e.clientY - d.y;
         if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
-        if (d.kind === "pan") setPan({ x: d.start.x + dx, y: d.start.y + dy });
+        if (d.kind === "edge" && d.moved && d.edgeId && d.handle) {
+          d.next = moveEdgeHandle(d.edgeId, d.handle, clientPoint(e.clientX, e.clientY)); showSettings(d.next, d.edgeId);
+        }
+        else if (d.kind === "pan") setPan({ x: d.start.x + dx, y: d.start.y + dy });
         else if (mode === "move" && d.moved && d.name) placeClass(d.name, { x: Math.max(-19000, Math.min(19000, d.start.x + dx / zoom)), y: Math.max(-19000, Math.min(19000, d.start.y + dy / zoom)) });
       }}
       onPointerUp={e => {
         const d = drag.current; drag.current = null;
         if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
         if (!d) return;
+        if (d.kind === "edge") {
+          if (d.moved && d.next) { callbacks.current.onSettingsChange(d.next); const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg)); }
+          return;
+        }
         if (!d.name) { if (!d.moved) { setSelectedNode(""); setSelectedEdge(""); } return; }
         if (!d.moved) selectClass(d.name);
         else if (mode === "move") {
@@ -366,11 +446,25 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 220, easing: "cubic-bezier(.16,1,.3,1)" });
         }
       }}
-      onPointerCancel={() => { drag.current = null; const svg = root(); if (svg && isClass) positions.current = applyCanvas(svg, model.current, settingsRef.current, dark); }}
+      onPointerCancel={() => { drag.current = null; if (isClass) showSettings(settingsRef.current); }}
       onPointerLeave={() => setHoveredEdge("")}
-      onDoubleClick={e => { const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name && mode === "move" && !busy && !error) openClass(name); }}
+      onDoubleClick={e => { if ((e.target as Element).closest("[data-handle]")) return; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name && mode === "move" && !busy && !error) openClass(name); }}
       onKeyDown={e => {
         const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
+        const handle = (e.target as Element).closest<SVGElement>("[data-handle]");
+        if (edgeId && handle && onSourceChange) {
+          const key = handle.getAttribute("data-handle")!, step = e.shiftKey ? 20 : 5;
+          const delta: Record<string, Point> = { ArrowLeft: { x: -step, y: 0 }, ArrowRight: { x: step, y: 0 }, ArrowUp: { x: 0, y: -step }, ArrowDown: { x: 0, y: step } };
+          if (delta[e.key]) {
+            e.preventDefault(); const x = Number(handle.dataset.x), y = Number(handle.dataset.y);
+            const next = moveEdgeHandle(edgeId, key, { x: x + delta[e.key].x, y: y + delta[e.key].y });
+            callbacks.current.onSettingsChange(next);
+            requestAnimationFrame(() => Array.from(root()?.querySelectorAll<SVGElement>("[data-handle]") || []).find(el => el.dataset.handle === (key === "new" ? "0" : key))?.focus({ preventScroll: true }));
+            return;
+          }
+          if ((e.key === "Delete" || e.key === "Backspace") && /^\d+$/.test(key)) { e.preventDefault(); changeRoute({ points: chosenRoute.points.filter((_, i) => i !== Number(key)) }); return; }
+          if (key === "new" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); addBend(); return; }
+        }
         if (edgeId && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectEdge(edgeId); return; }
         if (edgeId && e.key === "F2") { e.preventDefault(); editEdge(edgeId); return; }
         if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); return; }
@@ -389,11 +483,6 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         dangerouslySetInnerHTML={markup} />}
       {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
       {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-      {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
-        <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
-        {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
-        <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
-      </div>}
       {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">Clic en una flecha para seleccionarla · doble clic para editar · arrastrá el fondo para moverte</span></span>}
       {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
       <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>

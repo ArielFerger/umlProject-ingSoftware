@@ -1,4 +1,5 @@
 import { cleanSource, readCanvas, writeCanvas, RELATIONS } from "./canvas.ts";
+import { relationRouteKey } from "./edge-routing.ts";
 
 export type SourceRelation = { line: number; raw: string; from: string; to: string; kind: string; fromCard: string; toCard: string; label: string; indent: string; comment: string };
 const relationLine = /^([ \t]*)([A-Za-z_][\w-]*)(?:[ \t]+"([^"\r\n]*)")?[ \t]+([<>|o*().-]+)[ \t]+(?:"([^"\r\n]*)"[ \t]+)?([A-Za-z_][\w-]*)(?:[ \t]*:[ \t]*(.*?))?([ \t]*(?:%%.*)?)$/;
@@ -29,6 +30,17 @@ export function updateRelation(source: string, relation: SourceRelation, patch: 
 }
 export function removeRelation(source: string, relation: SourceRelation) {
   const lines = currentLines(source, relation);
+  const settings = readCanvas(source), counts = new Map<string, number>();
+  const routes: typeof settings.routes = {};
+  const nextCounts = new Map<string, number>();
+  for (const item of sourceRelations(source)) {
+    const pair = JSON.stringify([item.from, item.to]);
+    const previous = counts.get(pair) || 0; counts.set(pair, previous + 1);
+    if (item.line === relation.line) continue;
+    const next = nextCounts.get(pair) || 0; nextCounts.set(pair, next + 1);
+    const route = settings.routes[relationRouteKey(item.from, item.to, previous)];
+    if (route) routes[relationRouteKey(item.from, item.to, next)] = route;
+  }
   lines.splice(relation.line, 1);
-  return writeCanvas(lines.join("\n"), readCanvas(source));
+  return writeCanvas(lines.join("\n"), { ...settings, routes });
 }

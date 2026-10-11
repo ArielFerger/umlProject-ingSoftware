@@ -23,6 +23,7 @@ El sector `/git` permite aprender Git con un simulador visual confirmado por el 
 - El sitio original usa identidad de Sites y Cloudflare D1. Docker ofrece un espacio local de un solo usuario, con almacenamiento persistente separado del sitio publicado.
 - El usuario solicitó compatibilidad con Vercel y subir los cambios a GitHub. Esa variante compila con Next.js y guarda diagramas e historial en IndexedDB de cada navegador y dominio, sin credenciales externas; Docker y Sites conservan D1. Exportar e importar Proyecto JSON permite trasladar documentos.
 - La selección de flechas debe ser clara con ratón, tacto y teclado, con edición de la relación que conserve las demás declaraciones y los metadatos del lienzo.
+- Las conexiones de clases permiten trazado recto, curvo o en ángulo; puntos intermedios movibles y extremos ajustables en cualquier posición de los cuatro lados de la clase. Los recorridos acompañan al documento y a deshacer/rehacer.
 - Se conservan los documentos, ejercicios y progreso del módulo de estudio. No se modifica ni publica el sitio remoto como parte de este trabajo.
 
 ## Brand Commitments
