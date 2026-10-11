@@ -45,3 +45,5 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+# Browser verification copies required by Impeccable; not product assets.
+/.impeccable/review/

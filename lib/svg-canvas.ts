@@ -72,7 +72,7 @@ function terminal(root: SVGElement, text: string, point: Point, other: Point, si
   label.setAttribute("x", String(point.x + direction.x * 18 - direction.y * 17 * sign));
   label.setAttribute("y", String(point.y + direction.y * 18 + direction.x * 17 * sign));
   label.setAttribute("text-anchor", "middle"); label.setAttribute("dominant-baseline", "middle");
-  label.style.cssText = `font-size:${size}px;fill:${dark ? "#e4ece7" : "#42574b"};stroke:${dark ? "#20252d" : "white"};stroke-width:5px;paint-order:stroke;font-family:Arial,sans-serif;pointer-events:none;`;
+  label.style.cssText = `font-size:${size}px;fill:${dark ? "#e4edf1" : "#314957"};stroke:${dark ? "#1d2c36" : "white"};stroke-width:5px;paint-order:stroke;font-family:'Source Sans 3 Variable',sans-serif;pointer-events:none;`;
   root.appendChild(label);
 }
 

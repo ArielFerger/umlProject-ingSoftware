@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.agents
+.codex
+.impeccable
+.sites-runtime
+.vinext
+.wrangler
+.next
+.env*
+*.tsbuildinfo
+outputs
+work
+coverage
+npm-debug.log*

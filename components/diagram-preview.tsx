@@ -7,19 +7,25 @@ import { CanvasModel, applyCanvas, measureClasses, exportCanvas } from "@/lib/sv
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
 import Modal from "./modal";
+import { useAppTheme } from "./theme-picker";
 
 let renderQueue: Promise<unknown> = Promise.resolve();
 let renderNumber = 0;
 export type SvgResult = { svg: string; width: number; height: number };
 type Drag = { kind: "node" | "pan"; name?: string; x: number; y: number; start: Point; moved: boolean };
 
-export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange }: {
+export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false }: {
   diagram: Diagram; onRendered: (result: SvgResult | null) => void; onClassClick: (name: string) => void;
   onSettingsChange: (settings: CanvasSettings) => void;
   onConnect: (from: string, to: string, kind: RelationKind, positions: Record<string, Point>) => void;
   onGuide: (kind: string) => void;
   onSourceChange?: (source: string) => void;
+  selectedClass?: string;
+  onSelectionChange?: (name: string) => void;
+  inspectorOpen?: boolean;
 }) {
+  const { isDark } = useAppTheme();
+  const dark = diagram.theme === "dark" || (diagram.theme === "studio" && isDark);
   const viewport = useRef<HTMLDivElement>(null);
   const art = useRef<HTMLDivElement>(null);
   const model = useRef<CanvasModel>({ nodes: [], edges: [] });
@@ -33,7 +39,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [mode, setMode] = useState<"move" | "connect">("move");
   const [relationKind, setRelationKind] = useState<RelationKind>("-->");
   const [origin, setOrigin] = useState("");
-  const [selectedNode, setSelectedNode] = useState("");
+  const [localSelection, setLocalSelection] = useState("");
+  const selectedNode = selectedClass ?? localSelection;
   const drag = useRef<Drag | null>(null);
   const fittedId = useRef("");
   const renderedId = useRef("");
@@ -48,19 +55,20 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const content = useMemo(() => cleanSource(diagram.source), [diagram.source]);
   const settings = useMemo(() => readCanvas(diagram.source), [diagram.source]);
   const settingsRef = useRef(settings); settingsRef.current = settings;
-  const callbacks = useRef({ onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange });
-  callbacks.current = { onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange };
+  const callbacks = useRef({ onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange });
+  callbacks.current = { onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange };
   const isClass = diagram.type === "class";
   const relation = relationInfo(relationKind);
   const root = () => art.current?.querySelector<SVGSVGElement>("svg") || null;
 
-  const fit = useCallback(() => {
+  const fit = useCallback((readable = false) => {
     const el = viewport.current, svg = art.current?.querySelector<SVGSVGElement>("svg");
     if (!el || !svg) return;
     const box = svg.getBBox(), view = svg.viewBox.baseVal;
-    const scale = Math.min(1.15, Math.max(.1, Math.min((el.clientWidth - 65) / (box.width + 50), (el.clientHeight - 85) / (box.height + 50))));
+    const fitted = Math.min(1.15, Math.max(.1, Math.min((el.clientWidth - 65) / (box.width + 50), (el.clientHeight - 85) / (box.height + 50))));
+    const scale = readable ? Math.max(.8, fitted) : fitted;
     setZoom(scale);
-    setPan({ x: (view.x + view.width / 2 - box.x - box.width / 2) * scale, y: (view.y + view.height / 2 - box.y - box.height / 2) * scale });
+    setPan({ x: (view.x + view.width / 2 - box.x - box.width / 2) * scale, y: readable && scale > fitted ? (view.y + view.height / 2 - box.y) * scale - el.clientHeight / 2 + 48 : (view.y + view.height / 2 - box.y - box.height / 2) * scale });
   }, []);
 
   useEffect(() => {
@@ -74,20 +82,22 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         document.body.appendChild(staging);
         try {
           const mermaid = (await import("mermaid")).default;
-          mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false, theme: diagram.theme === "dark" ? "dark" : "base",
-            fontFamily: "Arial, sans-serif", suppressErrorRendering: true,
-            themeVariables: diagram.theme === "dark" ? { fontSize: "14px" } : {
-              fontSize: "14px", primaryColor: diagram.theme === "neutral" ? "#f3f4f6" : "#edf6f1",
-              primaryTextColor: "#263d34", primaryBorderColor: "#698d7c", lineColor: "#596f62",
-              secondaryColor: "#eef2f7", tertiaryColor: "#fff4dc", background: "#ffffff",
-              mainBkg: "#edf6f1", nodeBorder: "#698d7c", clusterBkg: "#f7f9fa",
-              actorBkg: "#edf6f1", actorBorder: "#698d7c", actorTextColor: "#263d34",
-              signalColor: "#58616c", signalTextColor: "#38414b", labelBoxBkgColor: "#f3f5f6",
+          if (isClass) await document.fonts.load("14px 'IBM Plex Mono'");
+          mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false, theme: dark ? "dark" : "base",
+            fontFamily: "Source Sans 3 Variable, sans-serif", suppressErrorRendering: true,
+            themeCSS: isClass ? ".members-group text, .methods-group text { font-family: 'IBM Plex Mono', monospace; font-size: 14px; } .label-group text { font-family: 'Source Sans 3 Variable', sans-serif; font-size: 17px; font-weight: 650; } .divider path { stroke-width: 1px; }" : "",
+            themeVariables: dark ? { fontSize: "15px", primaryColor: "#243b47", primaryTextColor: "#e4edf1", primaryBorderColor: "#84b6c4", lineColor: "#96b5c0", mainBkg: "#243b47" } : {
+              fontSize: "15px", primaryColor: diagram.theme === "neutral" ? "#f4f6f8" : "#edf5f7",
+              primaryTextColor: "#243c48", primaryBorderColor: "#759ca9", lineColor: "#5d7b88",
+              secondaryColor: "#eff2f8", tertiaryColor: "#f7f2e6", background: "#ffffff",
+              mainBkg: diagram.theme === "neutral" ? "#f4f6f8" : "#edf5f7", nodeBorder: "#759ca9", clusterBkg: "#f4f7f9",
+              actorBkg: "#edf5f7", actorBorder: "#759ca9", actorTextColor: "#243c48",
+              signalColor: "#5d7b88", signalTextColor: "#243c48", labelBoxBkgColor: "#f4f7f9",
             },
             flowchart: { htmlLabels: false, curve: "basis", useMaxWidth: false },
-            class: { useMaxWidth: false }, sequence: { useMaxWidth: false },
+            class: { useMaxWidth: false, padding: 8, dividerMargin: 6 }, sequence: { useMaxWidth: false },
             // Mermaid's unified class renderer reads spacing from state config.
-            state: isClass ? { nodeSpacing: 70, rankSpacing: 140 } : {},
+            state: isClass ? { nodeSpacing: 35, rankSpacing: 45, padding: 8 } : {},
           });
           const { svg } = await mermaid.render("uml" + ++renderNumber, content, staging);
           if (cancelled) return;
@@ -122,17 +132,17 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       });
     }, 220);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [content, diagram.theme, diagram.id, isClass]);
+  }, [content, diagram.theme, dark, diagram.id, isClass]);
 
   useEffect(() => {
     const svg = root();
     if (!svg || busy || error || renderedId.current !== diagram.id) return;
-    if (isClass) positions.current = applyCanvas(svg, model.current, settings, diagram.theme === "dark");
+    if (isClass) positions.current = applyCanvas(svg, model.current, settings, dark);
     else {
       svg.querySelectorAll<SVGPathElement>(".edgePaths path,.messageLine0,.messageLine1").forEach(path => { path.style.strokeWidth = String(settings.lineWidth); });
     }
     callbacks.current.onRendered(exportCanvas(svg));
-    if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) { pendingNode.current = ""; fit(); }
+    if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) { pendingNode.current = ""; fit(true); }
     const link = pendingLink.current;
     if (link) {
       const edge = model.current.edges.findLast(edge => edge.start === link.from && edge.end === link.to);
@@ -148,8 +158,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         }
       }
     }
-    if (fittedId.current !== diagram.id) { fittedId.current = diagram.id; fit(); }
-  }, [result, settings, busy, error, diagram.theme, diagram.id, fit, isClass]);
+    if (fittedId.current !== diagram.id) { fittedId.current = diagram.id; fit(true); }
+  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass]);
 
   useEffect(() => {
     setMode("move"); setOrigin(""); setSelectedNode(""); setContext(null); setClassForm(null); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = "";
@@ -163,10 +173,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }, [origin, selectedNode, result]);
   useEffect(() => {
     if (!viewport.current) return;
-    const observer = new ResizeObserver(() => { if (root()) fit(); });
+    const observer = new ResizeObserver(() => { if (root()) fit(true); });
     observer.observe(viewport.current); return () => observer.disconnect();
   }, [fit]);
 
+  function setSelectedNode(name: string) { setLocalSelection(name); callbacks.current.onSelectionChange?.(name); }
   function selectClass(name: string) {
     if (busy || error) return;
     setSelectedNode(name);
@@ -183,7 +194,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     const svg = root();
     if (!svg) return;
     const next = { ...settingsRef.current, positions: { ...positions.current, [name]: point } };
-    positions.current = applyCanvas(svg, model.current, next, diagram.theme === "dark");
+    positions.current = applyCanvas(svg, model.current, next, dark);
   }
   function changeSettings(patch: Partial<CanvasSettings>) { callbacks.current.onSettingsChange({ ...settingsRef.current, ...patch }); }
   function changeZoom(delta: number) { setZoom(z => Math.min(4, Math.max(.1, Math.round((z + delta) * 100) / 100))); }
@@ -233,7 +244,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       return next;
     });
   }
-  function arrange() { changeSettings({ positions: {} }); requestAnimationFrame(() => requestAnimationFrame(fit)); }
+  function arrange() { changeSettings({ positions: {} }); requestAnimationFrame(() => requestAnimationFrame(() => fit())); }
   const actions: MenuAction[] = [];
   if (context?.name) {
     const name = context.name;
@@ -252,7 +263,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       actions.push({ label: "Agregar clase", icon: <Plus size={16} />, run: () => openClass(), disabled: busy || !!error });
       actions.push({ label: "Ordenar clases automáticamente", icon: <LayoutGrid size={16} />, run: arrange, disabled: busy || !!error });
     }
-    actions.push({ label: "Ajustar al lienzo", icon: <Scan size={16} />, run: fit, disabled: !result || busy || !!error, separator: isClass && !!onSourceChange });
+    actions.push({ label: "Ajustar al lienzo", icon: <Scan size={16} />, run: () => fit(), disabled: !result || busy || !!error, separator: isClass && !!onSourceChange });
     actions.push({ label: "Ver al 100%", icon: <Scan size={16} />, run: () => { setZoom(1); setPan({ x: 0, y: 0 }); }, disabled: !result });
     actions.push({ label: "Copiar código Mermaid", icon: <Code2 size={16} />, run: () => void copySource(), separator: true });
     actions.push({ label: "Descargar Mermaid", icon: <Download size={16} />, run: () => downloadSource() });
@@ -274,18 +285,19 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         <span className="canvas-tool-spacer" />
         <button className="icon-btn canvas-arrange" title="Ordenar clases automáticamente" aria-label="Ordenar clases automáticamente" disabled={busy || !!error} onClick={arrange}><LayoutGrid size={17} /></button>
       </>}
-      <details className="canvas-style">
+      {!inspectorOpen && <details className="canvas-style">
         <summary aria-label="Ajustar flechas y etiquetas" title="Ajustar flechas y etiquetas"><SlidersHorizontal size={17} /></summary>
         <div className="style-popover">
           <label>Grosor de línea <output>{settings.lineWidth} px</output><input aria-label="Grosor de línea" type="range" min="1" max="6" step=".5" value={settings.lineWidth} onChange={e => changeSettings({ lineWidth: Number(e.target.value) })} /></label>
           {isClass && <label>Tamaño de punta <output>{Math.round(settings.arrowScale * 100)}%</output><input aria-label="Tamaño de punta" type="range" min="1" max="3" step=".1" value={settings.arrowScale} onChange={e => changeSettings({ arrowScale: Number(e.target.value) })} /></label>}
           {isClass && <label>Texto de relaciones <output>{settings.labelSize} px</output><input aria-label="Texto de relaciones" type="range" min="12" max="24" step="1" value={settings.labelSize} onChange={e => changeSettings({ labelSize: Number(e.target.value) })} /></label>}
         </div>
-      </details>
+      </details>}
       <button className="icon-btn canvas-options" aria-label="Opciones del lienzo" title="Opciones del lienzo (clic derecho)" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); openContext(box.right - 256, box.bottom + 8, model.current.nodes.some(node => node.name === selectedNode) ? selectedNode : ""); }}><MoreHorizontal size={19} /></button>
     </div>
     {isClass && mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><span>{origin ? origin + " → " + relation.destination : relation.origin + " → " + relation.destination}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
-    <div className={"diagram-viewport " + (diagram.theme === "dark" ? "canvas-dark " : "") + (mode === "connect" ? "connecting" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
+    <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
+      onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
       onContextMenu={e => { e.preventDefault(); drag.current = null; const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); }}
       onPointerDown={e => {
         if (e.button !== 0) return;
@@ -307,19 +319,23 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       }}
       onPointerUp={e => {
         const d = drag.current; drag.current = null;
-        if (!d || !d.name) return;
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+        if (!d) return;
+        if (!d.name) { if (!d.moved) setSelectedNode(""); return; }
         if (!d.moved) selectClass(d.name);
         else if (mode === "move") {
           callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
           const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg));
+          const node = Array.from(svg?.querySelectorAll<SVGGElement>("[data-class]") || []).find(node => node.getAttribute("data-class") === d.name);
+          const outline = node?.querySelector("g.outer-path > path");
+          if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 220, easing: "cubic-bezier(.16,1,.3,1)" });
         }
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
       }}
-      onPointerCancel={() => { drag.current = null; const svg = root(); if (svg && isClass) positions.current = applyCanvas(svg, model.current, settingsRef.current, diagram.theme === "dark"); }}
+      onPointerCancel={() => { drag.current = null; const svg = root(); if (svg && isClass) positions.current = applyCanvas(svg, model.current, settingsRef.current, dark); }}
       onDoubleClick={e => { const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name && mode === "move" && !busy && !error) openClass(name); }}
       onKeyDown={e => {
         if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); return; }
-        if (e.key === "Escape") { setOrigin(""); setMode("move"); return; }
+        if (e.key === "Escape") { setOrigin(""); setMode("move"); setSelectedNode(""); return; }
         const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (!name || busy || error) return;
         if (e.key === "Enter") { e.preventDefault(); if (mode === "connect") selectClass(name); else openClass(name); }
         const vectors: Record<string, Point> = { ArrowLeft: { x: -10, y: 0 }, ArrowRight: { x: 10, y: 0 }, ArrowUp: { x: 0, y: -10 }, ArrowDown: { x: 0, y: 10 } };
@@ -334,16 +350,16 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         dangerouslySetInnerHTML={markup} />}
       {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
       {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-      {!busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">Clic derecho para ver acciones</span></span>}
+      {!busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">Arrastrá el lienzo para moverte · clic derecho para ver acciones</span></span>}
       {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
       <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
         <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
         <span>{Math.round(zoom * 100)}%</span>
         <button className="icon-btn" aria-label="Acercar" title="Acercar" onClick={() => changeZoom(.1)}><Plus size={16} /></button>
-        <i /><button className="icon-btn" aria-label="Ajustar al lienzo" title="Ajustar al lienzo" onClick={fit}><Scan size={17} /></button>
+        <i /><button className="icon-btn" aria-label="Ajustar al lienzo" title="Ajustar al lienzo" onClick={() => fit()}><Scan size={17} /></button>
       </div>
     </div>
-    {context && <CanvasMenu x={context.x} y={context.y} title={context.name || "Opciones del lienzo"} actions={actions} onClose={closeContext} dark={diagram.theme === "dark"} container={viewport.current?.closest("dialog") || undefined} />}
+    {context && <CanvasMenu x={context.x} y={context.y} title={context.name || "Opciones del lienzo"} actions={actions} onClose={closeContext} dark={dark} container={viewport.current?.closest("dialog") || undefined} />}
     {classForm && <Modal title={classForm.editing ? "Editar clase" : "Agregar clase"} onClose={() => setClassForm(null)}><form onSubmit={e => { e.preventDefault(); saveClass(); }}><div className="modal-body">
       <label>Nombre<input required autoFocus maxLength={120} disabled={classForm.editing} value={classForm.name} placeholder="Por ejemplo: Cliente" onChange={e => setClassForm({ ...classForm, name: e.target.value })} /></label>
       <label>Atributos y métodos<textarea rows={8} className="mono" value={classForm.body} onChange={e => setClassForm({ ...classForm, body: e.target.value })} /></label>

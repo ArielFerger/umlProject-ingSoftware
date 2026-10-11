@@ -1,0 +1,1968 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T01:38:39.471151+00:00",
+  "title": "Design System: UML Studio",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Claro · tinta",
+        "cssVariable": "--ink",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0077 241.67)",
+          "oklch(26% 0.0077 241.67)",
+          "oklch(38% 0.0077 241.67)",
+          "oklch(49% 0.0077 241.67)",
+          "oklch(61% 0.0077 241.67)",
+          "oklch(72% 0.0077 241.67)",
+          "oklch(84% 0.0077 241.67)",
+          "oklch(95% 0.0077 241.67)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Claro · texto secundario",
+        "cssVariable": "--muted",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0213 243.49)",
+          "oklch(26% 0.0213 243.49)",
+          "oklch(38% 0.0213 243.49)",
+          "oklch(49% 0.0213 243.49)",
+          "oklch(61% 0.0213 243.49)",
+          "oklch(72% 0.0213 243.49)",
+          "oklch(84% 0.0213 243.49)",
+          "oklch(95% 0.0213 243.49)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Claro · separador",
+        "cssVariable": "--line",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0216 248.39)",
+          "oklch(26% 0.0216 248.39)",
+          "oklch(38% 0.0216 248.39)",
+          "oklch(49% 0.0216 248.39)",
+          "oklch(61% 0.0216 248.39)",
+          "oklch(72% 0.0216 248.39)",
+          "oklch(84% 0.0216 248.39)",
+          "oklch(95% 0.0216 248.39)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Claro · acento",
+        "cssVariable": "--accent",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0595 218.44)",
+          "oklch(26% 0.0595 218.44)",
+          "oklch(38% 0.0595 218.44)",
+          "oklch(49% 0.0595 218.44)",
+          "oklch(61% 0.0595 218.44)",
+          "oklch(72% 0.0595 218.44)",
+          "oklch(84% 0.0595 218.44)",
+          "oklch(95% 0.0595 218.44)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Claro · acento al pasar",
+        "cssVariable": "--accent-hover",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0464 215.44)",
+          "oklch(26% 0.0464 215.44)",
+          "oklch(38% 0.0464 215.44)",
+          "oklch(49% 0.0464 215.44)",
+          "oklch(61% 0.0464 215.44)",
+          "oklch(72% 0.0464 215.44)",
+          "oklch(84% 0.0464 215.44)",
+          "oklch(95% 0.0464 215.44)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Claro · acento tenue",
+        "cssVariable": "--accent-soft",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0277 225.77)",
+          "oklch(26% 0.0277 225.77)",
+          "oklch(38% 0.0277 225.77)",
+          "oklch(49% 0.0277 225.77)",
+          "oklch(61% 0.0277 225.77)",
+          "oklch(72% 0.0277 225.77)",
+          "oklch(84% 0.0277 225.77)",
+          "oklch(95% 0.0277 225.77)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Claro · superficie secundaria",
+        "cssVariable": "--surface",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0167 248.48)",
+          "oklch(26% 0.0167 248.48)",
+          "oklch(38% 0.0167 248.48)",
+          "oklch(49% 0.0167 248.48)",
+          "oklch(61% 0.0167 248.48)",
+          "oklch(72% 0.0167 248.48)",
+          "oklch(84% 0.0167 248.48)",
+          "oklch(95% 0.0167 248.48)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Claro · superficie principal",
+        "cssVariable": "--paper",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0177 251.89)",
+          "oklch(26% 0.0177 251.89)",
+          "oklch(38% 0.0177 251.89)",
+          "oklch(49% 0.0177 251.89)",
+          "oklch(61% 0.0177 251.89)",
+          "oklch(72% 0.0177 251.89)",
+          "oklch(84% 0.0177 251.89)",
+          "oklch(95% 0.0177 251.89)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Claro · navegación grafito",
+        "cssVariable": "--rail",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0172 248.61)",
+          "oklch(26% 0.0172 248.61)",
+          "oklch(38% 0.0172 248.61)",
+          "oklch(49% 0.0172 248.61)",
+          "oklch(61% 0.0172 248.61)",
+          "oklch(72% 0.0172 248.61)",
+          "oklch(84% 0.0172 248.61)",
+          "oklch(95% 0.0172 248.61)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Claro · error y eliminación",
+        "cssVariable": "--danger",
+        "theme": "light",
+        "source": "app/globals.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0927 13.45)",
+          "oklch(26% 0.0927 13.45)",
+          "oklch(38% 0.0927 13.45)",
+          "oklch(49% 0.0927 13.45)",
+          "oklch(61% 0.0927 13.45)",
+          "oklch(72% 0.0927 13.45)",
+          "oklch(84% 0.0927 13.45)",
+          "oklch(95% 0.0927 13.45)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Claro · campo",
+        "cssVariable": "--field",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0165 248.44)",
+          "oklch(26% 0.0165 248.44)",
+          "oklch(38% 0.0165 248.44)",
+          "oklch(49% 0.0165 248.44)",
+          "oklch(61% 0.0165 248.44)",
+          "oklch(72% 0.0165 248.44)",
+          "oklch(84% 0.0165 248.44)",
+          "oklch(95% 0.0165 248.44)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Claro · superficie al pasar",
+        "cssVariable": "--hover",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0215 243.05)",
+          "oklch(26% 0.0215 243.05)",
+          "oklch(38% 0.0215 243.05)",
+          "oklch(49% 0.0215 243.05)",
+          "oklch(61% 0.0215 243.05)",
+          "oklch(72% 0.0215 243.05)",
+          "oklch(84% 0.0215 243.05)",
+          "oklch(95% 0.0215 243.05)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Claro · selección",
+        "cssVariable": "--selected",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0314 225.28)",
+          "oklch(26% 0.0314 225.28)",
+          "oklch(38% 0.0314 225.28)",
+          "oklch(49% 0.0314 225.28)",
+          "oklch(61% 0.0314 225.28)",
+          "oklch(72% 0.0314 225.28)",
+          "oklch(84% 0.0314 225.28)",
+          "oklch(95% 0.0314 225.28)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "selected-ink": {
+        "role": "primary",
+        "displayName": "Claro · texto seleccionado",
+        "cssVariable": "--selected-ink",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0410 215.91)",
+          "oklch(26% 0.0410 215.91)",
+          "oklch(38% 0.0410 215.91)",
+          "oklch(49% 0.0410 215.91)",
+          "oklch(61% 0.0410 215.91)",
+          "oklch(72% 0.0410 215.91)",
+          "oklch(84% 0.0410 215.91)",
+          "oklch(95% 0.0410 215.91)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "code-surface": {
+        "role": "neutral",
+        "displayName": "Claro · fondo de código",
+        "cssVariable": "--code-surface",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0167 248.49)",
+          "oklch(26% 0.0167 248.49)",
+          "oklch(38% 0.0167 248.49)",
+          "oklch(49% 0.0167 248.49)",
+          "oklch(61% 0.0167 248.49)",
+          "oklch(72% 0.0167 248.49)",
+          "oklch(84% 0.0167 248.49)",
+          "oklch(95% 0.0167 248.49)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "code-ink": {
+        "role": "neutral",
+        "displayName": "Claro · tinta de código",
+        "cssVariable": "--code-ink",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0152 235.39)",
+          "oklch(26% 0.0152 235.39)",
+          "oklch(38% 0.0152 235.39)",
+          "oklch(49% 0.0152 235.39)",
+          "oklch(61% 0.0152 235.39)",
+          "oklch(72% 0.0152 235.39)",
+          "oklch(84% 0.0152 235.39)",
+          "oklch(95% 0.0152 235.39)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "code-line": {
+        "role": "neutral",
+        "displayName": "Claro · línea activa",
+        "cssVariable": "--code-line",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0264 237.75)",
+          "oklch(26% 0.0264 237.75)",
+          "oklch(38% 0.0264 237.75)",
+          "oklch(49% 0.0264 237.75)",
+          "oklch(61% 0.0264 237.75)",
+          "oklch(72% 0.0264 237.75)",
+          "oklch(84% 0.0264 237.75)",
+          "oklch(95% 0.0264 237.75)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Claro · selección de texto",
+        "cssVariable": "--selection",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0431 230.63)",
+          "oklch(26% 0.0431 230.63)",
+          "oklch(38% 0.0431 230.63)",
+          "oklch(49% 0.0431 230.63)",
+          "oklch(61% 0.0431 230.63)",
+          "oklch(72% 0.0431 230.63)",
+          "oklch(84% 0.0431 230.63)",
+          "oklch(95% 0.0431 230.63)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Claro · fondo de exportación Studio",
+        "cssVariable": "--canvas",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0221 245.95)",
+          "oklch(26% 0.0221 245.95)",
+          "oklch(38% 0.0221 245.95)",
+          "oklch(49% 0.0221 245.95)",
+          "oklch(61% 0.0221 245.95)",
+          "oklch(72% 0.0221 245.95)",
+          "oklch(84% 0.0221 245.95)",
+          "oklch(95% 0.0221 245.95)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "positive": {
+        "role": "tertiary",
+        "displayName": "Claro · confirmación",
+        "cssVariable": "--positive",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0670 166.45)",
+          "oklch(26% 0.0670 166.45)",
+          "oklch(38% 0.0670 166.45)",
+          "oklch(49% 0.0670 166.45)",
+          "oklch(61% 0.0670 166.45)",
+          "oklch(72% 0.0670 166.45)",
+          "oklch(84% 0.0670 166.45)",
+          "oklch(95% 0.0670 166.45)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "warning-soft": {
+        "role": "tertiary",
+        "displayName": "Claro · aviso tenue",
+        "cssVariable": "--warning-soft",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0275 82.93)",
+          "oklch(26% 0.0275 82.93)",
+          "oklch(38% 0.0275 82.93)",
+          "oklch(49% 0.0275 82.93)",
+          "oklch(61% 0.0275 82.93)",
+          "oklch(72% 0.0275 82.93)",
+          "oklch(84% 0.0275 82.93)",
+          "oklch(95% 0.0275 82.93)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "warning-ink": {
+        "role": "tertiary",
+        "displayName": "Claro · tinta de aviso",
+        "cssVariable": "--warning-ink",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0715 80.57)",
+          "oklch(26% 0.0715 80.57)",
+          "oklch(38% 0.0715 80.57)",
+          "oklch(49% 0.0715 80.57)",
+          "oklch(61% 0.0715 80.57)",
+          "oklch(72% 0.0715 80.57)",
+          "oklch(84% 0.0715 80.57)",
+          "oklch(95% 0.0715 80.57)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "error-soft": {
+        "role": "tertiary",
+        "displayName": "Claro · error tenue",
+        "cssVariable": "--error-soft",
+        "theme": "light",
+        "source": "app/themes.css :root",
+        "tonalRamp": [
+          "oklch(15% 0.0381 3.69)",
+          "oklch(26% 0.0381 3.69)",
+          "oklch(38% 0.0381 3.69)",
+          "oklch(49% 0.0381 3.69)",
+          "oklch(61% 0.0381 3.69)",
+          "oklch(72% 0.0381 3.69)",
+          "oklch(84% 0.0381 3.69)",
+          "oklch(95% 0.0381 3.69)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-ink": {
+        "role": "neutral",
+        "displayName": "Grafito · tinta",
+        "cssVariable": "--ink",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0208 248.05)",
+          "oklch(26% 0.0208 248.05)",
+          "oklch(38% 0.0208 248.05)",
+          "oklch(49% 0.0208 248.05)",
+          "oklch(61% 0.0208 248.05)",
+          "oklch(72% 0.0208 248.05)",
+          "oklch(84% 0.0208 248.05)",
+          "oklch(95% 0.0208 248.05)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-muted": {
+        "role": "neutral",
+        "displayName": "Grafito · texto secundario",
+        "cssVariable": "--muted",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0355 245.56)",
+          "oklch(26% 0.0355 245.56)",
+          "oklch(38% 0.0355 245.56)",
+          "oklch(49% 0.0355 245.56)",
+          "oklch(61% 0.0355 245.56)",
+          "oklch(72% 0.0355 245.56)",
+          "oklch(84% 0.0355 245.56)",
+          "oklch(95% 0.0355 245.56)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-line": {
+        "role": "neutral",
+        "displayName": "Grafito · separador",
+        "cssVariable": "--line",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0456 251.40)",
+          "oklch(26% 0.0456 251.40)",
+          "oklch(38% 0.0456 251.40)",
+          "oklch(49% 0.0456 251.40)",
+          "oklch(61% 0.0456 251.40)",
+          "oklch(72% 0.0456 251.40)",
+          "oklch(84% 0.0456 251.40)",
+          "oklch(95% 0.0456 251.40)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-paper": {
+        "role": "neutral",
+        "displayName": "Grafito · superficie principal",
+        "cssVariable": "--paper",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0436 249.76)",
+          "oklch(26% 0.0436 249.76)",
+          "oklch(38% 0.0436 249.76)",
+          "oklch(49% 0.0436 249.76)",
+          "oklch(61% 0.0436 249.76)",
+          "oklch(72% 0.0436 249.76)",
+          "oklch(84% 0.0436 249.76)",
+          "oklch(95% 0.0436 249.76)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-surface": {
+        "role": "neutral",
+        "displayName": "Grafito · superficie secundaria",
+        "cssVariable": "--surface",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0411 252.46)",
+          "oklch(26% 0.0411 252.46)",
+          "oklch(38% 0.0411 252.46)",
+          "oklch(49% 0.0411 252.46)",
+          "oklch(61% 0.0411 252.46)",
+          "oklch(72% 0.0411 252.46)",
+          "oklch(84% 0.0411 252.46)",
+          "oklch(95% 0.0411 252.46)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-field": {
+        "role": "neutral",
+        "displayName": "Grafito · campo",
+        "cssVariable": "--field",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0451 252.29)",
+          "oklch(26% 0.0451 252.29)",
+          "oklch(38% 0.0451 252.29)",
+          "oklch(49% 0.0451 252.29)",
+          "oklch(61% 0.0451 252.29)",
+          "oklch(72% 0.0451 252.29)",
+          "oklch(84% 0.0451 252.29)",
+          "oklch(95% 0.0451 252.29)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-accent": {
+        "role": "primary",
+        "displayName": "Grafito · acento",
+        "cssVariable": "--accent",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0758 231.45)",
+          "oklch(26% 0.0758 231.45)",
+          "oklch(38% 0.0758 231.45)",
+          "oklch(49% 0.0758 231.45)",
+          "oklch(61% 0.0758 231.45)",
+          "oklch(72% 0.0758 231.45)",
+          "oklch(84% 0.0758 231.45)",
+          "oklch(95% 0.0758 231.45)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-accent-hover": {
+        "role": "primary",
+        "displayName": "Grafito · acento al pasar",
+        "cssVariable": "--accent-hover",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0518 230.33)",
+          "oklch(26% 0.0518 230.33)",
+          "oklch(38% 0.0518 230.33)",
+          "oklch(49% 0.0518 230.33)",
+          "oklch(61% 0.0518 230.33)",
+          "oklch(72% 0.0518 230.33)",
+          "oklch(84% 0.0518 230.33)",
+          "oklch(95% 0.0518 230.33)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-accent-soft": {
+        "role": "primary",
+        "displayName": "Grafito · acento tenue",
+        "cssVariable": "--accent-soft",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0593 244.13)",
+          "oklch(26% 0.0593 244.13)",
+          "oklch(38% 0.0593 244.13)",
+          "oklch(49% 0.0593 244.13)",
+          "oklch(61% 0.0593 244.13)",
+          "oklch(72% 0.0593 244.13)",
+          "oklch(84% 0.0593 244.13)",
+          "oklch(95% 0.0593 244.13)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-rail": {
+        "role": "neutral",
+        "displayName": "Grafito · navegación grafito",
+        "cssVariable": "--rail",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0342 249.77)",
+          "oklch(26% 0.0342 249.77)",
+          "oklch(38% 0.0342 249.77)",
+          "oklch(49% 0.0342 249.77)",
+          "oklch(61% 0.0342 249.77)",
+          "oklch(72% 0.0342 249.77)",
+          "oklch(84% 0.0342 249.77)",
+          "oklch(95% 0.0342 249.77)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-danger": {
+        "role": "tertiary",
+        "displayName": "Grafito · error y eliminación",
+        "cssVariable": "--danger",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0927 13.45)",
+          "oklch(26% 0.0927 13.45)",
+          "oklch(38% 0.0927 13.45)",
+          "oklch(49% 0.0927 13.45)",
+          "oklch(61% 0.0927 13.45)",
+          "oklch(72% 0.0927 13.45)",
+          "oklch(84% 0.0927 13.45)",
+          "oklch(95% 0.0927 13.45)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-hover": {
+        "role": "neutral",
+        "displayName": "Grafito · superficie al pasar",
+        "cssVariable": "--hover",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0482 246.37)",
+          "oklch(26% 0.0482 246.37)",
+          "oklch(38% 0.0482 246.37)",
+          "oklch(49% 0.0482 246.37)",
+          "oklch(61% 0.0482 246.37)",
+          "oklch(72% 0.0482 246.37)",
+          "oklch(84% 0.0482 246.37)",
+          "oklch(95% 0.0482 246.37)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-selected": {
+        "role": "neutral",
+        "displayName": "Grafito · selección",
+        "cssVariable": "--selected",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0584 239.84)",
+          "oklch(26% 0.0584 239.84)",
+          "oklch(38% 0.0584 239.84)",
+          "oklch(49% 0.0584 239.84)",
+          "oklch(61% 0.0584 239.84)",
+          "oklch(72% 0.0584 239.84)",
+          "oklch(84% 0.0584 239.84)",
+          "oklch(95% 0.0584 239.84)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-selected-ink": {
+        "role": "primary",
+        "displayName": "Grafito · texto seleccionado",
+        "cssVariable": "--selected-ink",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0443 228.05)",
+          "oklch(26% 0.0443 228.05)",
+          "oklch(38% 0.0443 228.05)",
+          "oklch(49% 0.0443 228.05)",
+          "oklch(61% 0.0443 228.05)",
+          "oklch(72% 0.0443 228.05)",
+          "oklch(84% 0.0443 228.05)",
+          "oklch(95% 0.0443 228.05)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-code-surface": {
+        "role": "neutral",
+        "displayName": "Grafito · fondo de código",
+        "cssVariable": "--code-surface",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0427 253.66)",
+          "oklch(26% 0.0427 253.66)",
+          "oklch(38% 0.0427 253.66)",
+          "oklch(49% 0.0427 253.66)",
+          "oklch(61% 0.0427 253.66)",
+          "oklch(72% 0.0427 253.66)",
+          "oklch(84% 0.0427 253.66)",
+          "oklch(95% 0.0427 253.66)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-code-ink": {
+        "role": "neutral",
+        "displayName": "Grafito · tinta de código",
+        "cssVariable": "--code-ink",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0247 242.36)",
+          "oklch(26% 0.0247 242.36)",
+          "oklch(38% 0.0247 242.36)",
+          "oklch(49% 0.0247 242.36)",
+          "oklch(61% 0.0247 242.36)",
+          "oklch(72% 0.0247 242.36)",
+          "oklch(84% 0.0247 242.36)",
+          "oklch(95% 0.0247 242.36)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-code-line": {
+        "role": "neutral",
+        "displayName": "Grafito · línea activa",
+        "cssVariable": "--code-line",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0491 248.55)",
+          "oklch(26% 0.0491 248.55)",
+          "oklch(38% 0.0491 248.55)",
+          "oklch(49% 0.0491 248.55)",
+          "oklch(61% 0.0491 248.55)",
+          "oklch(72% 0.0491 248.55)",
+          "oklch(84% 0.0491 248.55)",
+          "oklch(95% 0.0491 248.55)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-selection": {
+        "role": "neutral",
+        "displayName": "Grafito · selección de texto",
+        "cssVariable": "--selection",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0582 241.01)",
+          "oklch(26% 0.0582 241.01)",
+          "oklch(38% 0.0582 241.01)",
+          "oklch(49% 0.0582 241.01)",
+          "oklch(61% 0.0582 241.01)",
+          "oklch(72% 0.0582 241.01)",
+          "oklch(84% 0.0582 241.01)",
+          "oklch(95% 0.0582 241.01)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-canvas": {
+        "role": "neutral",
+        "displayName": "Grafito · fondo de exportación Studio",
+        "cssVariable": "--canvas",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0400 249.79)",
+          "oklch(26% 0.0400 249.79)",
+          "oklch(38% 0.0400 249.79)",
+          "oklch(49% 0.0400 249.79)",
+          "oklch(61% 0.0400 249.79)",
+          "oklch(72% 0.0400 249.79)",
+          "oklch(84% 0.0400 249.79)",
+          "oklch(95% 0.0400 249.79)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-positive": {
+        "role": "tertiary",
+        "displayName": "Grafito · confirmación",
+        "cssVariable": "--positive",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0670 166.45)",
+          "oklch(26% 0.0670 166.45)",
+          "oklch(38% 0.0670 166.45)",
+          "oklch(49% 0.0670 166.45)",
+          "oklch(61% 0.0670 166.45)",
+          "oklch(72% 0.0670 166.45)",
+          "oklch(84% 0.0670 166.45)",
+          "oklch(95% 0.0670 166.45)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-warning-soft": {
+        "role": "tertiary",
+        "displayName": "Grafito · aviso tenue",
+        "cssVariable": "--warning-soft",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0219 84.49)",
+          "oklch(26% 0.0219 84.49)",
+          "oklch(38% 0.0219 84.49)",
+          "oklch(49% 0.0219 84.49)",
+          "oklch(61% 0.0219 84.49)",
+          "oklch(72% 0.0219 84.49)",
+          "oklch(84% 0.0219 84.49)",
+          "oklch(95% 0.0219 84.49)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-warning-ink": {
+        "role": "tertiary",
+        "displayName": "Grafito · tinta de aviso",
+        "cssVariable": "--warning-ink",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0715 80.57)",
+          "oklch(26% 0.0715 80.57)",
+          "oklch(38% 0.0715 80.57)",
+          "oklch(49% 0.0715 80.57)",
+          "oklch(61% 0.0715 80.57)",
+          "oklch(72% 0.0715 80.57)",
+          "oklch(84% 0.0715 80.57)",
+          "oklch(95% 0.0715 80.57)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "graphite-error-soft": {
+        "role": "tertiary",
+        "displayName": "Grafito · error tenue",
+        "cssVariable": "--error-soft",
+        "theme": "graphite",
+        "source": "app/themes.css :root[data-app-theme=\"graphite\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0346 349.03)",
+          "oklch(26% 0.0346 349.03)",
+          "oklch(38% 0.0346 349.03)",
+          "oklch(49% 0.0346 349.03)",
+          "oklch(61% 0.0346 349.03)",
+          "oklch(72% 0.0346 349.03)",
+          "oklch(84% 0.0346 349.03)",
+          "oklch(95% 0.0346 349.03)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Noche azul · tinta",
+        "cssVariable": "--ink",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0104 156.68)",
+          "oklch(26% 0.0104 156.68)",
+          "oklch(38% 0.0104 156.68)",
+          "oklch(49% 0.0104 156.68)",
+          "oklch(61% 0.0104 156.68)",
+          "oklch(72% 0.0104 156.68)",
+          "oklch(84% 0.0104 156.68)",
+          "oklch(95% 0.0104 156.68)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-muted": {
+        "role": "neutral",
+        "displayName": "Noche azul · texto secundario",
+        "cssVariable": "--muted",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0190 142.47)",
+          "oklch(26% 0.0190 142.47)",
+          "oklch(38% 0.0190 142.47)",
+          "oklch(49% 0.0190 142.47)",
+          "oklch(61% 0.0190 142.47)",
+          "oklch(72% 0.0190 142.47)",
+          "oklch(84% 0.0190 142.47)",
+          "oklch(95% 0.0190 142.47)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Noche azul · separador",
+        "cssVariable": "--line",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0149 115.06)",
+          "oklch(26% 0.0149 115.06)",
+          "oklch(38% 0.0149 115.06)",
+          "oklch(49% 0.0149 115.06)",
+          "oklch(61% 0.0149 115.06)",
+          "oklch(72% 0.0149 115.06)",
+          "oklch(84% 0.0149 115.06)",
+          "oklch(95% 0.0149 115.06)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-paper": {
+        "role": "neutral",
+        "displayName": "Noche azul · superficie principal",
+        "cssVariable": "--paper",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0080 98.87)",
+          "oklch(26% 0.0080 98.87)",
+          "oklch(38% 0.0080 98.87)",
+          "oklch(49% 0.0080 98.87)",
+          "oklch(61% 0.0080 98.87)",
+          "oklch(72% 0.0080 98.87)",
+          "oklch(84% 0.0080 98.87)",
+          "oklch(95% 0.0080 98.87)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Noche azul · superficie secundaria",
+        "cssVariable": "--surface",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0133 102.01)",
+          "oklch(26% 0.0133 102.01)",
+          "oklch(38% 0.0133 102.01)",
+          "oklch(49% 0.0133 102.01)",
+          "oklch(61% 0.0133 102.01)",
+          "oklch(72% 0.0133 102.01)",
+          "oklch(84% 0.0133 102.01)",
+          "oklch(95% 0.0133 102.01)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-field": {
+        "role": "neutral",
+        "displayName": "Noche azul · campo",
+        "cssVariable": "--field",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0132 102.01)",
+          "oklch(26% 0.0132 102.01)",
+          "oklch(38% 0.0132 102.01)",
+          "oklch(49% 0.0132 102.01)",
+          "oklch(61% 0.0132 102.01)",
+          "oklch(72% 0.0132 102.01)",
+          "oklch(84% 0.0132 102.01)",
+          "oklch(95% 0.0132 102.01)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-accent": {
+        "role": "primary",
+        "displayName": "Noche azul · acento",
+        "cssVariable": "--accent",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0452 152.47)",
+          "oklch(26% 0.0452 152.47)",
+          "oklch(38% 0.0452 152.47)",
+          "oklch(49% 0.0452 152.47)",
+          "oklch(61% 0.0452 152.47)",
+          "oklch(72% 0.0452 152.47)",
+          "oklch(84% 0.0452 152.47)",
+          "oklch(95% 0.0452 152.47)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-accent-hover": {
+        "role": "primary",
+        "displayName": "Noche azul · acento al pasar",
+        "cssVariable": "--accent-hover",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0423 151.88)",
+          "oklch(26% 0.0423 151.88)",
+          "oklch(38% 0.0423 151.88)",
+          "oklch(49% 0.0423 151.88)",
+          "oklch(61% 0.0423 151.88)",
+          "oklch(72% 0.0423 151.88)",
+          "oklch(84% 0.0423 151.88)",
+          "oklch(95% 0.0423 151.88)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-accent-soft": {
+        "role": "primary",
+        "displayName": "Noche azul · acento tenue",
+        "cssVariable": "--accent-soft",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0159 130.42)",
+          "oklch(26% 0.0159 130.42)",
+          "oklch(38% 0.0159 130.42)",
+          "oklch(49% 0.0159 130.42)",
+          "oklch(61% 0.0159 130.42)",
+          "oklch(72% 0.0159 130.42)",
+          "oklch(84% 0.0159 130.42)",
+          "oklch(95% 0.0159 130.42)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-rail": {
+        "role": "neutral",
+        "displayName": "Noche azul · navegación grafito",
+        "cssVariable": "--rail",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0276 148.93)",
+          "oklch(26% 0.0276 148.93)",
+          "oklch(38% 0.0276 148.93)",
+          "oklch(49% 0.0276 148.93)",
+          "oklch(61% 0.0276 148.93)",
+          "oklch(72% 0.0276 148.93)",
+          "oklch(84% 0.0276 148.93)",
+          "oklch(95% 0.0276 148.93)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-hover": {
+        "role": "neutral",
+        "displayName": "Noche azul · superficie al pasar",
+        "cssVariable": "--hover",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0172 106.72)",
+          "oklch(26% 0.0172 106.72)",
+          "oklch(38% 0.0172 106.72)",
+          "oklch(49% 0.0172 106.72)",
+          "oklch(61% 0.0172 106.72)",
+          "oklch(72% 0.0172 106.72)",
+          "oklch(84% 0.0172 106.72)",
+          "oklch(95% 0.0172 106.72)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-selected": {
+        "role": "neutral",
+        "displayName": "Noche azul · selección",
+        "cssVariable": "--selected",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0238 125.20)",
+          "oklch(26% 0.0238 125.20)",
+          "oklch(38% 0.0238 125.20)",
+          "oklch(49% 0.0238 125.20)",
+          "oklch(61% 0.0238 125.20)",
+          "oklch(72% 0.0238 125.20)",
+          "oklch(84% 0.0238 125.20)",
+          "oklch(95% 0.0238 125.20)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-selected-ink": {
+        "role": "primary",
+        "displayName": "Noche azul · texto seleccionado",
+        "cssVariable": "--selected-ink",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0462 151.05)",
+          "oklch(26% 0.0462 151.05)",
+          "oklch(38% 0.0462 151.05)",
+          "oklch(49% 0.0462 151.05)",
+          "oklch(61% 0.0462 151.05)",
+          "oklch(72% 0.0462 151.05)",
+          "oklch(84% 0.0462 151.05)",
+          "oklch(95% 0.0462 151.05)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-code-surface": {
+        "role": "neutral",
+        "displayName": "Noche azul · fondo de código",
+        "cssVariable": "--code-surface",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0119 101.48)",
+          "oklch(26% 0.0119 101.48)",
+          "oklch(38% 0.0119 101.48)",
+          "oklch(49% 0.0119 101.48)",
+          "oklch(61% 0.0119 101.48)",
+          "oklch(72% 0.0119 101.48)",
+          "oklch(84% 0.0119 101.48)",
+          "oklch(95% 0.0119 101.48)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-code-ink": {
+        "role": "neutral",
+        "displayName": "Noche azul · tinta de código",
+        "cssVariable": "--code-ink",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0230 145.13)",
+          "oklch(26% 0.0230 145.13)",
+          "oklch(38% 0.0230 145.13)",
+          "oklch(49% 0.0230 145.13)",
+          "oklch(61% 0.0230 145.13)",
+          "oklch(72% 0.0230 145.13)",
+          "oklch(84% 0.0230 145.13)",
+          "oklch(95% 0.0230 145.13)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-code-line": {
+        "role": "neutral",
+        "displayName": "Noche azul · línea activa",
+        "cssVariable": "--code-line",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0172 106.72)",
+          "oklch(26% 0.0172 106.72)",
+          "oklch(38% 0.0172 106.72)",
+          "oklch(49% 0.0172 106.72)",
+          "oklch(61% 0.0172 106.72)",
+          "oklch(72% 0.0172 106.72)",
+          "oklch(84% 0.0172 106.72)",
+          "oklch(95% 0.0172 106.72)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-selection": {
+        "role": "neutral",
+        "displayName": "Noche azul · selección de texto",
+        "cssVariable": "--selection",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0308 136.15)",
+          "oklch(26% 0.0308 136.15)",
+          "oklch(38% 0.0308 136.15)",
+          "oklch(49% 0.0308 136.15)",
+          "oklch(61% 0.0308 136.15)",
+          "oklch(72% 0.0308 136.15)",
+          "oklch(84% 0.0308 136.15)",
+          "oklch(95% 0.0308 136.15)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "night-canvas": {
+        "role": "neutral",
+        "displayName": "Noche azul · fondo de exportación Studio",
+        "cssVariable": "--canvas",
+        "theme": "night",
+        "source": "app/themes.css :root[data-app-theme=\"night\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0119 101.48)",
+          "oklch(26% 0.0119 101.48)",
+          "oklch(38% 0.0119 101.48)",
+          "oklch(49% 0.0119 101.48)",
+          "oklch(61% 0.0119 101.48)",
+          "oklch(72% 0.0119 101.48)",
+          "oklch(84% 0.0119 101.48)",
+          "oklch(95% 0.0119 101.48)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-work": {
+        "role": "secondary",
+        "displayName": "Papel · trabajo azul",
+        "cssVariable": "--git-work",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0657 239.57)",
+          "oklch(26% 0.0657 239.57)",
+          "oklch(38% 0.0657 239.57)",
+          "oklch(49% 0.0657 239.57)",
+          "oklch(61% 0.0657 239.57)",
+          "oklch(72% 0.0657 239.57)",
+          "oklch(84% 0.0657 239.57)",
+          "oklch(95% 0.0657 239.57)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-work-soft": {
+        "role": "secondary",
+        "displayName": "Papel · trabajo azul tenue",
+        "cssVariable": "--git-work-soft",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0442 242.34)",
+          "oklch(26% 0.0442 242.34)",
+          "oklch(38% 0.0442 242.34)",
+          "oklch(49% 0.0442 242.34)",
+          "oklch(61% 0.0442 242.34)",
+          "oklch(72% 0.0442 242.34)",
+          "oklch(84% 0.0442 242.34)",
+          "oklch(95% 0.0442 242.34)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-stage": {
+        "role": "secondary",
+        "displayName": "Papel · índice naranja",
+        "cssVariable": "--git-stage",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0879 58.84)",
+          "oklch(26% 0.0879 58.84)",
+          "oklch(38% 0.0879 58.84)",
+          "oklch(49% 0.0879 58.84)",
+          "oklch(61% 0.0879 58.84)",
+          "oklch(72% 0.0879 58.84)",
+          "oklch(84% 0.0879 58.84)",
+          "oklch(95% 0.0879 58.84)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-stage-soft": {
+        "role": "secondary",
+        "displayName": "Papel · índice naranja tenue",
+        "cssVariable": "--git-stage-soft",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0352 66.04)",
+          "oklch(26% 0.0352 66.04)",
+          "oklch(38% 0.0352 66.04)",
+          "oklch(49% 0.0352 66.04)",
+          "oklch(61% 0.0352 66.04)",
+          "oklch(72% 0.0352 66.04)",
+          "oklch(84% 0.0352 66.04)",
+          "oklch(95% 0.0352 66.04)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-local": {
+        "role": "secondary",
+        "displayName": "Papel · local verde",
+        "cssVariable": "--git-local",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0771 158.91)",
+          "oklch(26% 0.0771 158.91)",
+          "oklch(38% 0.0771 158.91)",
+          "oklch(49% 0.0771 158.91)",
+          "oklch(61% 0.0771 158.91)",
+          "oklch(72% 0.0771 158.91)",
+          "oklch(84% 0.0771 158.91)",
+          "oklch(95% 0.0771 158.91)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-local-soft": {
+        "role": "secondary",
+        "displayName": "Papel · local verde tenue",
+        "cssVariable": "--git-local-soft",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0370 161.75)",
+          "oklch(26% 0.0370 161.75)",
+          "oklch(38% 0.0370 161.75)",
+          "oklch(49% 0.0370 161.75)",
+          "oklch(61% 0.0370 161.75)",
+          "oklch(72% 0.0370 161.75)",
+          "oklch(84% 0.0370 161.75)",
+          "oklch(95% 0.0370 161.75)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-remote": {
+        "role": "secondary",
+        "displayName": "Papel · remoto amarillo",
+        "cssVariable": "--git-remote",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0962 89.03)",
+          "oklch(26% 0.0962 89.03)",
+          "oklch(38% 0.0962 89.03)",
+          "oklch(49% 0.0962 89.03)",
+          "oklch(61% 0.0962 89.03)",
+          "oklch(72% 0.0962 89.03)",
+          "oklch(84% 0.0962 89.03)",
+          "oklch(95% 0.0962 89.03)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "paper-git-remote-soft": {
+        "role": "secondary",
+        "displayName": "Papel · remoto amarillo tenue",
+        "cssVariable": "--git-remote-soft",
+        "theme": "paper",
+        "source": "app/themes.css :root[data-app-theme=\"paper\"]",
+        "tonalRamp": [
+          "oklch(15% 0.0329 87.69)",
+          "oklch(26% 0.0329 87.69)",
+          "oklch(38% 0.0329 87.69)",
+          "oklch(49% 0.0329 87.69)",
+          "oklch(61% 0.0329 87.69)",
+          "oklch(72% 0.0329 87.69)",
+          "oklch(84% 0.0329 87.69)",
+          "oklch(95% 0.0329 87.69)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación para explorar tonos; no son tokens publicados ni sustituyen los valores del frontmatter."
+      },
+      "dark-action-ink": {
+        "role": "neutral",
+        "displayName": "texto de acción primaria · temas oscuros",
+        "source": "app/themes.css .btn.primary / .btn.danger",
+        "tonalRamp": [
+          "oklch(15% 0.0366 237.73)",
+          "oklch(26% 0.0366 237.73)",
+          "oklch(38% 0.0366 237.73)",
+          "oklch(49% 0.0366 237.73)",
+          "oklch(61% 0.0366 237.73)",
+          "oklch(72% 0.0366 237.73)",
+          "oklch(84% 0.0366 237.73)",
+          "oklch(95% 0.0366 237.73)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación de exploración, sin uso en la aplicación."
+      },
+      "dark-danger-ink": {
+        "role": "neutral",
+        "displayName": "texto de eliminación · temas oscuros",
+        "source": "app/themes.css .btn.primary / .btn.danger",
+        "tonalRamp": [
+          "oklch(15% 0.0491 8.51)",
+          "oklch(26% 0.0491 8.51)",
+          "oklch(38% 0.0491 8.51)",
+          "oklch(49% 0.0491 8.51)",
+          "oklch(61% 0.0491 8.51)",
+          "oklch(72% 0.0491 8.51)",
+          "oklch(84% 0.0491 8.51)",
+          "oklch(95% 0.0491 8.51)"
+        ],
+        "tonalRampStatus": "exploratory",
+        "tonalRampPurpose": "Derivación de exploración, sin uso en la aplicación."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "display",
+        "purpose": "Bienvenida de Estudio.",
+        "source": "app/study.css .study-hero h1 / .study-content h1"
+      },
+      "headline": {
+        "displayName": "headline",
+        "purpose": "Título de sección de Estudio.",
+        "source": "app/study.css .study-content h1"
+      },
+      "title": {
+        "displayName": "title",
+        "purpose": "Nombre editable del documento.",
+        "source": "app/globals.css .name-input"
+      },
+      "body": {
+        "displayName": "body",
+        "purpose": "Base de interfaz.",
+        "source": "app/globals.css body"
+      },
+      "study-body": {
+        "displayName": "study-body",
+        "purpose": "Teoría con lectura abierta.",
+        "source": "app/study.css .study-section p"
+      },
+      "label": {
+        "displayName": "label",
+        "purpose": "Controles y apoyo.",
+        "source": "app/globals.css .pane-header"
+      },
+      "button": {
+        "displayName": "button",
+        "purpose": "Acciones compactas.",
+        "source": "app/globals.css .btn"
+      },
+      "code": {
+        "displayName": "code",
+        "purpose": "Fuente Mermaid en CodeMirror.",
+        "source": "components/code-editor.tsx EditorView.theme"
+      },
+      "uml-class": {
+        "displayName": "uml-class",
+        "purpose": "Nombres de clase Mermaid.",
+        "source": "components/diagram-preview.tsx Mermaid themeCSS"
+      },
+      "uml-member": {
+        "displayName": "uml-member",
+        "purpose": "Atributos y métodos en el diagrama.",
+        "source": "components/diagram-preview.tsx Mermaid themeCSS"
+      },
+      "inspector-member": {
+        "displayName": "inspector-member",
+        "purpose": "Edición de miembros.",
+        "source": "app/globals.css .class-properties .member-input"
+      },
+      "console": {
+        "displayName": "console",
+        "purpose": "Salida de consola Git.",
+        "source": "app/git.css .git-console-output pre"
+      }
+    },
+    "themeMeta": {
+      "light": {
+        "displayName": "Claro",
+        "selector": ":root[data-app-theme=\"light\"]",
+        "source": "app/globals.css + app/themes.css",
+        "colorRefs": {
+          "ink": "{colors.ink}",
+          "muted": "{colors.muted}",
+          "line": "{colors.line}",
+          "accent": "{colors.accent}",
+          "accent-hover": "{colors.accent-hover}",
+          "accent-soft": "{colors.accent-soft}",
+          "surface": "{colors.surface}",
+          "paper": "{colors.paper}",
+          "rail": "{colors.rail}",
+          "danger": "{colors.danger}",
+          "field": "{colors.field}",
+          "hover": "{colors.hover}",
+          "selected": "{colors.selected}",
+          "selected-ink": "{colors.selected-ink}",
+          "code-surface": "{colors.code-surface}",
+          "code-ink": "{colors.code-ink}",
+          "code-line": "{colors.code-line}",
+          "selection": "{colors.selection}",
+          "canvas": "{colors.canvas}",
+          "positive": "{colors.positive}",
+          "warning-soft": "{colors.warning-soft}",
+          "warning-ink": "{colors.warning-ink}",
+          "error-soft": "{colors.error-soft}"
+        }
+      },
+      "graphite": {
+        "displayName": "Grafito",
+        "selector": ":root[data-app-theme=\"graphite\"]",
+        "source": "app/themes.css",
+        "colorRefs": {
+          "ink": "{colors.graphite-ink}",
+          "muted": "{colors.graphite-muted}",
+          "line": "{colors.graphite-line}",
+          "accent": "{colors.graphite-accent}",
+          "accent-hover": "{colors.graphite-accent-hover}",
+          "accent-soft": "{colors.graphite-accent-soft}",
+          "surface": "{colors.graphite-surface}",
+          "paper": "{colors.graphite-paper}",
+          "rail": "{colors.graphite-rail}",
+          "danger": "{colors.graphite-danger}",
+          "field": "{colors.graphite-field}",
+          "hover": "{colors.graphite-hover}",
+          "selected": "{colors.graphite-selected}",
+          "selected-ink": "{colors.graphite-selected-ink}",
+          "code-surface": "{colors.graphite-code-surface}",
+          "code-ink": "{colors.graphite-code-ink}",
+          "code-line": "{colors.graphite-code-line}",
+          "selection": "{colors.graphite-selection}",
+          "canvas": "{colors.graphite-canvas}",
+          "positive": "{colors.graphite-positive}",
+          "warning-soft": "{colors.graphite-warning-soft}",
+          "warning-ink": "{colors.graphite-warning-ink}",
+          "error-soft": "{colors.graphite-error-soft}"
+        }
+      },
+      "night": {
+        "displayName": "Noche azul",
+        "selector": ":root[data-app-theme=\"night\"]",
+        "source": "app/themes.css",
+        "colorRefs": {
+          "ink": "{colors.night-ink}",
+          "muted": "{colors.night-muted}",
+          "line": "{colors.night-line}",
+          "accent": "{colors.night-accent}",
+          "accent-hover": "{colors.night-accent-hover}",
+          "accent-soft": "{colors.night-accent-soft}",
+          "surface": "{colors.night-surface}",
+          "paper": "{colors.night-paper}",
+          "rail": "{colors.night-rail}",
+          "danger": "{colors.danger}",
+          "field": "{colors.night-field}",
+          "hover": "{colors.night-hover}",
+          "selected": "{colors.night-selected}",
+          "selected-ink": "{colors.night-selected-ink}",
+          "code-surface": "{colors.night-code-surface}",
+          "code-ink": "{colors.night-code-ink}",
+          "code-line": "{colors.night-code-line}",
+          "selection": "{colors.night-selection}",
+          "canvas": "{colors.night-canvas}",
+          "positive": "{colors.positive}",
+          "warning-soft": "{colors.warning-soft}",
+          "warning-ink": "{colors.warning-ink}",
+          "error-soft": "{colors.error-soft}"
+        }
+      },
+      "paper": {
+        "displayName": "Papel",
+        "selector": ":root[data-app-theme=\"paper\"]",
+        "source": "app/themes.css",
+        "colorRefs": {
+          "ink": "{colors.ink}",
+          "muted": "{colors.muted}",
+          "line": "{colors.line}",
+          "accent": "{colors.accent}",
+          "accent-hover": "{colors.accent-hover}",
+          "accent-soft": "{colors.accent-soft}",
+          "surface": "{colors.surface}",
+          "paper": "{colors.paper}",
+          "rail": "{colors.rail}",
+          "danger": "{colors.danger}",
+          "field": "{colors.field}",
+          "hover": "{colors.hover}",
+          "selected": "{colors.selected}",
+          "selected-ink": "{colors.selected-ink}",
+          "code-surface": "{colors.code-surface}",
+          "code-ink": "{colors.code-ink}",
+          "code-line": "{colors.code-line}",
+          "selection": "{colors.selection}",
+          "canvas": "{colors.canvas}",
+          "positive": "{colors.positive}",
+          "warning-soft": "{colors.warning-soft}",
+          "warning-ink": "{colors.warning-ink}",
+          "error-soft": "{colors.error-soft}",
+          "git-work": "{colors.paper-git-work}",
+          "git-work-soft": "{colors.paper-git-work-soft}",
+          "git-stage": "{colors.paper-git-stage}",
+          "git-stage-soft": "{colors.paper-git-stage-soft}",
+          "git-local": "{colors.paper-git-local}",
+          "git-local-soft": "{colors.paper-git-local-soft}",
+          "git-remote": "{colors.paper-git-remote}",
+          "git-remote-soft": "{colors.paper-git-remote-soft}"
+        }
+      }
+    },
+    "shadows": [
+      {
+        "name": "floating-control",
+        "value": "0 3px 16px #20344018",
+        "purpose": "Barra de zoom.",
+        "source": "app/globals.css .zoom-toolbar"
+      },
+      {
+        "name": "canvas-feedback",
+        "value": "0 3px 14px #20344018",
+        "purpose": "Confirmación sobre el lienzo.",
+        "source": "app/canvas-interactions.css .canvas-feedback"
+      },
+      {
+        "name": "style-popover",
+        "value": "0 5px 24px #20344024",
+        "purpose": "Opciones de estilo.",
+        "source": "app/globals.css .style-popover"
+      },
+      {
+        "name": "context-menu",
+        "value": "0 8px 30px #20344026",
+        "purpose": "Acciones contextuales.",
+        "source": "app/canvas-interactions.css .canvas-context-menu"
+      },
+      {
+        "name": "dialog",
+        "value": "0 16px 60px #20344030",
+        "purpose": "Diálogo protegido.",
+        "source": "app/globals.css .modal"
+      },
+      {
+        "name": "inspector-overlay",
+        "value": "-6px 0 24px #20344015",
+        "purpose": "Propiedades superpuestas por debajo de 1100px.",
+        "source": "app/globals.css @media(max-width:1100px)"
+      },
+      {
+        "name": "sidebar-overlay",
+        "value": "6px 0 20px #20344018",
+        "purpose": "Explorador superpuesto por debajo de 800px.",
+        "source": "app/globals.css @media(max-width:800px)"
+      }
+    ],
+    "motion": [
+      {
+        "name": "motion-fast",
+        "value": "120ms",
+        "purpose": "Transiciones de controles y trazos UML.",
+        "source": "app/canvas-interactions.css :root / .diagram-art"
+      },
+      {
+        "name": "motion-menu",
+        "value": "180ms",
+        "purpose": "Despliegue contextual y popover.",
+        "source": "app/canvas-interactions.css :root / .canvas-context-menu / .style-popover"
+      },
+      {
+        "name": "ease-arrive",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Respuesta corta con llegada suave.",
+        "source": "app/canvas-interactions.css :root"
+      },
+      {
+        "name": "modal-arrive",
+        "value": "180ms var(--ease-arrive)",
+        "purpose": "Entrada del diálogo con desplazamiento vertical de 4px.",
+        "source": "app/canvas-interactions.css .modal / @keyframes modal-arrive"
+      },
+      {
+        "name": "backdrop-fade",
+        "value": "150ms ease-out",
+        "purpose": "Entrada del backdrop.",
+        "source": "app/canvas-interactions.css .modal::backdrop"
+      },
+      {
+        "name": "canvas-feedback",
+        "value": "150ms ease-out",
+        "purpose": "Cambio de opacidad en confirmación sobre el lienzo.",
+        "source": "app/canvas-interactions.css .canvas-feedback"
+      },
+      {
+        "name": "inspector-feedback",
+        "value": "160ms ease-out",
+        "purpose": "Cambio de opacidad en inspector y feedback de Estudio.",
+        "source": "app/canvas-interactions.css .study-feedback, .study-completed, .class-properties"
+      },
+      {
+        "name": "class-drop",
+        "value": "220ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Trazo de clase de 4px a 2.5px al soltar.",
+        "source": "components/diagram-preview.tsx onPointerUp"
+      },
+      {
+        "name": "connection-reveal",
+        "value": "320ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Revela el trazo nuevo; en líneas punteadas cambia opacidad.",
+        "source": "components/diagram-preview.tsx pendingLink effect"
+      },
+      {
+        "name": "commit-ink",
+        "value": "220ms ease-out",
+        "purpose": "Commit seleccionado pasa de trazo 5 a 3.",
+        "source": "app/git.css .selected-commit / @keyframes commit-ink"
+      },
+      {
+        "name": "study-level",
+        "value": "150ms",
+        "purpose": "Borde y desplazamiento de 3px del nivel al hover.",
+        "source": "app/study.css .study-level-path>button"
+      },
+      {
+        "name": "reduced-fade",
+        "value": "100ms ease-out",
+        "purpose": "Sustituye menús, diálogo, popover e inspector por fade sin movimiento.",
+        "source": "app/canvas-interactions.css @media(prefers-reduced-motion:reduce)"
+      },
+      {
+        "name": "reduced-state",
+        "value": "100ms",
+        "purpose": "Sólo fondo, tinta y borde de controles; sin transform.",
+        "source": "app/canvas-interactions.css @media(prefers-reduced-motion:reduce)"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "git-small-phone",
+        "value": "430px",
+        "query": "max",
+        "purpose": "Cabecera, consola y sugerencias compactas.",
+        "source": "app/git.css"
+      },
+      {
+        "name": "studio-phone",
+        "value": "600px",
+        "query": "max",
+        "purpose": "Dividir apila código y lienzo; cabecera compacta.",
+        "source": "app/globals.css; app/themes.css"
+      },
+      {
+        "name": "study-phone",
+        "value": "760px",
+        "query": "max",
+        "purpose": "Estudio apila contenido y listas.",
+        "source": "app/study.css; app/themes.css"
+      },
+      {
+        "name": "app-tablet",
+        "value": "800px",
+        "query": "max",
+        "purpose": "Explorador superpuesto; Git pasa a scroll normal.",
+        "source": "app/globals.css; app/git.css; app/themes.css; app/canvas-interactions.css"
+      },
+      {
+        "name": "study-compact",
+        "value": "1000px",
+        "query": "max",
+        "purpose": "Estudio reduce índice y paddings.",
+        "source": "app/study.css"
+      },
+      {
+        "name": "git-two-columns",
+        "value": "1050px",
+        "query": "max",
+        "purpose": "Cuatro zonas Git se convierten en dos columnas.",
+        "source": "app/git.css"
+      },
+      {
+        "name": "studio-inspector-overlay",
+        "value": "1100px",
+        "query": "max",
+        "purpose": "Propiedades sale de la grilla y se superpone.",
+        "source": "app/globals.css"
+      },
+      {
+        "name": "desktop-compact",
+        "value": "1250px",
+        "query": "max",
+        "purpose": "Exploradores de UML/Git se estrechan.",
+        "source": "app/globals.css; app/git.css"
+      },
+      {
+        "name": "studio-wide",
+        "value": "1700px",
+        "query": "min",
+        "purpose": "Código y propiedades crecen.",
+        "source": "app/globals.css"
+      }
+    ],
+    "sourceNotes": [
+      "El frontmatter es dueño de colores, tipografía, radios, espacio y sub-tokens de componentes.",
+      "themeMeta contiene referencias a tokens, sin otra colección de valores primitivos.",
+      "Las rampas OKLCH derivadas son metadatos de exploración; no representan escalas implementadas.",
+      "Mermaid conserva una paleta propia en components/diagram-preview.tsx; la consola mantiene valores fijos en app/git.css.",
+      "El fondo --canvas se usa en la exportación PNG Studio; la trama visible de puntos conserva valores específicos de app/globals.css."
+    ],
+    "notCanonized": [
+      "--canvas-dot y los alias --green / --green-soft: variables residuales sin autoridad sobre el render vigente."
+    ]
+  },
+  "components": [
+    {
+      "name": "Acción primaria",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de formulario o creación; se adapta al acento del tema.",
+      "source": [
+        "app/globals.css .btn",
+        "app/canvas-interactions.css control states",
+        "app/themes.css dark foreground overrides"
+      ],
+      "html": "<button class=\"ds-button ds-primary\">Nuevo diagrama</button>",
+      "css": ".ds-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; padding:0 12px; border:1px solid var(--line, #dde5e9); border-radius:var(--radius-control, 6px); background:var(--paper, #ffffff); color:var(--ink, #253b48); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:14px; font-weight:550; cursor:pointer; white-space:nowrap; transition:background-color var(--motion-fast, 120ms), color var(--motion-fast, 120ms), border-color var(--motion-fast, 120ms), transform var(--motion-fast, 120ms) var(--ease-arrive, cubic-bezier(.16,1,.3,1)); } .ds-button:hover:not(:disabled) { background:var(--surface, #f5f8fa); border-color:#a9bec9; } .ds-button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; } .ds-button:active:not(:disabled) { transform:scale(.97); } .ds-button:disabled { cursor:default; opacity:.45; } @media(prefers-reduced-motion:reduce) { .ds-button { transition:background-color 100ms,color 100ms,border-color 100ms; } .ds-button:active:not(:disabled) { transform:none; } } .ds-primary { background:var(--accent, #1a647b); border-color:transparent; color:white; } .ds-primary:hover:not(:disabled) { background:var(--accent-hover, #124e62); } :host-context([data-app-theme=\"graphite\"]) .ds-primary, :host-context([data-app-theme=\"night\"]) .ds-primary { color:#102532; }"
+    },
+    {
+      "name": "Acción secundaria",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción auxiliar con borde y superficie, por ejemplo reiniciar un ejercicio.",
+      "source": [
+        "app/globals.css .btn",
+        "app/canvas-interactions.css control states",
+        "app/themes.css dark foreground overrides"
+      ],
+      "html": "<button class=\"ds-button\">Reiniciar ejercicio</button>",
+      "css": ".ds-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; padding:0 12px; border:1px solid var(--line, #dde5e9); border-radius:var(--radius-control, 6px); background:var(--paper, #ffffff); color:var(--ink, #253b48); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:14px; font-weight:550; cursor:pointer; white-space:nowrap; transition:background-color var(--motion-fast, 120ms), color var(--motion-fast, 120ms), border-color var(--motion-fast, 120ms), transform var(--motion-fast, 120ms) var(--ease-arrive, cubic-bezier(.16,1,.3,1)); } .ds-button:hover:not(:disabled) { background:var(--surface, #f5f8fa); border-color:#a9bec9; } .ds-button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; } .ds-button:active:not(:disabled) { transform:scale(.97); } .ds-button:disabled { cursor:default; opacity:.45; } @media(prefers-reduced-motion:reduce) { .ds-button { transition:background-color 100ms,color 100ms,border-color 100ms; } .ds-button:active:not(:disabled) { transform:none; } }"
+    },
+    {
+      "name": "Acción destructiva",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Acción de eliminación en un contexto explícito.",
+      "source": [
+        "app/globals.css .btn",
+        "app/canvas-interactions.css control states",
+        "app/themes.css dark foreground overrides"
+      ],
+      "html": "<button class=\"ds-button ds-danger\">Eliminar clase</button>",
+      "css": ".ds-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; padding:0 12px; border:1px solid var(--line, #dde5e9); border-radius:var(--radius-control, 6px); background:var(--paper, #ffffff); color:var(--ink, #253b48); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:14px; font-weight:550; cursor:pointer; white-space:nowrap; transition:background-color var(--motion-fast, 120ms), color var(--motion-fast, 120ms), border-color var(--motion-fast, 120ms), transform var(--motion-fast, 120ms) var(--ease-arrive, cubic-bezier(.16,1,.3,1)); } .ds-button:hover:not(:disabled) { background:var(--surface, #f5f8fa); border-color:#a9bec9; } .ds-button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; } .ds-button:active:not(:disabled) { transform:scale(.97); } .ds-button:disabled { cursor:default; opacity:.45; } @media(prefers-reduced-motion:reduce) { .ds-button { transition:background-color 100ms,color 100ms,border-color 100ms; } .ds-button:active:not(:disabled) { transform:none; } } .ds-danger { background:var(--danger, #a63d43); color:white; border-color:transparent; } .ds-danger:hover:not(:disabled) { background:var(--surface, #f5f8fa); border-color:#a9bec9; } :host-context([data-app-theme=\"graphite\"]) .ds-danger, :host-context([data-app-theme=\"night\"]) .ds-danger { color:#3b1c22; }"
+    },
+    {
+      "name": "Acción quieta",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Enlace de cabecera o acción de apoyo, con énfasis moderado.",
+      "source": [
+        "app/globals.css .btn",
+        "app/canvas-interactions.css control states",
+        "app/themes.css dark foreground overrides"
+      ],
+      "html": "<button class=\"ds-button ds-quiet\">Estudio IS II</button>",
+      "css": ".ds-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; padding:0 12px; border:1px solid var(--line, #dde5e9); border-radius:var(--radius-control, 6px); background:var(--paper, #ffffff); color:var(--ink, #253b48); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:14px; font-weight:550; cursor:pointer; white-space:nowrap; transition:background-color var(--motion-fast, 120ms), color var(--motion-fast, 120ms), border-color var(--motion-fast, 120ms), transform var(--motion-fast, 120ms) var(--ease-arrive, cubic-bezier(.16,1,.3,1)); } .ds-button:hover:not(:disabled) { background:var(--surface, #f5f8fa); border-color:#a9bec9; } .ds-button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; } .ds-button:active:not(:disabled) { transform:scale(.97); } .ds-button:disabled { cursor:default; opacity:.45; } @media(prefers-reduced-motion:reduce) { .ds-button { transition:background-color 100ms,color 100ms,border-color 100ms; } .ds-button:active:not(:disabled) { transform:none; } } .ds-quiet { background:transparent; border:0; color:var(--muted, #536874); font-size:13px; } .ds-quiet:hover { background:var(--surface, #f5f8fa); color:var(--ink, #253b48); }"
+    },
+    {
+      "name": "Campo de propiedades",
+      "kind": "input",
+      "refersTo": "property-field",
+      "description": "Edición compacta del inspector con label visible.",
+      "source": [
+        "app/globals.css .property-field and global input focus"
+      ],
+      "html": "<label class=\"ds-field\">Proyecto<input aria-label=\"Proyecto\" value=\"Mi primer proyecto\" /></label>",
+      "css": ".ds-field { display:flex; flex-direction:column; gap:6px; font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:12px; color:var(--muted, #536874); max-width:264px; } .ds-field input { width:100%; min-width:0; border:1px solid var(--line, #dde5e9); border-radius:var(--radius-control, 6px); padding:7px 9px; background:var(--field, #fafcfd); color:var(--ink, #253b48); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:13px; caret-color:var(--accent, #1a647b); } .ds-field input:focus, .ds-field input:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:1px; } .ds-field input[readonly] { background:var(--surface, #f5f8fa); color:var(--muted, #536874); }"
+    },
+    {
+      "name": "Navegación de Estudio",
+      "kind": "nav",
+      "refersTo": "study-navigation",
+      "description": "Pestañas textuales; la línea inferior indica la sección activa.",
+      "source": [
+        "app/study.css .study-nav",
+        "app/globals.css global focus",
+        "app/canvas-interactions.css transitions"
+      ],
+      "html": "<nav class=\"ds-nav\" aria-label=\"Estudio\"><button>Teoría</button><button class=\"ds-current\" aria-current=\"page\">Fichas UML</button><button>Práctica</button></nav>",
+      "css": ".ds-nav { display:flex; gap:26px; border-bottom:1px solid var(--accent-soft, #e5f0f4); overflow-x:auto; background:var(--paper, #ffffff); } .ds-nav button { border:0; border-bottom:2px solid transparent; padding:14px 0 11px; background:transparent; color:var(--muted, #536874); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:14px; cursor:pointer; white-space:nowrap; transition:color var(--motion-fast, 120ms),border-color var(--motion-fast, 120ms); } .ds-nav button:hover { color:var(--accent, #1a647b); } .ds-nav .ds-current { border-color:var(--accent, #1a647b); color:var(--accent, #1a647b); font-weight:700; } .ds-nav button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; } @media(prefers-reduced-motion:reduce) { .ds-nav button { transition:color 100ms,border-color 100ms; } }"
+    },
+    {
+      "name": "Filtro de nivel",
+      "kind": "chip",
+      "refersTo": "study-level-tab",
+      "description": "Botón de filtro ya presente en Estudio, con estado activo visible.",
+      "source": [
+        "app/study.css .study-level-tabs",
+        "app/globals.css global focus"
+      ],
+      "html": "<div class=\"ds-tabs\"><button aria-pressed=\"false\"><span>1</span> Fundamentos</button><button class=\"ds-active\" aria-pressed=\"true\"><span>2</span> Relaciones</button></div>",
+      "css": ".ds-tabs { display:flex; gap:9px; overflow-x:auto; padding-bottom:3px; } .ds-tabs button { display:flex; align-items:center; gap:9px; border:1px solid var(--accent-soft, #e5f0f4); padding:11px 14px; background:var(--paper, #ffffff); border-radius:8px; color:var(--muted, #536874); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:13px; cursor:pointer; white-space:nowrap; } .ds-tabs span { font-weight:700; } .ds-tabs .ds-active { background:var(--accent, #1a647b); color:white; border-color:var(--accent, #1a647b); } .ds-tabs button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; }"
+    },
+    {
+      "name": "Artículo de Estudio",
+      "kind": "card",
+      "refersTo": "study-article",
+      "description": "Contenedor de lectura plano; la familia del patrón aparece debajo del título.",
+      "source": [
+        "app/study.css .study-article, .study-pattern-family, .study-lead, .study-section"
+      ],
+      "html": "<article class=\"ds-article\"><h1>Singleton</h1><p class=\"ds-family\">Creacional</p><p class=\"ds-lead\">Controla que una clase tenga una única instancia y ofrece un acceso global a ella.</p><section class=\"ds-section\"><h3>Participantes</h3><p>Cliente utiliza la instancia compartida.</p></section></article>",
+      "css": ".ds-article { background:var(--paper, #ffffff); color:var(--ink, #253b48); border:1px solid var(--accent-soft, #e5f0f4); border-radius:12px; padding:32px 38px; min-width:0; font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); } .ds-article h1 { font-size:34px; line-height:1.15; letter-spacing:-1.2px; font-weight:720; margin:0 0 16px; } .ds-family { color:var(--muted, #536874); font-size:13px; font-weight:650; letter-spacing:.4px; line-height:1.75; margin:0; } .ds-lead { font-size:17px; color:var(--muted, #536874); line-height:1.6; max-width:750px; margin:0 0 34px; } .ds-section { margin:28px 0; } .ds-section h3 { font-size:18px; line-height:1.35; font-weight:650; letter-spacing:-.2px; margin:0 0 12px; } .ds-section p { font-size:15px; color:var(--muted, #536874); line-height:1.75; margin:0 0 12px; } @media(max-width:760px) { .ds-article { padding:23px 20px; } .ds-article h1 { font-size:28px; } .ds-lead { font-size:15px; } }"
+    },
+    {
+      "name": "Zonas funcionales de Git",
+      "kind": "custom",
+      "refersTo": "git-zone-work",
+      "description": "Cuatro áreas de trabajo con colores estables y etiquetas de función.",
+      "source": [
+        "app/git.css .git-zones, .git-zone-title, .zone-*",
+        "app/themes.css --git-*"
+      ],
+      "html": "<div class=\"ds-zones\"><section class=\"ds-zone ds-work\"><h2>Working directory<small>Archivos de trabajo</small></h2></section><section class=\"ds-zone ds-stage\"><h2>Staging area<small>Índice · próximo commit</small></h2></section><section class=\"ds-zone ds-local\"><h2>Local repository<small>Historial de tu computadora</small></h2></section><section class=\"ds-zone ds-remote\"><h2>Remote repository<small>Servidor origin · simulado</small></h2></section></div>",
+      "css": ".ds-zones { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; } .ds-zone { display:flex; align-items:center; min-height:76px; padding:14px 11px; border-radius:var(--radius-control, 6px); font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); } .ds-zone h2 { font-size:15px; line-height:1.3; font-weight:650; margin:0; } .ds-zone small { display:block; font-size:12px; font-weight:450; margin-top:5px; } .ds-work { background:var(--git-work-soft, #e9f1f8); color:var(--git-work, #2a638a); } .ds-stage { background:var(--git-stage-soft, #fbf0e6); color:var(--git-stage, #97521e); } .ds-local { background:var(--git-local-soft, #edf5ef); color:var(--git-local, #347353); } .ds-remote { background:var(--git-remote-soft, #fcf6e2); color:var(--git-remote, #846111); } @media(max-width:1050px) { .ds-zones { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; } }"
+    },
+    {
+      "name": "Prompt de consola Git",
+      "kind": "custom",
+      "refersTo": "git-console-prompt",
+      "description": "Consola oscura y campo mono; escribir e insertar comandos precede a ejecutar.",
+      "source": [
+        "app/git.css .git-console, .git-prompt",
+        "app/globals.css global input focus"
+      ],
+      "html": "<section class=\"ds-console\" aria-label=\"Consola Git\"><div class=\"ds-output\"><pre>Rama main\nSin cambios pendientes</pre></div><form class=\"ds-prompt\"><span class=\"ds-branch\">main</span><span aria-hidden=\"true\">$</span><input aria-label=\"Comando Git\" value=\"git status\" spellcheck=\"false\" /><button type=\"button\">Ejecutar</button></form></section>",
+      "css": ".ds-console { background:#182b38; color:#d9e6ef; font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); } .ds-output { padding:12px 20px; font-family:var(--font-code, \"IBM Plex Mono\", monospace); font-size:12px; } .ds-output pre { white-space:pre-wrap; overflow-wrap:anywhere; font-family:var(--font-code, \"IBM Plex Mono\", monospace); font-size:12px; line-height:1.75; margin:3px 0 0; } .ds-prompt { display:flex; align-items:center; gap:10px; padding:9px 14px 9px 20px; border-top:1px solid #3b5160; min-height:48px; } .ds-branch { font-size:11px; color:#a7dacf; max-width:120px; overflow:hidden; white-space:nowrap; } .ds-prompt input { font-family:var(--font-code, \"IBM Plex Mono\", monospace); min-width:0; width:100%; flex:1; border:0; color:#eef5fa; background:transparent; font-size:13px; padding:3px; caret-color:var(--accent, #1a647b); } .ds-prompt input:focus, .ds-prompt input:focus-visible { outline:2px solid #9bd9ed; outline-offset:1px; } .ds-prompt button { border:0; border-radius:4px; background:#315363; color:#e8f3f8; padding:7px 10px; font-family:var(--font-ui, \"Source Sans 3 Variable\", sans-serif); font-size:12px; cursor:pointer; } .ds-prompt button:hover:not(:disabled) { background:#436979; } .ds-prompt button:focus-visible { outline:2px solid var(--accent, #1a647b); outline-offset:3px; } .ds-prompt button:disabled { cursor:default; opacity:.45; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La mesa de diagramado",
+    "overview": "La mesa de diagramado organiza UML Studio como una aplicación de trabajo sobria. Superficies minerales, navegación grafito y acento petróleo dan prioridad a nombres, miembros, conexiones y estados. La densidad pertenece a la tarea; la decoración no compite con el contenido.\n\nEl mismo lenguaje une el editor, Estudio y Git Lab. Los temas cambian tinta y superficies conservando la jerarquía; los cuatro colores de Git mantienen su función. Las transiciones cortas confirman selección y resultado, con una alternativa de movimiento reducido.",
+    "keyCharacteristics": [
+      "Lectura técnica clara con interfaz en español.",
+      "Superficies separadas por tono y líneas finas.",
+      "Controles compactos; espacio amplio para diagramas y lectura.",
+      "Color y movimiento vinculados al estado de la tarea."
+    ],
+    "rules": [
+      {
+        "name": "Color con función",
+        "body": "El petróleo identifica acciones y selección; azul, naranja, verde y amarillo conservan los cuatro roles de Git en todos los temas.",
+        "section": "colors"
+      },
+      {
+        "name": "Dos voces",
+        "body": "Source Sans 3 sostiene interfaz y nombres de clases; IBM Plex Mono sostiene código, miembros, comandos y hashes.",
+        "section": "typography"
+      },
+      {
+        "name": "Plano en reposo",
+        "body": "Los paneles permanentes se separan por tono y borde; las sombras suaves pertenecen a controles flotantes y paneles superpuestos.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do usar las variables semánticas compartidas y comprobar Claro, Grafito, Noche azul y Papel.",
+      "Do mantener los miembros UML legibles y el foco visible; el zoom permite recorrer diagramas amplios.",
+      "Do acompañar el color con nombres, texto de estado y símbolos familiares.",
+      "Do reservar las animaciones para confirmar una acción y respetar prefers-reduced-motion.",
+      "Do colocar la familia de una ficha debajo de su título y mantener la lectura del contenido en primer plano."
+    ],
+    "donts": [
+      "Don't convertir azul, naranja, verde y amarillo de Git en acentos intercambiables.",
+      "Don't usar sombras duras ni elevación decorativa en los paneles permanentes.",
+      "Don't reemplazar los iconos SVG por glifos de texto ni añadir etiquetas decorativas encima de los títulos.",
+      "Don't expandir las esquinas amplias de las tarjetas de Estudio a los controles compactos del editor.",
+      "Don't presentar una sugerencia de comando como si ya se hubiera ejecutado."
+    ]
+  }
+}

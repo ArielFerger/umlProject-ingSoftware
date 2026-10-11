@@ -1,0 +1,16 @@
+services:
+  uml-studio:
+    build: .
+    image: uml-studio:local
+    ports:
+      - "127.0.0.1:${UML_PORT:-3000}:3000"
+    volumes:
+      - uml-data:/app/.wrangler/state
+    environment:
+      DOCKER_LOCAL_MODE: "1"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 20s
+
+volumes:
+  uml-data:

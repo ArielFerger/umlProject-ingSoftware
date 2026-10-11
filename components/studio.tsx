@@ -1,13 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, ReactNode } from "react";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, ExternalLink, BookOpen } from "lucide-react";
-import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, TYPES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
+import Link from "next/link";
+import ThemePicker from "./theme-picker";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole } from "lucide-react";
+import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
 import Modal from "./modal";
 import RelationGuide, { RelationSymbol } from "./relation-guide";
 import { RELATIONS, appendRelation, cleanSource, readCanvas, relationInfo, writeCanvas } from "@/lib/canvas";
+import { classMembers, setClassMembers } from "@/lib/class-actions";
+import ClassProperties from "./class-properties";
 
 const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database };
 type ModalKind = "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
@@ -29,8 +33,8 @@ function download(content: Blob | string, name: string, type = "text/plain;chars
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function filename(name: string) { return name.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-") || "diagrama"; }
-function IconButton({ title, children, onClick, disabled = false, active = false }: { title: string; children: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
-  return <button type="button" className={"icon-btn " + (active ? "active" : "")} title={title} aria-label={title} onClick={onClick} disabled={disabled}>{children}</button>;
+function IconButton({ title, children, onClick, disabled = false, active }: { title: string; children: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
+  return <button type="button" className={"icon-btn " + (active ? "active" : "")} title={title} aria-label={title} aria-pressed={active} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
 const EMPTY: Record<DiagramType, string> = {
@@ -51,9 +55,11 @@ export default function Studio() {
   const saveLock = useRef<Promise<boolean> | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
   const [sideOpen, setSideOpen] = useState(true);
+  const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const [inspectedClass, setInspectedClass] = useState("");
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<string[]>([]);
-  const [view, setView] = useState<"split" | "code" | "diagram">("split");
+  const [view, setView] = useState<"split" | "code" | "diagram">("diagram");
   const [svg, setSvg] = useState<SvgResult | null>(null);
   const [working, setWorking] = useState(false);
   const [formError, setFormError] = useState("");
@@ -115,10 +121,10 @@ export default function Studio() {
     try { return await promise; } finally { saveLock.current = null; }
   }, [updateDocuments]);
 
-  useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 600) setView("diagram"); }, [load]);
+  useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 1100) setPropertiesOpen(false); }, [load]);
   useEffect(() => {
     const narrow = window.matchMedia("(max-width: 800px)");
-    const collapse = (event: MediaQueryListEvent) => { if (event.matches) setSideOpen(false); };
+    const collapse = (event: MediaQueryListEvent) => { if (event.matches) { setSideOpen(false); setPropertiesOpen(false); } };
     narrow.addEventListener("change", collapse);
     return () => narrow.removeEventListener("change", collapse);
   }, []);
@@ -155,14 +161,14 @@ export default function Studio() {
   function beginNew() {
     setNewProject(current?.project || "Mi primer proyecto"); setNewName("Nuevo diagrama"); setNewType("class"); setUseTemplate(true); openModal("new");
   }
-  async function choose(id: string) { if (await saveAll()) { setSvg(null); setSelected(id); setNotice(""); if (window.innerWidth <= 800) setSideOpen(false); } }
+  async function choose(id: string) { if (await saveAll()) { setSvg(null); setSelected(id); setInspectedClass(""); setNotice(""); if (window.innerWidth <= 800) setSideOpen(false); } }
   async function create(data: DiagramInput) {
     setWorking(true); setFormError("");
     try {
       if (!(await saveAll())) return;
       const doc = await api<Diagram>("POST", data);
       saved.current.set(doc.id, signature(doc)); updateDocuments(docs => [...docs, doc]);
-      setSelected(doc.id); setSvg(null); setModal(null); setSearch(""); setNotice("");
+      setSelected(doc.id); setInspectedClass(""); setSvg(null); setModal(null); setSearch(""); setNotice("");
     } catch (e) { setFormError((e as Error).message); setNotice((e as Error).message); }
     finally { setWorking(false); }
   }
@@ -232,7 +238,7 @@ export default function Studio() {
       const scale = Math.min(2, 8000 / Math.max(svg.width, svg.height));
       const canvas = document.createElement("canvas"); canvas.width = Math.ceil(svg.width * scale + 64); canvas.height = Math.ceil(svg.height * scale + 64);
       const context = canvas.getContext("2d")!;
-      context.fillStyle = current.theme === "dark" ? "#20252d" : "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = current.theme === "studio" ? getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#f8fbfc" : current.theme === "dark" ? "#20252d" : "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 32, 32, svg.width * scale, svg.height * scale);
       const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("No se pudo exportar PNG.")), "image/png"));
       download(blob, filename(current.name) + ".png");
@@ -258,7 +264,7 @@ export default function Studio() {
       entity: `${id} {\n  int id PK\n  string nombre\n}`, erlink: `ENTIDAD_A ||--o{ ENTIDAD_B : relación`,
       note: current.type === "class" ? `note "Nueva nota"` : current.type === "sequence" ? "Note over Usuario,App: Nueva nota" : `%% Nueva nota`,
     };
-    editor.current?.insert(snippets[kind]);
+    if (snippets[kind]) editor.current?.insert(snippets[kind]);
   }
 
   const projects = Array.from(new Set(documents.map(d => d.project)));
@@ -270,20 +276,38 @@ export default function Studio() {
     : current?.type === "component" ? [["component", "Componente"], ["database", "Base de datos"], ["flow", "Conexion"]]
     : [["node", "Actividad"], ["decisión", "Decisión"], ["flow", "Conexion"]];
 
-  return <main className={"studio " + (!sideOpen ? "sidebar-hidden" : "")}>
+  const canvasSettings = current ? readCanvas(current.source) : null;
+  const selectedBlock = blocks.find(block => block.name === inspectedClass);
+  const openNotes = () => { if (current) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
+  const goStudy = async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } };
+  const selectForInspection = (name: string) => { setInspectedClass(name); if (name && window.innerWidth > 800) setPropertiesOpen(true); };
+
+  return <main className={"studio " + (!sideOpen ? "sidebar-hidden " : "") + (!propertiesOpen ? "properties-hidden" : "")}>
     <header className="app-header">
-      <div className="brand"><div className="brand-icon"><GitBranch size={21} /></div><span>UML<span className="brand-light"> Studio</span></span></div>
-      <div className="header-meta"><span className="workspace-label">Espacio personal</span><span className="divider" />
+      <Link className="brand" href="/" aria-label="UML Studio, inicio"><GitBranch size={24} /><span>UML<span className="brand-light"> Studio</span></span></Link>
+      <div className="header-meta"><span className="workspace-label">Espacio de trabajo</span></div>
+      <div className="header-actions">
+        <ThemePicker /><Link href="/git" className="btn header-quiet header-git-link" aria-label="Laboratorio Git"><GitBranch size={16} /><span>Git Lab</span></Link>
         <span className={"save-status " + saveState} aria-live="polite">
           {saveState === "saving" ? <LoaderCircle size={14} className="spin" /> : saveState === "error" ? <CloudOff size={15} /> : <Cloud size={15} />}
           {saveState === "saved" ? "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
         </span>
+        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button><button className="btn header-quiet chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>Conectar con ChatGPT</span></button>
       </div>
-      <div className="header-actions"><button className="btn studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } }}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button><button className="btn chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>Editar desde el chat</span></button><div className="avatar" title="Espacio personal">A</div></div>
     </header>
 
+    <nav className="app-rail" aria-label="Navegación de la aplicación">
+      <IconButton title="Explorador de diagramas" active={sideOpen} onClick={() => { setSideOpen(open => !open); if (window.innerWidth <= 800) setPropertiesOpen(false); }}><Folder size={20} /></IconButton>
+      <IconButton title="Nuevo diagrama" disabled={loading || !!loadError} onClick={beginNew}><Plus size={20} /></IconButton>
+      <IconButton title="Notas del diagrama" disabled={!current} onClick={openNotes}><StickyNote size={20} /></IconButton>
+      <span className="rail-divider" />
+      <IconButton title="Estudio IS II" onClick={() => void goStudy()}><BookOpen size={20} /></IconButton>
+      <Link href="/git" className="icon-btn" aria-label="Laboratorio Git" title="Laboratorio Git"><GitBranch size={20} /></Link>
+      <div className="rail-bottom"><IconButton title="Guía de relaciones UML" onClick={() => openModal("guide")}><HelpCircle size={20} /></IconButton></div>
+    </nav>
+
     <aside className="sidebar">
-      <div className="sidebar-heading"><span>EXPLORADOR</span><IconButton title="Ocultar explorador" onClick={() => setSideOpen(false)}><PanelLeftClose size={16} /></IconButton></div>
+      <div className="sidebar-heading"><h2>Diagramas</h2><IconButton title="Ocultar explorador" onClick={() => setSideOpen(false)}><PanelLeftClose size={16} /></IconButton></div>
       <button className="btn primary new-btn" onClick={beginNew} disabled={loading || !!loadError}><Plus size={17} />Nuevo diagrama</button>
       <label className="search-box"><Search size={15} /><input aria-label="Buscar diagramas" placeholder="Buscar diagramas" value={search} onChange={e => setSearch(e.target.value)} /></label>
       <div className="diagram-list">
@@ -297,16 +321,23 @@ export default function Studio() {
             </button>
             {!closed && items.map(doc => { const Icon = ICONS[doc.type]; return <button key={doc.id} className={"diagram-item " + (selected === doc.id ? "selected" : "")} onClick={() => void choose(doc.id)}>
               <Icon size={17} /><span><strong>{doc.name}</strong><small>{TYPE_LABELS[doc.type]}</small></span>
-              {selected === doc.id && <span className="selected-bar" />}
+              {selected === doc.id && <Check size={13} className="document-selected-icon" />}
             </button>; })}
           </section>;
         })}
         {search && !filtered.length && <div className="list-empty">No hay resultados.</div>}
         {!loading && !documents.length && !loadError && <div className="list-empty">Todavía no hay diagramas.</div>}
       </div>
+      {current && <section className="toolbox" aria-label="Herramientas de diagramado"><div className="toolbox-heading"><h2>Insertar</h2><span>{TYPE_LABELS[current.type]}</span></div>
+        {current.type === "class" ? <>
+          <button className="sidebar-tool" onClick={() => beginClass()}><Boxes size={17} /><span>Clase</span><Plus size={13} /></button>
+          <button className="sidebar-tool" onClick={beginRelation}><Link2 size={17} /><span>Relación</span><Plus size={13} /></button>
+        </> : tools.map(([kind, label]) => <button className="sidebar-tool" key={kind} onClick={() => insertSnippet(kind)}><Shapes size={17} /><span>{label}</span><Plus size={13} /></button>)}
+        <button className="sidebar-tool" onClick={() => insertSnippet("note")}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
+      </section>}
       <div className="sidebar-bottom"><button className="sidebar-action" onClick={() => importInput.current?.click()} disabled={loading || !!loadError}><Upload size={16} />Importar archivo</button>
         <button className="sidebar-action" onClick={beginNew} disabled={loading || !!loadError}><LayoutTemplate size={16} />Plantillas</button>
-        <div className="sidebar-count"><span>{documents.length} diagramas</span><span>Privado</span></div>
+        <div className="sidebar-count"><span>{documents.length} diagramas</span><span><LockKeyhole size={11} />Personal</span></div>
       </div>
     </aside>
 
@@ -319,41 +350,61 @@ export default function Studio() {
             <input className="name-input" aria-label="Nombre del diagrama" value={current.name} maxLength={100} onChange={e => edit({ name: e.target.value })} onBlur={() => { if (!current.name.trim()) edit({ name: "Sin titulo" }); }} />
           </div>
           <div className="document-actions"><IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title="Actualizar desde el chat" onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
-            <button className="btn export-btn" onClick={() => openModal("export")}><Download size={16} /><span>Exportar</span></button>
+            <button className="btn export-btn" aria-label="Exportar diagrama" onClick={() => openModal("export")}><Download size={16} /><span>Exportar</span></button>
           </div>
         </div>
         <div className="workspace-toolbar">
-          <div className="toolbar-left"><div className="segmented" aria-label="Vista del editor">
-            <IconButton title="Código y diagrama" active={view === "split"} onClick={() => setView("split")}><Columns2 size={16} /></IconButton>
-            <IconButton title="Solo código" active={view === "code"} onClick={() => setView("code")}><Code2 size={17} /></IconButton>
-            <IconButton title="Solo diagrama" active={view === "diagram"} onClick={() => setView("diagram")}><Eye size={17} /></IconButton>
+          <div className="toolbar-left"><div className="segmented view-switch" role="group" aria-label="Vista del editor">
+            <button className={view === "diagram" ? "active" : ""} aria-pressed={view === "diagram"} onClick={() => setView("diagram")}><Shapes size={15} /><span>Lienzo</span></button>
+            <button className={view === "split" ? "active" : ""} aria-pressed={view === "split"} onClick={() => setView("split")}><Columns2 size={15} /><span>Dividir</span></button>
+            <button className={view === "code" ? "active" : ""} aria-pressed={view === "code"} onClick={() => setView("code")}><Code2 size={15} /><span>Código</span></button>
           </div><span className="toolbar-divider" /><IconButton title="Deshacer" onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
-          <div className="toolbar-right"><span className="theme-label">Tema</span><select aria-label="Tema del diagrama" value={current.theme} onChange={e => edit({ theme: e.target.value as DiagramInput["theme"] })}><option value="studio">Studio</option><option value="neutral">Neutro</option><option value="dark">Oscuro</option></select>
-            <IconButton title="Notas y proyecto" active={!!current.notes} onClick={() => { setNotes(current.notes); setNewProject(current.project); openModal("notes"); }}><StickyNote size={16} /></IconButton>
+          <div className="toolbar-right">
+            <IconButton title="Notas y proyecto" active={!!current.notes} onClick={openNotes}><StickyNote size={16} /></IconButton>
             <IconButton title="Duplicar diagrama" onClick={() => void create({ ...current, name: current.name + " (copia)" })}><Copy size={16} /></IconButton>
             <IconButton title="Eliminar diagrama" onClick={() => openModal("delete")}><Trash2 size={16} /></IconButton>
+            <span className="toolbar-divider" /><IconButton title={propertiesOpen ? "Ocultar propiedades" : "Mostrar propiedades"} active={propertiesOpen} onClick={() => { setPropertiesOpen(open => !open); if (window.innerWidth <= 800) setSideOpen(false); }}>{propertiesOpen ? <PanelRightClose size={17} /> : <PanelRight size={17} />}</IconButton>
           </div>
         </div>
         {notice && <div className="notice" role="alert"><CloudOff size={16} /><span>{notice}</span><button className="text-btn" onClick={() => { setSaveState("pending"); void saveAll(); }}>Reintentar</button><IconButton title="Cerrar aviso" onClick={() => setNotice("")}><X size={14} /></IconButton></div>}
         <div className={"editor-workspace view-" + view}>
           <section className="code-pane">
             <div className="pane-header"><span><Braces size={15} />Código</span><small>Mermaid</small></div>
-            <div className="insertion-toolbar">
-              {current.type === "class" ? <><button className="tool-action" onClick={() => beginClass()}><Plus size={14} />Clase</button><button className="tool-action" onClick={beginRelation}><Link2 size={14} />Relación</button><IconButton title="Insertar nota" onClick={() => insertSnippet("note")}><StickyNote size={15} /></IconButton></>
-                : <><select aria-label="Insertar elemento" defaultValue="" onChange={e => { insertSnippet(e.target.value); e.currentTarget.value = ""; }}><option value="" disabled>Insertar elemento</option>{tools.map(([key, label]) => <option value={key} key={key}>{label}</option>)}<option value="note">Nota</option></select></>}
-            </div>
             <CodeEditor ref={editor} key={current.id} value={current.source} onChange={source => edit({ source })} />
             <div className="code-footer"><span>{current.source.split("\n").length} líneas</span><span>UTF-8</span></div>
           </section>
-          <section className="canvas-pane"><div className="pane-header"><span><Shapes size={15} />Diagrama</span><span className="live-label"><span />Vista en vivo</span></div>
+          <section className="canvas-pane"><div className="pane-header canvas-pane-heading"><span><Shapes size={15} />{TYPE_LABELS[current.type]}</span><span className="live-label"><Check size={12} />Sincronizado con Mermaid</span></div>
             <DiagramPreview diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
+              selectedClass={selectedBlock?.name || ""} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
               onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}
               onGuide={kind => { setGuideKind(kind); openModal("guide"); }} />
-            {current.type === "class" && blocks.length > 0 && <div className="class-inspector"><span>CLASES</span><div>{blocks.map(block => <button key={block.name} title={"Editar " + block.name} onClick={() => beginClass(block.name)}><Boxes size={13} />{block.name}</button>)}</div><button className="icon-btn" title="Agregar clase" aria-label="Agregar clase" onClick={() => beginClass()}><Plus size={15} /></button></div>}
           </section>
+          <aside className="properties-panel" aria-label="Propiedades del diagrama">
+            <div className="pane-header"><span><SlidersHorizontal size={15} />Propiedades</span><IconButton title="Cerrar propiedades" onClick={() => setPropertiesOpen(false)}><X size={15} /></IconButton></div>
+            <div className="properties-content">
+              {selectedBlock ? <>
+                <button className="property-back" onClick={() => setInspectedClass("")}><ChevronRight size={13} />Volver al diagrama</button>
+                <ClassProperties key={current.id + selectedBlock.name + classMembers(current.source, selectedBlock.name)} name={selectedBlock.name} body={classMembers(current.source, selectedBlock.name)} onApply={body => edit({ source: setClassMembers(current.source, selectedBlock.name, body) })} />
+              </> : <>
+                <section className="property-section"><h3>Diagrama</h3>
+                  <label className="property-field">Nombre<input value={current.name} maxLength={100} onChange={event => edit({ name: event.target.value })} onBlur={() => { if (!current.name.trim()) edit({ name: "Sin título" }); }} /></label>
+                  <label className="property-field">Proyecto<input value={current.project} maxLength={80} onChange={event => edit({ project: event.target.value })} onBlur={() => { if (!current.project.trim()) edit({ project: "Sin proyecto" }); }} /></label>
+                  <label className="property-field">Apariencia<select aria-label="Tema del diagrama" value={current.theme} onChange={event => edit({ theme: event.target.value as DiagramInput["theme"] })}><option value="studio">Studio · petróleo</option><option value="neutral">Neutro</option><option value="dark">Oscuro</option></select></label>
+                </section>
+                {current.type === "class" && <section className="property-section"><div className="property-section-heading"><h3>Clases</h3><span>{blocks.length}</span></div><div className="inspector-classes">{blocks.map(block => <button key={block.name} onClick={() => selectForInspection(block.name)}><Boxes size={14} /><span>{block.name}</span><ChevronRight size={13} /></button>)}</div><button className="property-add" onClick={() => beginClass()}><Plus size={14} />Agregar clase</button></section>}
+              </>}
+              {canvasSettings && <section className="property-section line-settings"><h3>Conexiones</h3>
+                <label className="range-property"><span>Grosor de línea<output>{canvasSettings.lineWidth} px</output></span><input aria-label="Grosor de línea" type="range" min="1" max="6" step=".5" value={canvasSettings.lineWidth} onChange={event => edit({ source: writeCanvas(current.source, { ...canvasSettings, lineWidth: Number(event.target.value) }) })} /></label>
+                {current.type === "class" && <><label className="range-property"><span>Tamaño de punta<output>{Math.round(canvasSettings.arrowScale * 100)}%</output></span><input aria-label="Tamaño de punta" type="range" min="1" max="3" step=".1" value={canvasSettings.arrowScale} onChange={event => edit({ source: writeCanvas(current.source, { ...canvasSettings, arrowScale: Number(event.target.value) }) })} /></label>
+                  <label className="range-property"><span>Texto de relaciones<output>{canvasSettings.labelSize} px</output></span><input aria-label="Texto de relaciones" type="range" min="12" max="24" value={canvasSettings.labelSize} onChange={event => edit({ source: writeCanvas(current.source, { ...canvasSettings, labelSize: Number(event.target.value) }) })} /></label></>}
+              </section>}
+              <section className="property-section"><h3>Notas</h3><textarea className="diagram-notes" aria-label="Notas del diagrama" placeholder="Decisiones, supuestos, pendientes…" rows={3} maxLength={10000} value={current.notes} onChange={event => edit({ notes: event.target.value })} /></section>
+            </div>
+            <div className="inspector-tip"><MousePointer2 size={15} /><p>Seleccioná una clase para editar sus atributos y métodos.</p></div>
+          </aside>
         </div>
-        <footer className="statusbar"><span><span className="status-dot" />{TYPE_LABELS[current.type]}</span><span>{blocks.length ? blocks.length + " clases" : current.source.length + " caracteres"}</span><span className="statusbar-end">Versión {current.revision}<span className="statusbar-separator" />{new Date(current.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span></footer>
+        <footer className="statusbar"><span><GitBranch size={12} />{TYPE_LABELS[current.type]}</span><span>{blocks.length ? blocks.length + " clases" : current.source.length + " caracteres"}</span><span className="statusbar-hint"><Keyboard size={12} />Ctrl / ⌘ + S para guardar</span><span className="statusbar-end">Versión {current.revision}<span className="statusbar-separator" />{new Date(current.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span></footer>
       </> : <div className="workspace-empty">
         {loading ? <><LoaderCircle size={28} className="spin" /><h2>Abriendo tu espacio</h2></> : loadError ? <><CloudOff size={30} /><h2>No pudimos cargar tus diagramas</h2><p>{loadError}</p><button className="btn primary" onClick={() => void load()}><RefreshCw size={16} />Reintentar</button><a className="text-btn" href="/signin-with-chatgpt?return_to=%2F">Iniciar sesión</a></> : <><Shapes size={40} /><h2>Tu próximo diagrama empieza acá</h2><button className="btn primary" onClick={beginNew}><Plus size={17} />Crear diagrama</button></>}
       </div>}
@@ -409,6 +460,6 @@ export default function Studio() {
 
     {modal === "delete" && current && <Modal title="Eliminar diagrama" onClose={() => setModal(null)}><div className="modal-body"><p>Se eliminara <strong>{current.name}</strong> y su historial de versiones.</p><p>Descarga una copia antes de continuar si querés conservarlo.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn danger" disabled={working} onClick={() => void removeCurrent()}><Trash2 size={16} />Eliminar</button></div></Modal>}
 
-    {modal === "chat" && <Modal title="Editar desde el chat" onClose={() => setModal(null)}><div className="modal-body chat-modal"><div className="chat-modal-icon"><MessageSquare size={26} /></div><p>Conecta el plugin personal <strong>UML Studio</strong> en Codex o ChatGPT para que pueda leer y modificar tus diagramas guardados.</p><div className="chat-example">"En Tienda online, agrega una clase Cupon relacionada con Pedido."</div><p>También podes adjuntar el archivo JSON del diagrama en este chat.</p><p className="form-hint">Despues de un cambio en el chat, usa Actualizar para cargar la nueva versión.</p></div><div className="modal-footer"><button className="btn" onClick={() => { if (current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); }} disabled={!current}><Download size={16} />Descargar JSON</button><button className="btn primary" onClick={() => setModal(null)}>Entendido</button></div></Modal>}
+    {modal === "chat" && <Modal title="Editar desde el chat" onClose={() => setModal(null)}><div className="modal-body chat-modal"><div className="chat-modal-icon"><MessageSquare size={26} /></div><p>Conecta el plugin personal <strong>UML Studio</strong> en Codex o ChatGPT para que pueda leer y modificar tus diagramas guardados.</p><div className="chat-example">&ldquo;En Tienda online, agregá una clase Cupon relacionada con Pedido.&rdquo;</div><p>También podes adjuntar el archivo JSON del diagrama en este chat.</p><p className="form-hint">Despues de un cambio en el chat, usa Actualizar para cargar la nueva versión.</p></div><div className="modal-footer"><button className="btn" onClick={() => { if (current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); }} disabled={!current}><Download size={16} />Descargar JSON</button><button className="btn primary" onClick={() => setModal(null)}>Entendido</button></div></Modal>}
   </main>;
 }

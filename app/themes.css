@@ -1,0 +1,61 @@
+:root {
+  --field: #fafcfd; --hover: #eaf0f4; --selected: #dfeef3; --selected-ink: #164e63;
+  --code-surface: #f8fafc; --code-ink: #314957; --code-line: #e8f1f5; --selection: #c9e3ec;
+  --canvas: #f8fbfc; --canvas-dot: #cbdce3; --positive: #276e62;
+  --warning-soft: #fcf2e0; --warning-ink: #795822; --error-soft: #fcf0f1;
+  --git-work: #2a638a; --git-work-soft: #e9f1f8;
+  --git-stage: #97521e; --git-stage-soft: #fbf0e6;
+  --git-local: #347353; --git-local-soft: #edf5ef;
+  --git-remote: #846111; --git-remote-soft: #fcf6e2;
+}
+:root[data-app-theme="graphite"] {
+  color-scheme: dark;
+  --ink: #e2e7eb; --muted: #aebbc6; --line: #3a444e; --paper: #242b33; --surface: #1d242b; --field: #20272e;
+  --accent: #91c6d6; --accent-hover: #b2dce7; --accent-soft: #30434b; --rail: #151c23; --danger: #f4a6ad;
+  --hover: #303b44; --selected: #30464f; --selected-ink: #c0e5ef;
+  --code-surface: #1c232a; --code-ink: #d7e2e9; --code-line: #2b3a44; --selection: #3b5968;
+  --canvas: #1b252e; --canvas-dot: #3b4e5c; --positive: #9bd3bb;
+  --warning-soft: #3a3223; --warning-ink: #eed1a0; --error-soft: #452c32;
+}
+:root[data-app-theme="night"] {
+  color-scheme: dark;
+  --ink: #dce8f4; --muted: #abc0d3; --line: #30445a; --paper: #14273a; --surface: #102032; --field: #112337;
+  --accent: #88c4e3; --accent-hover: #b3dcf1; --accent-soft: #23445e; --rail: #0b1927; --danger: #f4a6ad;
+  --hover: #1e364b; --selected: #244860; --selected-ink: #c2e6f7;
+  --code-surface: #102033; --code-ink: #d5e5f2; --code-line: #1e354b; --selection: #31546d;
+  --canvas: #102132; --canvas-dot: #314b60; --positive: #9bd3bb;
+  --warning-soft: #3a3428; --warning-ink: #eed1a0; --error-soft: #432e38;
+}
+:root[data-app-theme="paper"] {
+  --ink: #3c423e; --muted: #60695f; --line: #dcded3; --paper: #fffef8; --surface: #f5f4ea; --field: #faf9ef;
+  --accent: #4b6652; --accent-hover: #354d3b; --accent-soft: #e8eee3; --rail: #303e32;
+  --hover: #eeeee1; --selected: #e2e9d8; --selected-ink: #344e3a;
+  --code-surface: #faf9f0; --code-ink: #414c41; --code-line: #eeeee1; --selection: #d5e3cf;
+  --canvas: #faf9f0; --canvas-dot: #d8dacc;
+}
+:root[data-app-theme="graphite"], :root[data-app-theme="night"] {
+  --git-work: #9ac7e7; --git-work-soft: #1d3547; --git-stage: #f3ba8e; --git-stage-soft: #403020;
+  --git-local: #9dd8b6; --git-local-soft: #243c30; --git-remote: #e8cc84; --git-remote-soft: #3d3522;
+}
+.theme-picker { display: flex; align-items: center; gap: 4px; color: var(--muted); }
+.theme-picker select { border: 0; color: var(--ink); background: var(--surface); padding: 6px 20px 6px 7px; width: 102px; height: 32px; font-size: 12px; }
+.header-git-link { text-decoration: none; }
+.header-git-link svg { color: var(--accent); }
+.app-rail a { text-decoration: none; }
+::selection { background: var(--selection); color: var(--ink); }
+input, textarea { caret-color: var(--accent); }
+:root[data-app-theme="graphite"] .btn.primary, :root[data-app-theme="night"] .btn.primary { color: #102532; }
+:root[data-app-theme="graphite"] .btn.danger, :root[data-app-theme="night"] .btn.danger { color: #3b1c22; }
+:root[data-app-theme="graphite"] .cm-line > span, :root[data-app-theme="night"] .cm-line > span { color: var(--code-ink); }
+:root[data-app-theme="graphite"] .diagram-art .class-selected > g.outer-path > path, :root[data-app-theme="night"] .diagram-art .class-selected > g.outer-path > path { stroke: #b0dfef !important; }
+.canvas-dark .canvas-caption { color: #bcced8; }
+@media (max-width: 800px) { .header-git-link span { display: none; } .theme-picker { gap: 0; } .theme-picker > svg { display: none; } .theme-picker select { width: 77px; font-size: 11px; } }
+@media (max-width: 600px) { .studio .save-status { display: none; } .studio .header-actions { gap: 2px; } .header-git-link { padding: 0 5px !important; } .theme-picker select { width: 73px; } }
+
+@media (max-width: 760px) {
+  .study-header-end { gap: 5px; }
+  .study-header-end .btn { padding: 0; width: 32px; min-width: 32px; }
+  .study-header-end .btn svg { display: block; }
+  .study-header-end .btn span { display: none; }
+}
+@media (max-width: 600px) { .study-sector { display: none; } .study-header-end { margin-left: auto; } }

@@ -1,6 +1,6 @@
 # UML Studio — umlProject-ingSoftware
 
-Editor UML y espacio de estudio de Ingeniería de Software II, con interfaz en español.
+Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visual de Git, con interfaz en español.
 
 **Aplicación:** https://uml-studio-ariel.arielfeger.chatgpt.site/
 
@@ -13,11 +13,34 @@ Editor UML y espacio de estudio de Ingeniería de Software II, con interfaz en e
 - 17 temas de teoría, 8 fichas de patrones UML, 74 ejercicios distribuidos en 5 niveles y 3 simulacros.
 - Resumen descargable y los 25 documentos originales del curso en `public/estudio/`.
 - Progreso de estudio guardado en el navegador y diagramas guardados por usuario en D1.
+- Git Lab con Working directory, Staging area, historial local y remoto, consola simulada, siete ejercicios, repositorios vacíos y práctica libre.
+- Cuatro temas de interfaz: Claro, Grafito, Noche azul y Papel, con selección persistente en el navegador.
 - Código fuente, dependencias fijadas, migraciones y pruebas del editor.
 
 Las respuestas de opción múltiple y numéricas tienen corrección automática. Las respuestas de desarrollo y los diagramas se revisan con una rúbrica.
 
 ## Ejecutar en tu computadora
+
+### Con Docker (recomendado)
+
+```sh
+cd umlProject-ingSoftware
+docker compose up --build -d
+```
+
+Abrí **http://localhost:3000**. Compose compila la aplicación, aplica las migraciones pendientes e inicia un espacio local de un solo usuario, sin necesitar una cuenta de ChatGPT ni credenciales de Cloudflare. La imagen usa Node.js 24, ejecuta el proceso como usuario `node` y comprueba la salud del Worker y la base D1 local.
+
+Los diagramas y el historial quedan en el volumen `uml-data` y sobreviven a reinicios, reconstrucciones y `docker compose down`. El progreso de estudio se conserva en el navegador. La base local es independiente de los datos del sitio publicado. El puerto se publica sólo en `127.0.0.1`; esta configuración está destinada al uso personal local.
+
+```sh
+docker compose logs -f         # Ver los logs
+docker compose down            # Detener, conservando los diagramas
+UML_PORT=3001 docker compose up -d  # Usar otro puerto local
+```
+
+Para respaldar un diagrama, exportalo como **Proyecto JSON** desde la aplicación. Para el curso, usá **Exportar progreso** en `/estudio`. No elimines el volumen si querés conservar los diagramas locales.
+
+### Desarrollo sin Docker
 
 Necesitás Node.js 22.13 o superior y Git. Desde una terminal:
 
@@ -42,8 +65,40 @@ Para verificar el editor:
 
 ```sh
 npm test
-node node_modules/typescript/bin/tsc --noEmit
+npm run test:docker
+npm run typecheck
 ```
+
+## Diseño y controles
+
+El rediseño usa Impeccable: `init`, `layout`, `distill`, `typeset`, `animate` y `polish`. El contexto está en `PRODUCT.md`, el sistema visual en `DESIGN.md` y el contrato del editor en `.impeccable/surfaces/components-studio-tsx.md`.
+
+- **Lienzo** es la vista inicial. **Dividir** muestra código y diagrama; **Código** conserva el editor Mermaid completo.
+- El explorador reúne los documentos y las herramientas de inserción. El panel derecho muestra propiedades, clases, conexiones y notas.
+- Seleccioná una clase para editar sus miembros en el panel. Arrastrala para moverla, o usá las flechas del teclado cuando tiene foco.
+- El zoom inicial prioriza la lectura. **Ajustar al lienzo** muestra el diagrama completo; arrastrar el fondo desplaza la vista.
+- Las fuentes se sirven localmente: Source Sans 3 para la interfaz e IBM Plex Mono para código y miembros UML. El movimiento reducido conserva el feedback mediante color y opacidad.
+- El selector de tema está en la cabecera del editor, Estudio y Git Lab. El lienzo con tema Studio acompaña los temas oscuros; los temas explícitos guardados en un diagrama mantienen su elección.
+
+## Aprender Git
+
+Abrí **http://localhost:3000/git**. Arriba están las cuatro zonas del repositorio y los gráficos de commits con sus padres, ramas, HEAD y referencias `origin/*`. Abajo, la consola permite practicar `init`, `remote add`, `status`, `diff`, `log`, `add`, `restore`, `commit`, `branch`, `switch`, `checkout`, `merge`, `fetch`, `pull` y `push`. **Comandos** muestra el subconjunto de opciones admitidas. Las flechas de comandos rellenan la consola; **Ejecutar** aplica el cambio.
+
+Los siete ejercicios cubren el primer commit, una rama, merge, push, fetch e integración, resolución de conflictos y crear un repositorio desde cero. El objetivo se valida contra el estado del repositorio. Podés editar o crear archivos de práctica, simular un cambio del equipo y seleccionar commits para inspeccionar sus archivos. El progreso y el estado se guardan en este navegador; **Descargar práctica** exporta una copia JSON.
+
+**Nuevo repositorio** crea una carpeta vacía con el nombre que elijas, sin historial ni origin configurado. Ejecutá `git init`, creá un archivo con **+**, preparalo y confirmalo. Después, `git remote add origin <URL>` configura un remoto vacío y simulado; `git push -u origin main` publica su primera rama. Crear otra carpeta reemplaza la práctica actual y conserva los ejercicios completados.
+
+**Autocompletar** se puede activar o desactivar en la consola. Propone comandos, archivos y referencias existentes; **Tab** o un clic inserta la sugerencia, **↑ / ↓** elige y **Esc** la cierra. Las sugerencias no ejecutan comandos. Cuando el menú está cerrado, las flechas recuperan el historial; con **Alt + ↑ / ↓** también accedés al historial mientras hay sugerencias.
+
+Es un simulador educativo: no ejecuta una shell ni modifica el repositorio de tu computadora. La integración compara archivos completos, por lo que dos modificaciones distintas en el mismo archivo pueden requerir resolución manual. `fetch` actualiza referencias remotas sin mover HEAD; `push` rechaza sobrescribir un historial divergente.
+
+Impeccable está instalado localmente en `.agents/skills/impeccable/` (ignorado por Git); sus comandos estarán disponibles en un nuevo turno de Codex. Para instalarlo en otra copia, seguí las instrucciones de [Impeccable](https://impeccable.style/#downloads). El detector se puede ejecutar directamente:
+
+```sh
+.agents/skills/impeccable/scripts/impeccable detect --json --no-config app/globals.css app/canvas-interactions.css app/study.css app/git.css app/themes.css app/layout.tsx components/studio.tsx components/class-properties.tsx components/code-editor.tsx components/diagram-preview.tsx components/git-lab.tsx components/theme-picker.tsx
+```
+
+El detector verifica patrones de diseño de esas superficies sin excepciones ni reglas silenciadas. La comprobación visual y funcional se realiza por separado.
 
 ## Estructura del proyecto
 
@@ -51,7 +106,7 @@ node node_modules/typescript/bin/tsc --noEmit
 - `lib/`: operaciones UML, persistencia y contenido de estudio.
 - `public/estudio/`: resumen y fuentes originales.
 - `db/` y `drizzle/`: esquema y migraciones.
-- `tests/`: pruebas de metadatos y operaciones sobre clases.
+- `tests/`: pruebas de metadatos, operaciones sobre clases, simulación Git y adaptador Docker.
 - `scripts/` y `build/`: ejecución y configuración de la plataforma.
 
 El repositorio contiene el código y el material del proyecto. Los diagramas personales alojados en D1 y el progreso del navegador se conservan en sus respectivos almacenamientos; podés exportarlos desde la aplicación. Las dependencias instaladas, compilaciones, credenciales y archivos temporales están excluidos mediante `.gitignore`.
