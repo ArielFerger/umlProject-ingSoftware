@@ -14,6 +14,8 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 - `lib/store.ts`: authenticated D1 persistence and optimistic revision checks.
 - `lib/studio-request.ts`, `lib/browser-workspace.ts`: Vercel's browser-owned IndexedDB adapter; preserve transactional revision checks and history. Docker/Sites keep the authenticated D1 adapter.
 - `lib/relation-actions.ts`: mutate only the selected relationship, preserving other source lines and canvas metadata. SVG hit areas and selection classes must stay out of exports.
+- `lib/visual-diagrams.ts`, `lib/visual-svg.ts`: non-class element/connection forms, targeted source changes and unified SVG geometry. Use-case actors carry `:::umlActor`; reserve their layout space and route connections to the figure, not its transparent hit area. SVG/PNG must retain standalone actor styling.
+- Sequence dragging reorders participant declarations only; preserve message order and grouped participants. All seven diagram families share the editor history. Complex source structures must fail safely rather than drop unrelated declarations.
 - `components/study.tsx`, `app/estudio/`, `app/study.css`: IS II theory, exercises, study progress and mock exams.
 - `lib/study-data.json`: course content derived from Ariel's 25 documents; `public/estudio/` retains the originals and downloadable summary.
 - `lib/study.ts`: validated browser-local progress, scoped using the authenticated owner returned by `/api/study-profile`.

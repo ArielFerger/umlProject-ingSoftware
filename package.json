@@ -12,7 +12,7 @@
     "build:vercel": "node scripts/run-vercel.mjs build",
     "dev:vercel": "node scripts/run-vercel.mjs dev",
     "start:vercel": "node scripts/run-vercel.mjs start",
-    "test": "node --experimental-strip-types --test tests/canvas.test.mjs tests/class-actions.test.mjs tests/git-simulator.test.mjs tests/relation-actions.test.mjs tests/browser-workspace.test.mjs tests/edge-routing.test.mjs",
+    "test": "node --experimental-strip-types --test tests/canvas.test.mjs tests/class-actions.test.mjs tests/git-simulator.test.mjs tests/relation-actions.test.mjs tests/browser-workspace.test.mjs tests/edge-routing.test.mjs tests/visual-diagrams.test.mjs",
     "test:docker": "node --test tests/docker-gateway.test.mjs",
     "typecheck": "tsc --noEmit",
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",

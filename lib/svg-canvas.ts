@@ -75,7 +75,7 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     if (el) {
       el.setAttribute("transform", `translate(${placed.x - node.x}, ${placed.y - node.y}) ${node.transform}`);
       el.setAttribute("data-class", node.name);
-      el.setAttribute("tabindex", "0"); el.setAttribute("role", "button"); el.setAttribute("aria-label", "Clase " + node.name);
+      el.setAttribute("tabindex", "0"); el.setAttribute("role", "button"); el.setAttribute("aria-label", (el.hasAttribute("data-visual") ? "Elemento " : "Clase ") + node.name);
     }
     return placed;
   });
@@ -110,7 +110,8 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     const atLayout = Math.hypot(a.x - originalA.x, a.y - originalA.y, b.x - originalB.x, b.y - originalB.y) < .1;
     // Keep Mermaid's obstacle-aware layout until either endpoint is moved.
     const custom = edge.routeKey ? settings.routes[edge.routeKey] : undefined;
-    const geometry = (!custom && atLayout ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, count * 28);
+    const actorEdge = root.getElementById(a.domId)?.hasAttribute("data-uml-actor") || root.getElementById(b.domId)?.hasAttribute("data-uml-actor");
+    const geometry = (!custom && atLayout && !actorEdge ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, count * 28);
     path.setAttribute("d", geometry.path);
     path.setAttribute("data-source", a.name); path.setAttribute("data-target", b.name);
     path.setAttribute("data-edge-id", edge.id); path.classList.add("studio-edge-line");

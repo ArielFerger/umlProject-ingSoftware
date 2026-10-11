@@ -82,3 +82,23 @@ input, textarea, .cm-content { caret-color: var(--accent); }
   .spin { animation-duration: 2s; }
 }
 @media print { .canvas-context-menu, .canvas-context-hint, .canvas-feedback { display: none !important; } }
+.diagram-art g[data-visual] { cursor: move; }
+.diagram-art g[data-visual].class-selected > rect,
+.diagram-art g[data-visual].class-selected > path,
+.diagram-art g[data-visual].connection-origin > rect,
+.diagram-art g[data-visual].connection-origin > path,
+.diagram-art g[data-visual]:focus-visible > rect,
+.diagram-art g[data-visual]:focus-visible > path { stroke: var(--accent) !important; stroke-width: 3px !important; }
+.uml-actor-figure { fill: none; stroke: var(--ink); stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; }
+.canvas-dark .uml-actor-figure { stroke: #e4edf1; }
+.uml-actor-caption { fill: var(--ink); font-size: 15px; font-family: var(--font-sans); }
+.canvas-dark .uml-actor-caption { fill: #e4edf1; }
+.class-selected .uml-actor-figure, .connection-origin .uml-actor-figure { stroke: var(--accent); stroke-width: 3px; }
+.canvas-add { min-height: 32px; }
+.diagram-art [data-et="message"] { cursor: pointer; }
+.diagram-art [data-et="message"].edge-selected { stroke: var(--accent) !important; stroke-width: 4px !important; }
+@media (max-width: 600px) {
+  .canvas-tools { flex-wrap: wrap; }
+  .canvas-add span { display: none; }
+  .canvas-tools .canvas-style { margin-left: auto; }
+}

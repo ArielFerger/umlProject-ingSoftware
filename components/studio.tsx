@@ -69,6 +69,7 @@ export default function Studio() {
   const [newProject, setNewProject] = useState("Mi primer proyecto");
   const [useTemplate, setUseTemplate] = useState(true);
   const [className, setClassName] = useState("NuevaClase");
+  const [insertRequest, setInsertRequest] = useState<{ serial: number; kind: string }>();
   const [classBody, setClassBody] = useState("+String nombre\n+ejecutar() void");
   const [editingClass, setEditingClass] = useState("");
   const [relFrom, setRelFrom] = useState("");
@@ -224,7 +225,7 @@ export default function Studio() {
         if (parsed.format !== "uml-studio" || parsed.version !== 1) throw new Error("Elige un archivo JSON exportado por UML Studio.");
         await create(diagramInput.parse(parsed.diagram));
       } else {
-        const type: DiagramType = text.includes("classDiagram") ? "class" : text.includes("sequenceDiagram") ? "sequence" : text.includes("stateDiagram") ? "state" : text.includes("erDiagram") ? "er" : "activity";
+        const type: DiagramType = text.includes("classDiagram") ? "class" : text.includes("sequenceDiagram") ? "sequence" : text.includes("stateDiagram") ? "state" : text.includes("erDiagram") ? "er" : text.includes(":::umlActor") ? "usecase" : "activity";
         await create({ name: file.name.replace(/\.[^.]+$/, ""), type, source: text, project: current?.project || "Importados", theme: "studio", notes: "" });
       }
     } catch (e) { setNotice((e as Error).message); }
@@ -251,6 +252,7 @@ export default function Studio() {
   }
   function insertSnippet(kind: string) {
     if (!current) return;
+    if (current.type !== "class" && ["participant", "actor", "message", "state", "transition", "node", "decisión", "flow", "usecase", "component", "database", "entity", "erlink"].includes(kind)) { setInsertRequest({ serial: Date.now(), kind }); return; }
     const suffix = Math.floor(Date.now() % 100000);
     const id = "Elemento" + suffix;
     const snippets: Record<string, string> = {
@@ -270,7 +272,7 @@ export default function Studio() {
 
   const projects = Array.from(new Set(documents.map(d => d.project)));
   const filtered = documents.filter(d => (d.name + " " + d.project + " " + TYPE_LABELS[d.type]).toLowerCase().includes(search.toLowerCase()));
-  const tools = current?.type === "sequence" ? [["participant", "Participante"], ["message", "Mensaje"], ["alternative", "Alternativa"], ["loop", "Bucle"]]
+  const tools = current?.type === "sequence" ? [["participant", "Participante"], ["actor", "Actor"], ["message", "Mensaje"], ["alternative", "Alternativa"], ["loop", "Bucle"]]
     : current?.type === "state" ? [["state", "Estado"], ["transition", "Transición"], ["composite", "Estado compuesto"]]
     : current?.type === "er" ? [["entity", "Entidad"], ["erlink", "Relación"]]
     : current?.type === "usecase" ? [["actor", "Actor"], ["usecase", "Caso de uso"], ["flow", "Relación"]]
@@ -281,7 +283,7 @@ export default function Studio() {
   const selectedBlock = blocks.find(block => block.name === inspectedClass);
   const openNotes = () => { if (current) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
   const goStudy = async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } };
-  const selectForInspection = (name: string) => { setInspectedClass(name); if (name && window.innerWidth > 800) setPropertiesOpen(true); };
+  const selectForInspection = (name: string) => { setInspectedClass(name); if (current?.type === "class" && name && window.innerWidth > 800) setPropertiesOpen(true); };
 
   return <main className={"studio " + (!sideOpen ? "sidebar-hidden " : "") + (!propertiesOpen ? "properties-hidden" : "")}>
     <header className="app-header">
@@ -375,7 +377,7 @@ export default function Studio() {
             <div className="code-footer"><span>{current.source.split("\n").length} líneas</span><span>UTF-8</span></div>
           </section>
           <section className="canvas-pane"><div className="pane-header canvas-pane-heading"><span><Shapes size={15} />{TYPE_LABELS[current.type]}</span><span className="live-label"><Check size={12} />Sincronizado con Mermaid</span></div>
-            <DiagramPreview diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
+            <DiagramPreview insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
               selectedClass={selectedBlock?.name || ""} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
               onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}
@@ -402,7 +404,7 @@ export default function Studio() {
               </section>}
               <section className="property-section"><h3>Notas</h3><textarea className="diagram-notes" aria-label="Notas del diagrama" placeholder="Decisiones, supuestos, pendientes…" rows={3} maxLength={10000} value={current.notes} onChange={event => edit({ notes: event.target.value })} /></section>
             </div>
-            <div className="inspector-tip"><MousePointer2 size={15} /><p>Seleccioná una clase para editar sus atributos y métodos.</p></div>
+            <div className="inspector-tip"><MousePointer2 size={15} /><p>{current.type === "class" ? "Seleccioná una clase para editar sus atributos y métodos." : "Agregá elementos desde el lienzo. Doble clic para editar; conectá origen y destino con el mouse."}</p></div>
           </aside>
         </div>
         <footer className="statusbar"><span><GitBranch size={12} />{TYPE_LABELS[current.type]}</span><span>{blocks.length ? blocks.length + " clases" : current.source.length + " caracteres"}</span><span className="statusbar-hint"><Keyboard size={12} />Ctrl / ⌘ + S para guardar</span><span className="statusbar-end">Versión {current.revision}<span className="statusbar-separator" />{new Date(current.updatedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span></footer>

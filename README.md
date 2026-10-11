@@ -8,7 +8,7 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 
 ## Qué incluye
 
-- Editor Mermaid con vista gráfica, movimiento de clases, conexiones, menú con click derecho, deshacer/rehacer e importación/exportación.
+- Editor Mermaid para clases, secuencia, estados, actividades, casos de uso, componentes y entidad-relación: formularios, edición por código, movimiento, conexiones con el mouse, menú con click derecho, deshacer/rehacer e importación/exportación.
 - Animaciones y controles adaptados a pantallas pequeñas, teclado y preferencias de movimiento reducido.
 - 17 temas de teoría, 8 fichas de patrones UML, 74 ejercicios distribuidos en 5 niveles y 3 simulacros.
 - Resumen descargable y los 25 documentos originales del curso en `public/estudio/`.
@@ -20,6 +20,27 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 Las respuestas de opción múltiple y numéricas tienen corrección automática. Las respuestas de desarrollo y los diagramas se revisan con una rúbrica.
 
 ## Ejecutar en tu computadora
+
+### Editar visualmente
+
+Usá **Insertar** en el explorador o **+ Elemento** en el lienzo para crear elementos con identificador y texto visible. Cada tipo muestra sus opciones: actores y casos de uso, participantes, estados, actividades y decisiones, componentes y bases de datos, o entidades con atributos.
+
+- Arrastrá los elementos para ubicarlos. En secuencia, arrastrá horizontalmente los participantes para cambiar su orden; los mensajes mantienen su orden temporal.
+- Elegí **Conectar elementos**, seleccioná origen y destino, y completá el tipo y texto de la conexión. El menú del lienzo y el explorador también permiten crear conexiones por formulario.
+- Doble clic o click derecho sobre un elemento para editarlo, duplicarlo o eliminarlo. Seleccioná una conexión para editarla o eliminarla; sus elementos se conservan.
+- **Dividir** y **Código** permiten editar Mermaid directamente. Los cambios visuales actualizan el mismo código y se pueden deshacer/rehacer.
+- Las declaraciones compuestas, grupos de participantes y estructuras avanzadas siguen disponibles desde Código; una operación que no pueda conservarlos muestra una explicación en lugar de borrar partes del modelo.
+
+Los actores de casos de uso se escriben como `Usuario["Usuario"]:::umlActor` y se muestran como figuras UML, también al exportar SVG o PNG. Los actores rectangulares de las plantillas antiguas, fuera del límite del sistema, se reconocen automáticamente. Un actor de secuencia usa la sintaxis Mermaid `actor Usuario`.
+
+```mermaid
+flowchart LR
+  Usuario["Usuario"]:::umlActor
+  Consultar(["Consultar pedidos"])
+  Usuario --- Consultar
+```
+
+El render de UML Studio sustituye el nodo marcado por un stickman; los visores Mermaid externos pueden mostrar su representación base como rectángulo.
 
 ### Deploy en Vercel
 

@@ -91,18 +91,18 @@ Resultado -->|Si| Confirmar[Confirmar pedido]
 Resultado -->|No| Pago
 Confirmar --> Fin([Fin])` },
   { type: "usecase", name: "Portal de clientes", description: "Actores y casos de uso", source: `flowchart LR
-Cliente["Cliente"]
-Admin["Administrador"]
+Cliente["Cliente"]:::umlActor
+Admin["Administrador"]:::umlActor
 subgraph Sistema[Portal de clientes]
   Comprar([Realizar compra])
   Historial([Consultar pedidos])
   Pagar([Procesar pago])
   Catalogo([Gestionar catalogo])
 end
-Cliente --> Comprar
-Cliente --> Historial
+Cliente --- Comprar
+Cliente --- Historial
 Comprar -. include .-> Pagar
-Admin --> Catalogo` },
+Admin --- Catalogo` },
   { type: "component", name: "Arquitectura de servicios", description: "Componentes e integraciones", source: `flowchart LR
 subgraph Frontend
   Web["Web app"]
