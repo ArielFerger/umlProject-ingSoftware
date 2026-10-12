@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronRight, Copy, Download, FileText, Flag, GitBranch, GraduationCap, Lightbulb, LoaderCircle, Play, RotateCcw, Search, Shapes, Trophy, Upload, X, Timer, Printer, ExternalLink, Undo2, Redo2 } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { readCanvas, writeCanvas, appendRelation } from "@/lib/canvas";
-import { STUDY, Progress, Entry, Exercise, Lesson, Pattern, emptyEntry, emptyProgress, parseProgress, correctAnswer, numericValue, completion, starter } from "@/lib/study";
+import { STUDY, PAPERS, Progress, Entry, Exercise, Lesson, Pattern, emptyEntry, emptyProgress, parseProgress, correctAnswer, numericValue, completion, starter } from "@/lib/study";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
 import RelationGuide from "./relation-guide";
@@ -12,6 +12,8 @@ import Modal from "./modal";
 import { studioRequest } from "@/lib/studio-request";
 import StudyVisualExplorer from "./study-visual";
 import { correctionText } from "@/lib/study-correction";
+import { paperQuestions } from "@/lib/study-paper";
+import StudyPaper from "./study-paper";
 
 type View = "ruta" | "teoria" | "patrones" | "practica" | "simulacros" | "fuentes";
 type Run = { id: string; deadline: number; finished: boolean };
@@ -41,6 +43,7 @@ export default function Study() {
   const [lessonId, setLessonId] = useState(STUDY.lessons[0].id);
   const [patternId, setPatternId] = useState("singleton");
   const [exerciseId, setExerciseId] = useState("");
+  const [paperId, setPaperId] = useState("");
   const [level, setLevel] = useState(1);
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("Todos");
@@ -62,7 +65,9 @@ export default function Study() {
   const entry = current ? progress.entries[current.id] || emptyEntry() : emptyEntry();
   const stats = completion(progress);
   const exam = STUDY.examSets.find(s => s.id === run?.id);
-  const examIds = exam?.exerciseTitles.map(t => STUDY.exercises.find(e => e.title === t)!.id) || [];
+  const paper = PAPERS.find(p => p.id === paperId);
+  const examPaper = PAPERS.find(p => p.id === exam?.paperId);
+  const examIds = examPaper ? paperQuestions(examPaper).map(q => q.id) : exam?.exerciseTitles.map(t => STUDY.exercises.find(e => e.title === t)!.id) || [];
   const examActive = !!run && !run.finished && run.deadline > now;
   const currentInExam = examActive && examIds.includes(exerciseId);
   const next = STUDY.exercises.find(e => !progress.entries[e.id]?.done);
@@ -82,7 +87,8 @@ export default function Study() {
     }).catch(e => { if (live) setStorageError(e.message); });
     const params = new URLSearchParams(window.location.search); const id = params.get("ejercicio");
     const ex = STUDY.exercises.find(e => e.id === id);
-    if (ex) { setExerciseId(ex.id); setLevel(ex.level); setView("practica"); }
+    if (PAPERS.some(p => p.id === params.get("parcial"))) { setPaperId(params.get("parcial")!); setView("simulacros"); }
+    else if (ex) { setExerciseId(ex.id); setLevel(ex.level); setView("practica"); }
     else if (STUDY.patterns.some(p => p.id === params.get("patron"))) { setPatternId(params.get("patron")!); setView("patrones"); }
     else if (STUDY.lessons.some(l => l.id === params.get("tema"))) { setLessonId(params.get("tema")!); setView("teoria"); }
     return () => { live = false; };
@@ -103,17 +109,21 @@ export default function Study() {
   }, [run]);
   useEffect(() => { if (run && !run.finished && now >= run.deadline) { setRun({ ...run, finished: true }); setNotice("Se cumplió el tiempo. Tus respuestas quedaron guardadas; ya podés revisar las soluciones."); } }, [now, run]);
   useEffect(() => { setSvg(null); }, [exerciseId]);
-  useEffect(() => { if (content.current) content.current.scrollTop = 0; }, [view, lessonId, patternId, exerciseId]);
+  useEffect(() => { if (content.current) content.current.scrollTop = 0; }, [view, lessonId, patternId, exerciseId, paperId]);
 
   function updateEntry(id: string, patch: Partial<Entry>) { setProgress(p => ({ ...p, entries: { ...p.entries, [id]: { ...(p.entries[id] || emptyEntry()), ...patch } } })); }
-  function navigate(v: View) { setView(v); setQuery(""); setNotice(""); }
+  function navigate(v: View) { setView(v); setQuery(""); setNotice(""); if (v === "simulacros") { setPaperId(""); const url = new URL(window.location.href); url.searchParams.delete("parcial"); window.history.replaceState(null, "", url); } }
+  function openPaper(id: string) {
+    navigate("simulacros"); setPaperId(id);
+    const url = new URL(window.location.href); for (const key of ["ejercicio", "patron", "tema"]) url.searchParams.delete(key); url.searchParams.set("parcial", id); window.history.replaceState(null, "", url);
+  }
   function openPattern(id: string) {
     setPatternId(id); navigate("patrones");
-    const url = new URL(window.location.href); url.searchParams.delete("ejercicio"); url.searchParams.delete("tema"); url.searchParams.set("patron", id); window.history.replaceState(null, "", url);
+    const url = new URL(window.location.href); url.searchParams.delete("parcial"); url.searchParams.delete("ejercicio"); url.searchParams.delete("tema"); url.searchParams.set("patron", id); window.history.replaceState(null, "", url);
   }
   function openExercise(e: Exercise) {
     setExerciseId(e.id); setLevel(e.level); setSvg(null); navigate("practica");
-    const url = new URL(window.location.href); url.searchParams.delete("patron"); url.searchParams.delete("tema"); url.searchParams.set("ejercicio", e.id); window.history.replaceState(null, "", url);
+    const url = new URL(window.location.href); url.searchParams.delete("parcial"); url.searchParams.delete("patron"); url.searchParams.delete("tema"); url.searchParams.set("ejercicio", e.id); window.history.replaceState(null, "", url);
   }
   function check() {
     if (!current) return;
@@ -132,7 +142,9 @@ export default function Study() {
   async function copyForCorrection() {
     if (!current || currentInExam) return;
     if (!entry.answer.trim() && !entry.draft.trim()) { setNotice("Escribí tu respuesta o trabajá en tu diagrama antes de copiar para corregir."); return; }
-    const text = correctionText(current, entry, STUDY.sources);
+    await copyPrepared(correctionText(current, entry, STUDY.sources));
+  }
+  async function copyPrepared(text: string) {
     setCopying(true);
     try {
       await navigator.clipboard.writeText(text);
@@ -174,14 +186,14 @@ export default function Study() {
     try { if (file.size > 8000000) throw new Error("La copia de progreso es demasiado grande."); setPendingImport(parseProgress(JSON.parse(await file.text()))); }
     catch { setNotice("El archivo no es una copia válida del progreso de Estudio IS II."); }
   }
-  function beginExam(id: string, minutes: number) { const r = { id, deadline: Date.now() + minutes * 60000, finished: false }; setRun(r); setNow(Date.now()); const selected = STUDY.examSets.find(s => s.id === id)!; openExercise(STUDY.exercises.find(e => e.title === selected.exerciseTitles[0])!); }
+  function beginExam(id: string, minutes: number) { const r = { id, deadline: Date.now() + minutes * 60000, finished: false }; setRun(r); setNow(Date.now()); const selected = STUDY.examSets.find(s => s.id === id)!; if (selected.paperId) openPaper(selected.paperId); else openExercise(STUDY.exercises.find(e => e.title === selected.exerciseTitles[0])!); }
   const filtered = STUDY.exercises.filter(e => e.level === level && (topic === "Todos" || e.topic === topic) && (!onlyReview || progress.entries[e.id]?.review) && normalize(e.title + " " + e.prompt).includes(normalize(query)));
   const remaining = run ? Math.max(0, Math.ceil((run.deadline - now) / 1000)) : 0;
   const timeText = `${Math.floor(remaining / 60).toString().padStart(2, "0")}:${(remaining % 60).toString().padStart(2, "0")}`;
   return <main className="study-app">
     <header className="study-header"><a href="/" className="study-brand"><GitBranch size={23} /><span>UML Studio</span></a><span className="study-header-separator" /><span className="study-sector"><GraduationCap size={19} />Estudio IS II</span><div className="study-header-end"><span>{stats.xp} XP</span><ThemePicker /><a href="/git" className="btn" aria-label="Laboratorio Git"><GitBranch size={15} /><span>Git Lab</span></a><a href="/" className="btn" aria-label="Editor UML"><Shapes size={15} /><span>Editor UML</span></a></div></header>
     <nav className="study-nav" aria-label="Sectores de estudio">{tabs.map(([id,label]) => <button key={id} className={view === id ? "active" : ""} aria-current={view === id ? "page" : undefined} onClick={() => navigate(id)}>{label}</button>)}</nav>
-    {examActive && <div className="study-exam-bar"><Timer size={17} /><strong>{exam?.title}</strong><span>{timeText}</span><button onClick={() => navigate("simulacros")}>Ver preguntas</button><button onClick={() => { setRun(run && { ...run, finished: true }); setNotice("Simulacro finalizado. Revisá respuestas y soluciones con la rúbrica."); }}>Finalizar y revisar</button></div>}
+    {examActive && <div className="study-exam-bar"><Timer size={17} /><strong>{exam?.title}</strong><span>{timeText}</span><button onClick={() => exam?.paperId ? openPaper(exam.paperId) : navigate("simulacros")}>Ver preguntas</button><button onClick={() => { setRun(run && { ...run, finished: true }); setNotice("Intento finalizado. Tus respuestas quedaron guardadas para revisar."); }}>Finalizar y revisar</button></div>}
     <section ref={content} className="study-content">
       {storageError && <div className="study-alert" role="alert">{storageError}{!key && <a href="/signin-with-chatgpt?return_to=%2Festudio">Iniciar sesión</a>}</div>}
       {notice && <div className="study-notice" role="status">{notice}<button aria-label="Cerrar aviso" onClick={() => setNotice("")}><X size={15} /></button></div>}
@@ -217,7 +229,18 @@ export default function Study() {
           <div className="study-exercise-bottom"><button className="btn" onClick={() => { const candidates = currentInExam ? STUDY.exercises.filter(e => examIds.includes(e.id)) : STUDY.exercises; const index=candidates.findIndex(e => e.id === current.id);openExercise(candidates[(index+1)%candidates.length]); }}>Siguiente desafío<ArrowRight size={17} /></button><button className="study-text-btn" onClick={() => { saveFile(JSON.stringify({exercise:current,answer:entry},null,2),current.id+"-respuesta.json"); }}>Descargar esta respuesta</button></div>
         </article>}
       </>}
-      {view === "simulacros" && <><div className="study-page-heading"><h1>Practicá como en el parcial</h1><p>El reloj sigue al salir o recargar. Durante el intento se ocultan pistas y corrección; al finalizar revisás con la guía.</p></div>{run && <section className="study-exam-result"><h2>{exam?.title}</h2><p>{examActive ? `Tiempo restante: ${timeText}.` : "Intento finalizado. Revisá cada respuesta; los diagramas y desarrollos se evalúan con rúbrica."}</p><div className="study-exam-questions">{examIds.map(id => { const e=STUDY.exercises.find(e => e.id===id)!; const a=progress.entries[id]; return <button key={id} onClick={() => openExercise(e)}><span>{e.title}</span><small>{a?.answer || a?.draft ? "Con respuesta" : "Pendiente"}</small><ChevronRight size={16} /></button>; })}</div>{!examActive && <button className="btn" onClick={() => { let p=progressRef.current;for(const id of examIds){const e=STUDY.exercises.find(e => e.id===id)!;const a=p.entries[id];if(a && ["choice","numeric"].includes(e.kind) && a.answer){const ok=correctAnswer(e,a.answer);p={...p,entries:{...p.entries,[id]:{...a,result:ok?"correct":"incorrect",done:ok,review:!ok,attempts:a.attempts+1}}};}}setProgress(p);setNotice("Preguntas objetivas corregidas. Revisá los desarrollos con su rúbrica."); }}>Corregir preguntas numéricas</button>}</section>}<div className="study-exam-grid">{STUDY.examSets.map(s => <section key={s.id}><Timer size={25} /><h2>{s.title}</h2><p>{s.exerciseTitles.length} desafíos · {s.minutes} minutos propuestos para entrenar, no duración oficial.</p><ul>{s.exerciseTitles.map(t => <li key={t}>{t}</li>)}</ul><p className="study-validation">Usa tus borradores actuales. Exportá el progreso antes si querés conservar otro intento.</p><button className="btn primary" disabled={!ready || examActive} onClick={() => beginExam(s.id,s.minutes)}><Play size={16} />Iniciar simulacro</button></section>)}</div></>}
+      {view === "simulacros" && (paper ? <>
+        <button className="study-text-btn study-paper-back" onClick={() => navigate("simulacros")}><ArrowLeft size={15} />Parciales y simulacros</button>
+        <StudyPaper paper={paper} entries={progress.entries} sources={STUDY.sources} ready={ready && !storageError} active={examActive && exam?.paperId === paper.id} copying={copying} onChange={updateEntry} onCopy={text => void copyPrepared(text)} onPractice={id => { const exercise = STUDY.exercises.find(e => e.id === id); if (exercise) openExercise(exercise); }} onGuide={setGuide} />
+      </> : <>
+        <div className="study-page-heading"><h1>Parciales y simulacros</h1><p>Los parciales por año conservan las consignas, los enunciados completos y el orden de las hojas. Podés responderlos en una sola página o resolverlos con tiempo de entrenamiento.</p></div>
+        {run && <section className="study-exam-result"><h2>{exam?.title}</h2><p>{examActive ? `Tiempo restante: ${timeText}.` : "Intento finalizado. Las respuestas están guardadas para revisar."}</p>{examPaper ? <button className="btn" onClick={() => openPaper(examPaper.id)}>{examActive ? "Continuar el parcial" : "Ver mis respuestas"}<ArrowRight size={15} /></button> : <>
+          <div className="study-exam-questions">{examIds.map(id => { const e=STUDY.exercises.find(e => e.id===id)!; const a=progress.entries[id]; return <button key={id} onClick={() => openExercise(e)}><span>{e.title}</span><small>{a?.answer || a?.draft ? "Con respuesta" : "Pendiente"}</small><ChevronRight size={16} /></button>; })}</div>
+          {!examActive && <button className="btn" onClick={() => { let p=progressRef.current;for(const id of examIds){const e=STUDY.exercises.find(e => e.id===id)!;const a=p.entries[id];if(a && ["choice","numeric"].includes(e.kind) && a.answer){const ok=correctAnswer(e,a.answer);p={...p,entries:{...p.entries,[id]:{...a,result:ok?"correct":"incorrect",done:ok,review:!ok,attempts:a.attempts+1}}};}}setProgress(p);setNotice("Preguntas objetivas corregidas. Revisá los desarrollos con su rúbrica."); }}>Corregir preguntas objetivas</button>}
+        </>}</section>}
+        <h2>Parciales por año</h2><div className="study-exam-grid">{STUDY.examSets.filter(s => s.paperId).map(s => { const original = PAPERS.find(p => p.id === s.paperId)!; return <section key={s.id}><FileText size={25} /><h2>{s.title}</h2><p>{paperQuestions(original).length} preguntas originales · {original.date}</p><ul>{original.sections.map((section,i) => <li key={i}>{section.title || "Preguntas"}: {section.questions.length}</li>)}</ul><div className="study-paper-card-actions"><button className="btn primary" onClick={() => openPaper(original.id)}>Abrir parcial completo</button><button className="btn" disabled={!ready || examActive} onClick={() => beginExam(s.id,s.minutes)}>Resolver con tiempo</button></div><p className="study-validation">{s.minutes} minutos propuestos para entrenar; no es la duración oficial. Las respuestas de las prácticas adicionales se conservan por separado.</p></section>; })}</div>
+        <h2 className="study-training-heading">Simulacros de práctica adicional</h2><p>Actividades adaptadas y casos nuevos para entrenar por dificultad.</p><div className="study-exam-grid">{STUDY.examSets.filter(s => !s.paperId).map(s => <section key={s.id}><Timer size={25} /><h2>{s.title}</h2><p>{s.exerciseTitles.length} desafíos · {s.minutes} minutos propuestos para entrenar.</p><ul>{s.exerciseTitles.map(t => <li key={t}>{t}</li>)}</ul><p className="study-validation">Usa tus borradores actuales. Exportá el progreso antes si querés conservar otro intento.</p><button className="btn primary" disabled={!ready || examActive} onClick={() => beginExam(s.id,s.minutes)}><Play size={16} />Iniciar simulacro</button></section>)}</div>
+      </>)}
       {view === "fuentes" && <><div className="study-page-heading"><h1>Tu biblioteca de estudio</h1><p>{STUDY.sourceCount} documentos revisados: {STUDY.pdfPages} páginas PDF, tres guías/modelos Word y cuatro imágenes de parciales. Abrí el original para ver diagramas, código y enunciados completos.</p></div><label className="study-search"><Search size={16} /><input placeholder="Buscar documento" aria-label="Buscar documento original" value={query} onChange={e => setQuery(e.target.value)} /></label><div className="study-source-list">{STUDY.sources.filter(s => normalize(s.name).includes(normalize(query))).map(s => <a key={s.id} href={s.url} target="_blank" rel="noreferrer"><FileText size={22} /><span><strong>{s.name}</strong><small>{s.format === "image" ? "Imagen del parcial" : s.pages ? s.pages+" páginas PDF" : "Documento Word"}</small></span><ExternalLink size={17} /></a>)}</div><p className="study-source-note">Las consignas de práctica se adaptaron para estudiar por dificultad y se agruparon ejercicios repetidos. Las soluciones y rúbricas son propuestas didácticas, no respuestas oficiales de la cátedra. Los ejercicios de código se presentan en C++17 para leer y analizar; los originales conservan sus lenguajes.</p></>}
     </section>
     <footer className="study-footer"><span><CheckCircle2 size={13} />{ready && !storageError ? "Guardado en este navegador" : "Revisá el guardado"}</span><span>{stats.done}/{stats.total} desafíos · {stats.xp} XP</span><button onClick={() => saveFile(JSON.stringify(progress,null,2),"progreso-IS-II.json")} title="Exportar una copia">Exportar progreso</button></footer>

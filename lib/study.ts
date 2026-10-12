@@ -1,6 +1,8 @@
 import content from "./study-data.json";
 import visualContent from "./study-visuals.json";
 import examContent from "./study-exams.json";
+import paperContent from "./study-papers.json";
+import { paperQuestions, type StudyPaperDoc } from "./study-paper";
 import { z } from "zod";
 import type { Diagram } from "./diagrams";
 
@@ -10,7 +12,8 @@ export type Lesson = { id: string; title: string; lead: string; refs: number[]; 
 export type Pattern = { id: string; name: string; family: string; purpose: string; signal: string; roles: string; example: string; benefit: string; cost: string; error: string; refs: number[]; uml: string; visuals: StudyVisual[]; check: { question: string; answer: string } };
 export type Exercise = { id: string; level: number; title: string; topic: string; scenario?: string; prompt: string; code?: string; provenance?: string; solution: string; refs: number[]; kind: string; choices?: string[]; answer?: number; expected?: number; hints: string[]; uml?: string | null; diagramType?: Diagram["type"]; starter?: string; rubric: string[] };
 export type StudySource = { id: number; name: string; pages: number; url: string; format?: "image" };
-export type ExamSet = { id: string; title: string; minutes: number; exerciseTitles: string[] };
+export type ExamSet = { id: string; title: string; minutes: number; exerciseTitles: string[]; paperId?: string };
+export const PAPERS = paperContent as StudyPaperDoc[];
 const additions = visualContent as {
   source: { id: number; name: string; pages: number; url: string };
   patterns: Record<string, { structure: Omit<StudyVisual, "source" | "type">; sequence: StudyVisual; check: Pattern["check"] }>;
@@ -52,6 +55,7 @@ export const emptyEntry = (): Entry => ENTRY_SCHEMA.parse({});
 export function parseProgress(value: unknown): Progress {
   const p = PROGRESS_SCHEMA.parse(value);
   const ids = new Set(STUDY.exercises.map(e => e.id));
+  for (const paper of PAPERS) for (const question of paperQuestions(paper)) ids.add(question.id);
   return { ...p, read: [...new Set(p.read)].filter(id => STUDY.lessons.some(l => l.id === id)),
     entries: Object.fromEntries(Object.entries(p.entries).filter(([id]) => ids.has(id))) };
 }

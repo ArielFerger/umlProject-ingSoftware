@@ -1,0 +1,154 @@
+[
+  {
+    "id": "2024",
+    "title": "Parcial Nº2 Ing. de Software II",
+    "date": "23 de octubre del 2024",
+    "refs": [
+      17,
+      28
+    ],
+    "note": "Texto recuperado del Word original y contrastado con la foto. La cuarta pregunta y la continuación del código están en el Word. Se conservan las consignas, incluido el lenguaje solicitado en la hoja.",
+    "sections": [
+      {
+        "title": "",
+        "questions": [
+          {
+            "id": "p2024-1",
+            "number": 1,
+            "prompt": "Qué patrones de diseño de los vistos en clase, usarían para el siguiente enunciado. Justifique.",
+            "paragraphs": [
+              "En un sistema de alarma de un edificio se consideran detectores de humo, sensores de temperatura, sensores de presión, etc. Todos estos elementos tienen un estado conectado/desconectado y en consecuencia se puede pasar de un estado a otro (cuando se crean, están desconectados). Todos ellos son capaces de proporcionar una medida (un valor REAL) y tienen un valor umbral que se fija inicialmente al crear el elemento. El sistema recorre en un bucle continuo todos sus elementos conectados. Cuando la medida de uno de ellos supera su valor umbral el sistema dispara la alarma. Para evitar falsas alarmas, varios elementos se pueden unir formando arrays (y los arrays a su vez en otros arrays) y para este sensor complejo, la alarma sólo se dispara si el valor medio de los elementos del array supera el umbral definido para ese elemento compuesto. Diseñar una solución con las clases necesarias y sus características para este problema, implementando en Eiffel al menos todo lo relacionado con el disparo de la alarma."
+            ],
+            "canDiagram": true,
+            "practiceId": "e70"
+          },
+          {
+            "id": "p2024-2",
+            "number": 2,
+            "prompt": "Realice el diagrama (mediante UML) el patrón Singleton, dar una breve descripción de su usabilidad y mencione 2 ejemplos.",
+            "canDiagram": true,
+            "practiceId": "e23"
+          },
+          {
+            "id": "p2024-3",
+            "number": 3,
+            "prompt": "En el siguiente diagrama que pertenece a una aplicación farmacéutica, se solicita modelar:",
+            "images": [
+              {
+                "url": "/estudio/parciales/2024-diagrama.png",
+                "alt": "Diagrama original de Usuario, Cliente, Farmaceutico y Medicamento"
+              }
+            ],
+            "items": [
+              "Se desea crear una clase para mantener la seguridad de los usuarios, llamada GestorUsuarios, dicha clase tendrá métodos para realizar el login del sistema, cambiar la contraseña del usuario, dar de baja y dar de alta usuarios, por motivos de performance se desea crear una sola instancia de dicha clase.",
+              "Se necesita implementar mecanismos de para la emisión de lotes de medicamentos, para esto es necesario que cada vez que se imprima un lote, se envíe una alerta al farmacéutico y este registra el suceso en una tabla de lotes."
+            ],
+            "canDiagram": true,
+            "practiceId": "e71",
+            "diagramDescription": "Usuario: atributos nombre, Telefono, Direccion; métodos get nombre(), get telefono(), set telefono(). Cliente hereda de Usuario: CUIT, Razon Social; métodos set.razonsocial(), get.cuit(). Farmaceutico hereda de Usuario: Matricula; método get matricula(). Medicamento: Serial, Nombre, Lote, Posologia, Presentacion; métodos validarmedicacion(), imprimirlote(), imprimiretiqueta(). Usuario y Medicamento están unidos por una asociación sin multiplicidad indicada."
+          },
+          {
+            "id": "p2024-4",
+            "number": 4,
+            "prompt": "A partir del siguiente código identifique qué patrón es el que se utiliza.",
+            "code": "class Facturacion {\npublic:\nstd::string Operation1() const {\nreturn \"Facturacion: Ready!\\n\";\n}\nstd::string OperationN() const {\nreturn \"Facturacion: Go!\\n\";\n}};\nclass Compras {\npublic:\nstd::string Operation1() const {\nreturn \"Compras: Get ready!\\n\";\n}\nstd::string OperationZ() const {\nreturn \"Compras: Fire!\\n\";\n}};\nclass Operador {\nprotected:\nFacturacion *Facturacion_;\nCompras *Compras_;\npublic:\nOperador(\nFacturacion *Facturacion = nullptr,\nCompras *Compras = nullptr) {\nthis->Facturacion_ = Facturacion ?: new Facturacion;\nthis->Compras_ = Compras ?: new Compras;\n}\n~Operador() {\ndelete Facturacion_;\ndelete Compras_;\n}\nstd::string Operation() {\nstd::string result = \"Operador initializes subsystems:\\n\";\nresult += this->Facturacion_->Operation1();\nresult += this->Compras_->Operation1();\n    result += \"Operador orders subsystems to perform the action:\\n\";\n    result += this->Facturacion_->OperationN();\n    result += this->Compras_->OperationZ();\n    return result;\n  }\n};\nvoid ClientCode(Operador *Operador) {\n  std::cout << Operador->Operation();\n}\nint main() {\n  Facturacion *Facturacion = new Facturacion;\n  Compras *Compras = new Compras;\n  Operador *Operador = new Operador(Facturacion, Compras);\n  ClientCode(Operador);\n  delete Operador;\n  return 0;\n}\n",
+            "codeLanguage": "C++",
+            "practiceId": "e46",
+            "sourceImages": [
+              {
+                "url": "/estudio/parciales/2024-codigo-continuacion.png",
+                "alt": "Continuación original del código de Operador en el Word"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2025",
+    "title": "Parcial Nº2 - Ingeniería del Software II",
+    "date": "8 de octubre de 2025",
+    "refs": [
+      29,
+      30,
+      31
+    ],
+    "note": "Consignas y enunciados transcritos de las tres hojas aportadas, conservando su orden, numeración por sección y puntajes. El código original es PHP; la versión C++ para entrenamiento se abre aparte.",
+    "sections": [
+      {
+        "title": "Teoría",
+        "paragraphs": [
+          "La empresa SoftMetrics desarrolla soluciones web y aplicaciones empresariales bajo un enfoque de Programación Orientada a Objetos (POO).",
+          "En la actualidad presenta las siguientes características:"
+        ],
+        "items": [
+          "Utiliza herramientas de control de versiones (Git) y gestión de proyectos (Jira).",
+          "Los equipos siguen un proceso de desarrollo documentado, pero no todos lo aplican con la misma rigurosidad.",
+          "No realiza mediciones cuantitativas del desempeño ni del cumplimiento de los procesos.",
+          "Las revisiones de código son manuales y dependen de la experiencia del revisor.",
+          "La empresa quiere incorporar Inteligencia Artificial (IA) para mejorar la calidad y la productividad, por ejemplo, usando herramientas como Codex o Copilot para sugerir código y detectar errores.",
+          "No posee aún un sistema formal de análisis predictivo ni de optimización automática de procesos.",
+          "El equipo de desarrollo trabaja con Programación Orientada a Objetos (POO) y planea incorporar dos patrones de diseño en su solución empresarial, la creación flexible de familias de objetos y otro para conectar módulos con interfaces incompatibles con los existentes del sistema."
+        ],
+        "questions": [
+          {
+            "id": "p2025-t1",
+            "number": 1,
+            "points": 5,
+            "prompt": "¿En qué nivel de madurez del modelo CMMI se encuentra actualmente SoftMetrics? Justifique brevemente. ¿Qué riesgos o limitaciones enfrenta la empresa si no avanza al siguiente nivel?"
+          },
+          {
+            "id": "p2025-t2",
+            "number": 2,
+            "points": 10,
+            "prompt": "Proponga tres acciones concretas que podrían ayudarla a llegar al Nivel 5, integrando el uso de herramientas de Inteligencia Artificial."
+          },
+          {
+            "id": "p2025-t3",
+            "number": 3,
+            "points": 5,
+            "prompt": "Indique los pasos que debe seguir el equipo de desarrollo para registrar todos los cambios del código desde el Working Directory hacia la rama develop y luego integrarlos en main, asegurando que ambas ramas estén actualizadas en el remoto (Git Workflow)."
+          },
+          {
+            "id": "p2025-t4",
+            "number": 4,
+            "points": 20,
+            "prompt": "Represente mediante un diagrama UML la estructura de los patrones de diseño que quiere incorporar SoftMetrics. Explique el propósito de cada uno dentro del sistema.",
+            "canDiagram": true
+          },
+          {
+            "id": "p2025-t5",
+            "number": 5,
+            "points": 10,
+            "prompt": "Defina un ejemplo de métrica de calidad del software que la empresa podría implementar. Para ello, complete: Atributo, Medida, Unidad de medida, Indicador, Métrica."
+          }
+        ]
+      },
+      {
+        "title": "Práctica",
+        "questions": [
+          {
+            "id": "p2025-p1",
+            "number": 1,
+            "prompt": "A partir del siguiente enunciado identifique cuáles serían los patrones de diseño que utilizaría y justifique por qué eligió los mismos.",
+            "paragraphs": [
+              "La empresa Muebles Express S.A. Se dedica a la fabricación y comercialización de muebles personalizados a través de su plataforma web. Los clientes pueden ingresar al sitio, navegar por el catálogo de productos y seleccionar los muebles que desean comprar, teniendo la posibilidad de personalizar cada artículo según diferentes parámetros: tipo de material, color, tamaño y estilo de ensamblaje. Cada cliente debe poder elegir su combinación preferida de estas opciones, de manera que el sistema aplique automáticamente la estrategia de configuración más adecuada según sus elecciones y genere un presupuesto final.",
+              "Una vez realizada la compra, el pedido se envía al área de producción de la empresa, donde un sistema interno se encarga de crear los muebles según las especificaciones del cliente. Para cada tipo de mueble —como sillas, mesas, estanterías o escritorios— existe un procedimiento de fabricación específico que permite instanciar los objetos correspondientes sin que el área de ventas tenga que conocer los detalles internos de la producción. Esto asegura que la creación de los muebles sea flexible y escalable, permitiendo agregar nuevos tipos de productos sin afectar la lógica de compra.",
+              "Cuando la fabricación del mueble se completa, el sistema notifica automáticamente al cliente a través de correo electrónico o mensajes en la plataforma web, informándole que su pedido está listo para ser enviado o retirado. Además, el cliente puede suscribirse para recibir actualizaciones sobre el estado de su pedido en tiempo real, de manera que cualquier cambio relevante —como retrasos, avances en la producción o confirmación de despacho— se comunique de forma inmediata y automática."
+            ],
+            "practiceId": "e69"
+          },
+          {
+            "id": "p2025-p2",
+            "number": 2,
+            "prompt": "Dado el siguiente código en PHP identifique el patrón que se implementa en el mismo y explique qué elementos ayudan a identificarlo.",
+            "code": "<?php\nnamespace ...\\api\\RealWorld;\n\nclass YouTubeDownloader\n{\n    protected $youtube;\n    protected $ffmpeg;\n    public function __construct(string $youtubeApiKey)\n    {\n        $this->youtube = new YouTube($youtubeApiKey);\n        $this->ffmpeg = new FFMpeg();\n    }\n    public function downloadVideo(string $url): void\n    {\n        echo \"Fetching video metadata from youtube...\\n\";\n        // $title = $this->youtube->fetchVideo($url)->getTitle();\n        echo \"Saving video file to a temporary file...\\n\";\n        // $this->youtube->saveAs($url, \"video.mpg\");\n\n        echo \"Processing source video...\\n\";\n        // $video = $this->ffmpeg->open('video.mpg');\n        echo \"Normalizing and resizing the video to smaller dimensions...\\n\";\n        // $video\n        //     ->filters()\n        //     ->resize(new FFMpeg\\Coordinate\\Dimension(320, 240))\n        //     ->synchronize();\n        echo \"Capturing preview image...\\n\";\n        // $video\n        //     ->frame(FFMpeg\\Coordinate\\TimeCode::fromSeconds(10))\n        //     ->save($title . 'frame.jpg');\n        echo \"Saving video in target formats...\\n\";\n        // $video\n        //     ->save(new FFMpeg\\Format\\Video\\X264(), $title . '.mp4')\n        //     ->save(new FFMpeg\\Format\\Video\\WMV(), $title . '.wmv')\n        //     ->save(new FFMpeg\\Format\\Video\\WebM(), $title . '.webm');\n        echo \"Done!\\n\";\n    }\n}\nclass YouTube\n{   public function fetchVideo(): string\n    {   }\n    public function saveAs(string $path): void\n    {   }\n}\nclass FFMpeg\n{   public static function create(): FFMpeg\n    {   }\n    public function open(string $video): void\n    {   }\n}\nclass FFMpegVideo\n{   public function filters(): self\n    {   }\n    public function resize(): self\n    {   }\n    public function synchronize(): self\n    {   }\n    public function frame(): self\n    {   }\n    public function save(string $path): self\n    {   }\n}\nfunction clientCode(YouTubeDownloader $api)\n{ $api->downloadVideo(\"https://www.youtube.com/watch?v=QH2-TGUlwu4\"); }\n$api = new YouTubeDownloader(\"APIKEY-XXXXXXXXX\");\nclientCode($api);\n?>\n",
+            "codeLanguage": "PHP",
+            "practiceId": "e45"
+          }
+        ]
+      }
+    ]
+  }
+]

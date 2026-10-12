@@ -100,13 +100,13 @@
       "uml": null
     },
     "e69": {
-      "scenario": "Muebles Express S.A. fabrica y vende muebles personalizados por una plataforma web. El comprador elige material, color, tamaño y estilo de ensamblaje; el sistema aplica el cálculo apropiado y obtiene un presupuesto. En producción, cada tipo de mueble (silla, mesa, estantería o escritorio) tiene un procedimiento de creación específico que ventas no necesita conocer. Se desea agregar nuevos tipos sin modificar la lógica de compra. El cliente puede suscribirse al estado de su pedido: avances, demoras, finalización y despacho deben generar avisos automáticos por los canales habilitados.",
+      "scenario": "La empresa Muebles Express S.A. Se dedica a la fabricación y comercialización de muebles personalizados a través de su plataforma web. Los clientes pueden ingresar al sitio, navegar por el catálogo de productos y seleccionar los muebles que desean comprar, teniendo la posibilidad de personalizar cada artículo según diferentes parámetros: tipo de material, color, tamaño y estilo de ensamblaje. Cada cliente debe poder elegir su combinación preferida de estas opciones, de manera que el sistema aplique automáticamente la estrategia de configuración más adecuada según sus elecciones y genere un presupuesto final.\n\nUna vez realizada la compra, el pedido se envía al área de producción de la empresa, donde un sistema interno se encarga de crear los muebles según las especificaciones del cliente. Para cada tipo de mueble —como sillas, mesas, estanterías o escritorios— existe un procedimiento de fabricación específico que permite instanciar los objetos correspondientes sin que el área de ventas tenga que conocer los detalles internos de la producción. Esto asegura que la creación de los muebles sea flexible y escalable, permitiendo agregar nuevos tipos de productos sin afectar la lógica de compra.\n\nCuando la fabricación del mueble se completa, el sistema notifica automáticamente al cliente a través de correo electrónico o mensajes en la plataforma web, informándole que su pedido está listo para ser enviado o retirado. Además, el cliente puede suscribirse para recibir actualizaciones sobre el estado de su pedido en tiempo real, de manera que cualquier cambio relevante —como retrasos, avances en la producción o confirmación de despacho— se comunique de forma inmediata y automática.",
       "prompt": "Identificá tres necesidades diferentes y asociá un patrón a cada una. Justificá con datos del caso. Modelá clases, contratos y relaciones e indicá el flujo desde el presupuesto hasta la notificación. Distinguí crear un producto de crear familias compatibles.",
       "refs": [
         19,
         30
       ],
-      "provenance": "Adaptación del caso del parcial del 8/10/2025; solución de entrenamiento, no oficial.",
+      "provenance": "Práctica adicional de UML sobre el enunciado completo de Muebles Express. La consigna original del parcial está en Parciales por año.",
       "uml": "classDiagram\nclass Calculador {\n  <<interface>>\n  +presupuestar() double\n}\nclass Estandar\nclass Personalizado\nCalculador <|.. Estandar\nCalculador <|.. Personalizado\nclass Venta\nVenta --> Calculador : delega\nclass Mueble {\n  <<interface>>\n  +fabricar() void\n}\nclass Silla\nclass Mesa\nMueble <|.. Silla\nMueble <|.. Mesa\nclass Taller {\n  <<abstract>>\n  +crear() Mueble\n  +producir() void\n}\nclass TallerSillas\nclass TallerMesas\nTaller <|-- TallerSillas\nTaller <|-- TallerMesas\nTaller ..> Mueble : usa\nTallerSillas ..> Silla : crea\nTallerMesas ..> Mesa : crea\nVenta --> Taller\nclass Pedido {\n  +suscribir(Receptor r) void\n  +cambiarEstado() void\n  +notificar() void\n}\nclass Receptor {\n  <<interface>>\n  +actualizar(Pedido p) void\n}\nclass Correo\nclass AvisoWeb\nReceptor <|.. Correo\nReceptor <|.. AvisoWeb\nPedido --> Receptor : notifica\nVenta --> Pedido : registra\n",
       "rubric": [
         "Cada patrón está ligado a un requisito concreto del caso.",
@@ -665,21 +665,13 @@
   ],
   "examOverrides": {
     "2024": {
-      "exerciseTitles": [
-        "Alarmas y sensores compuestos",
-        "Configuración global",
-        "Farmacia y lotes impresos"
-      ]
+      "exerciseTitles": [],
+      "title": "Parcial del 23 de octubre de 2024",
+      "paperId": "2024"
     },
     "2025": {
-      "exerciseTitles": [
-        "Muebles Express del parcial",
-        "YouTubeDownloader",
-        "SoftMetrics razonado",
-        "Workflow del parcial",
-        "SoftMetrics: familias e integración",
-        "GQM y mesa de ayuda"
-      ]
+      "exerciseTitles": [],
+      "paperId": "2025"
     }
   }
 }

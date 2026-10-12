@@ -1,0 +1,64 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { paperQuestions, paperCorrectionText } from "../lib/study-paper.ts";
+
+const papers = JSON.parse(readFileSync(new URL("../lib/study-papers.json", import.meta.url), "utf8"));
+const adaptations = JSON.parse(readFileSync(new URL("../lib/study-exams.json", import.meta.url), "utf8"));
+const original2025 = papers.find(p => p.id === "2025");
+test("2025 keeps the five theory questions and two practice questions in printed order", () => {
+  assert.deepEqual(original2025.sections.map(s => s.title), ["Teoría", "Práctica"]);
+  const [theory, practice] = original2025.sections;
+  assert.deepEqual(theory.questions.map(q => q.number), [1, 2, 3, 4, 5]);
+  assert.deepEqual(theory.questions.map(q => q.points), [5, 10, 5, 20, 10]);
+  assert.equal(theory.items.length, 7);
+  assert.deepEqual(practice.questions.map(q => q.number), [1, 2]);
+  const furniture = practice.questions[0];
+  assert.equal(furniture.prompt, "A partir del siguiente enunciado identifique cuáles serían los patrones de diseño que utilizaría y justifique por qué eligió los mismos.");
+  assert.equal(furniture.paragraphs.length, 3);
+  assert.equal(furniture.paragraphs.join(" ").split(/\s+/).length, 259);
+  assert.ok(furniture.paragraphs[0].includes("tipo de material, color, tamaño y estilo de ensamblaje"));
+  assert.ok(furniture.paragraphs[1].includes("permitiendo agregar nuevos tipos de productos sin afectar la lógica de compra"));
+  assert.ok(furniture.paragraphs[2].includes("como retrasos, avances en la producción o confirmación de despacho"));
+  assert.equal(furniture.canDiagram, undefined, "The historical recognition task must not require a new UML task");
+  assert.equal(adaptations.overrides.e69.scenario, furniture.paragraphs.join("\n\n"));
+  assert.equal(practice.questions[1].codeLanguage, "PHP");
+  assert.match(practice.questions[1].code, /protected \$youtube/);
+  assert.match(practice.questions[1].code, /function clientCode/);
+  assert.equal(practice.questions[1].practiceId, "e45");
+});
+test("2024 restores all four original questions and preserves the original code and diagram assets", () => {
+  const paper = papers.find(p => p.id === "2024");
+  const questions = paperQuestions(paper);
+  assert.deepEqual(questions.map(q => q.number), [1, 2, 3, 4]);
+  assert.match(questions[0].paragraphs[0], /implementando en Eiffel/);
+  assert.match(questions[1].prompt, /mencione 2 ejemplos/);
+  assert.match(questions[2].items[0], /sola instancia/);
+  assert.match(questions[2].diagramDescription, /asociación sin multiplicidad indicada/);
+  assert.match(questions[3].code, /Facturacion \?: new Facturacion/);
+  assert.match(questions[3].code, /OperationN\(\)/);
+  assert.match(questions[3].code, /ClientCode\(Operador\)/);
+  for (const q of questions) for (const image of [...q.images || [], ...q.sourceImages || []]) assert.ok(existsSync(new URL("../public" + image.url, import.meta.url)));
+});
+test("original paper response IDs are isolated from training and linked to their year", () => {
+  const ids = papers.flatMap(paperQuestions).map(q => q.id);
+  assert.equal(ids.length, 11); assert.equal(new Set(ids).size, ids.length);
+  assert.ok(ids.every(id => /^p202[45]-/.test(id)));
+  for (const paper of papers) assert.equal(adaptations.examOverrides[paper.id].paperId, paper.id);
+});
+test("correction keeps full source context, numbering and actual answers without substituting training", () => {
+  const entries = { "p2025-t4": { answer: "Mis roles abstractos", draft: "classDiagram\nclass Fabrica" }, "p2025-p1": { answer: "Mi justificación", draft: "" } };
+  const selected = paperCorrectionText(original2025, entries, "p2025-t4");
+  assert.ok(selected.includes(original2025.sections[0].paragraphs[0]));
+  assert.ok(selected.includes(original2025.sections[0].items[6]));
+  assert.ok(selected.includes("4. 20 Puntos."));
+  assert.ok(selected.includes("classDiagram\nclass Fabrica"));
+  assert.ok(!selected.includes("Mi justificación"));
+  const whole = paperCorrectionText(original2025, entries);
+  assert.ok(whole.indexOf("Teoría") < whole.indexOf("Práctica"));
+  assert.ok(whole.indexOf("5. 10 Puntos.") < whole.indexOf("1. A partir"));
+  assert.ok(whole.includes(original2025.sections[1].questions[0].paragraphs[2]));
+  assert.ok(whole.includes("Mi justificación"));
+  assert.ok(whole.includes("CÓDIGO ORIGINAL PHP"));
+  assert.ok(whole.includes("Sin respuesta escrita."));
+});

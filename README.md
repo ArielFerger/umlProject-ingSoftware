@@ -10,7 +10,7 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 
 - Editor Mermaid para clases, secuencia, estados, actividades, casos de uso, componentes y entidad-relación: formularios, edición por código, movimiento, conexiones con el mouse, menú con click derecho, deshacer/rehacer e importación/exportación.
 - Animaciones y controles adaptados a pantallas pequeñas, teclado y preferencias de movimiento reducido.
-- 17 temas de teoría, 8 fichas de patrones con estructura y secuencia, 105 ejercicios distribuidos en 5 niveles y 6 simulacros. Casos de empresas para identificar, argumentar y modelar; 16 actividades incluyen C++17 de solo lectura y análisis.
+- 17 temas de teoría, 8 fichas de patrones con estructura y secuencia y 105 ejercicios distribuidos en 5 niveles. Dos parciales originales por año y cuatro simulacros de práctica adicional; 16 actividades de entrenamiento incluyen C++17 de solo lectura y análisis.
 - 23 diagramas guiados para aprender: 16 vistas de patrones y 7 mapas de familias, calidad, mejora de procesos, CMMI, cambios, Git y GQM. Pasos con selección de participantes, lectura de flechas, preguntas de comprensión y copias editables en el mismo motor Mermaid.
 - Resumen descargable ampliado y 30 documentos originales, incluido el resumen de 36 páginas y cuatro imágenes de parciales 2024/2025, en `public/estudio/`.
 - Progreso de estudio guardado en el navegador y diagramas guardados por usuario en D1.
@@ -22,6 +22,8 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 Las respuestas de opción múltiple y numéricas tienen corrección automática. Las respuestas de desarrollo y los diagramas se revisan con una rúbrica.
 
 **Copiar y corregir** prepara un texto con consigna, caso o C++ provisto, respuesta del estudiante, borrador Mermaid y criterios para pegar en la IA elegida. No incluye la solución de referencia ni envía información a servicios externos. Si el portapapeles falla, ofrece selección manual y descarga de texto. Durante un simulacro queda disponible al finalizar. Las versiones de C++ son adaptaciones didácticas para leer; no hay un editor ni ejecución de C++ en la app. Se mantienen los identificadores y borradores de ejercicios previos.
+
+**Parciales por año** conserva la consigna y el enunciado completos, en orden y en una sola página: `/estudio?parcial=2025` muestra Teoría 1–5 con puntajes, seguida de Práctica 1–2; `/estudio?parcial=2024` contiene las cuatro preguntas del Word original y la foto. Se preservan el PHP y las referencias a Eiffel de las hojas históricas; las versiones en C++ y ejercicios ampliados se abren como práctica adicional. Las respuestas de los parciales tienen IDs propios y se guardan/importan/exportan sin sobrescribir el trabajo previo de entrenamiento. Se puede copiar una respuesta o el parcial completo para corrección. El tiempo propuesto es de entrenamiento, no una duración oficial.
 
 ## Ejecutar en tu computadora
 

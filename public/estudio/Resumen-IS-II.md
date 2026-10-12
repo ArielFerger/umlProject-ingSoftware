@@ -12,6 +12,12 @@ Material de base y ampliaciones: 30 documentos, 219 páginas PDF, 3 archivos Wor
 
 ### Casos y código de los parciales
 
+#### Parciales por año: conservar la hoja original
+
+En Simulacros, **Parciales por año** abre cada examen completo, con consigna, enunciado y respuesta de cada pregunta en orden. El de 2025 presenta primero Teoría (SoftMetrics, preguntas 1–5 con sus puntajes) y después Práctica (Muebles Express y código, preguntas 1–2). El de 2024 se recupera de la foto y del Word original: incluye cuatro preguntas, el diagrama farmacéutico y la continuación del código de Operador. El caso de Muebles Express se conserva íntegro en tres párrafos; la pregunta pide identificar y justificar patrones, sin añadir un requisito de UML.
+
+La vista histórica mantiene el lenguaje y el texto de las hojas, incluidos PHP y la referencia a Eiffel. Los bloques son de lectura y no se ejecutan. Las adaptaciones en C++ y las actividades ampliadas quedan en **práctica adicional**. Las respuestas de los parciales se guardan aparte de esos ejercicios, con exportación/importación en la copia de progreso. Podés copiar una respuesta con su consigna original o copiar el parcial completo para pedir una corrección. Los intentos con tiempo son de entrenamiento y no modifican la duración oficial ni el texto original.
+
 Estudio incorpora las imágenes de los parciales de 2024 y del 8 de octubre de 2025, con adaptaciones de sensores, farmacia, Muebles Express y SoftMetrics. Los originales se conservan en Material original. Los textos de empresa se trabajan separando requisitos, participantes, responsabilidades y consecuencias de cada decisión; no basta con enumerar patrones.
 
 Las 16 actividades con código usan C++17 para **leer y analizar**, incluso las versiones de ejemplos originalmente escritos en PHP, C# o Eiffel. No tenés que escribir ni ejecutar C++ en la aplicación. Identificá el patrón y sus roles, seguí llamadas y salida, revisá vida útil y supuestos y explicá cómo se relacionan con el caso. Cuando se pide diseñar, respondé con texto o con el motor UML.
