@@ -1,0 +1,1096 @@
+{
+  "source": {
+    "id": 27,
+    "name": "Resumen IS2 Parcial 2.docx.pdf",
+    "pages": 36,
+    "url": "/estudio/fuentes/27.pdf"
+  },
+  "patterns": {
+    "singleton": {
+      "structure": {
+        "id": "singleton-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Cliente ..> Configuracion: el cliente solicita el acceso; no llama al constructor privado.",
+          "El símbolo - hace privado al constructor. El $ al final indica un atributo o método estático; UML Studio lo muestra subrayado.",
+          "La instancia se conserva en la propia clase. Una multiplicidad 1 en una asociación no impide crear otras instancias."
+        ],
+        "steps": [
+          {
+            "title": "Pedir acceso",
+            "text": "Cliente llama a obtenerInstancia(), el punto de entrada público y estático.",
+            "focus": "Cliente"
+          },
+          {
+            "title": "Controlar la creación",
+            "text": "Configuracion comprueba su campo instancia: si está vacío, crea el objeto usando el constructor privado.",
+            "focus": "Configuracion"
+          },
+          {
+            "title": "Compartir la referencia",
+            "text": "Las llamadas posteriores reciben el mismo objeto. El alcance de esta unicidad es la aplicación, no toda una red.",
+            "focus": "Configuracion"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "singleton-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant A as Cliente A\nparticipant C as Configuracion\nparticipant B as Cliente B\nA->>C: obtenerInstancia()\nalt Todavía no existe\n  C->>C: crear y guardar instancia\nelse Ya existe\n  C->>C: reutilizar instancia\nend\nC-->>A: referencia compartida\nB->>C: obtenerInstancia()\nC-->>B: la misma referencia",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "alt representa alternativas según el estado de instancia; no son dos creaciones consecutivas.",
+          "Ambos clientes reciben la misma referencia. En concurrencia, la inicialización requiere protección adicional."
+        ],
+        "steps": [
+          {
+            "title": "Primera solicitud",
+            "text": "Cliente A pide acceso. Solo si no hay instancia se crea y se guarda.",
+            "focus": "A"
+          },
+          {
+            "title": "Solicitud posterior",
+            "text": "Cliente B utiliza el mismo método público.",
+            "focus": "B"
+          },
+          {
+            "title": "Una referencia común",
+            "text": "Configuracion devuelve el objeto guardado en vez de construir otro.",
+            "focus": "C"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Por qué un constructor público rompería la intención de este Singleton?",
+        "answer": "Porque un cliente podría usar new para crear objetos adicionales, salteando el control de obtenerInstancia()."
+      }
+    },
+    "factory": {
+      "structure": {
+        "id": "factory-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Creador <|-- FabricaAuto/FabricaMoto: las clases concretas heredan y redefinen crearVehiculo(). El triángulo apunta al creador abstracto.",
+          "Vehiculo <|.. Auto/Moto: línea discontinua y triángulo indican que cada producto implementa el contrato.",
+          "Las dependencias 'crea' señalan quién construye cada producto. vender() utiliza Vehiculo, sin depender de Auto o Moto."
+        ],
+        "steps": [
+          {
+            "title": "Una operación estable",
+            "text": "Creador define vender() y el método fábrica crearVehiculo(). La lógica de venta usa el contrato Vehiculo.",
+            "focus": "Creador"
+          },
+          {
+            "title": "Decidir qué construir",
+            "text": "FabricaAuto redefine crearVehiculo() para devolver un Auto. FabricaMoto hace lo equivalente con Moto.",
+            "focus": "FabricaAuto"
+          },
+          {
+            "title": "Usar el producto",
+            "text": "Auto satisface el contrato Vehiculo. La operación estable puede llamar entregar() sin conocer su constructor.",
+            "focus": "Vehiculo"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "factory-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as FabricaAuto\nparticipant A as Auto\nC->>F: vender()\nF->>F: crearVehiculo() redefinido\nF->>A: construir Auto\nA-->>F: producto como Vehiculo\nF->>A: entregar()\nF-->>C: venta completada",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "vender() es la operación heredada del creador; crearVehiculo() se resuelve en la subclase concreta.",
+          "El ejemplo muestra una fábrica de autos. Para otra variante cambia el creador concreto, no la lógica de vender()."
+        ],
+        "steps": [
+          {
+            "title": "Iniciar la operación",
+            "text": "El cliente trabaja con un creador seleccionado y pide vender().",
+            "focus": "C"
+          },
+          {
+            "title": "Invocar el método fábrica",
+            "text": "La operación heredada llama a crearVehiculo(); la redefinición de FabricaAuto decide qué construir.",
+            "focus": "F"
+          },
+          {
+            "title": "Entregar el producto",
+            "text": "El vehículo concreto responde al contrato común entregar().",
+            "focus": "A"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Un método con un switch que construye todos los vehículos demuestra Factory Method GoF?",
+        "answer": "Por sí solo demuestra una fábrica simple. El rasgo que mostrás aquí es un método fábrica redefinido por creadores concretos."
+      }
+    },
+    "abstract": {
+      "structure": {
+        "id": "abstract-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "FabricaUI declara dos métodos: uno por tipo de producto. Boton y Campo son los contratos que consume Cliente.",
+          "FabricaWeb crea BotonWeb y CampoWeb; FabricaEscritorio crea las dos variantes de escritorio. Esa coherencia define la familia.",
+          "Los triángulos discontinuos terminan en las interfaces. Las flechas 'crea' unen cada fábrica con sus productos concretos."
+        ],
+        "steps": [
+          {
+            "title": "Definir los tipos",
+            "text": "Boton y Campo son dos tipos diferentes, cada uno con variantes Web y Escritorio.",
+            "focus": "Boton"
+          },
+          {
+            "title": "Elegir una familia",
+            "text": "El cliente recibe una FabricaUI concreta. FabricaWeb reúne los productos de la variante Web.",
+            "focus": "FabricaWeb"
+          },
+          {
+            "title": "Crear un conjunto compatible",
+            "text": "Ambos métodos devuelven abstracciones. Cambiar de familia no obliga al cliente a conocer sus constructores.",
+            "focus": "Cliente"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "abstract-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as FabricaWeb\nparticipant B as BotonWeb\nparticipant T as CampoWeb\nC->>F: crearBoton()\nF->>B: construir botón Web\nF-->>C: Boton\nC->>F: crearCampo()\nF->>T: construir campo Web\nF-->>C: Campo\nC->>B: dibujar()\nC->>T: dibujar()",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "Dos pedidos, dos tipos de producto, una sola variante de familia: Web.",
+          "Agregar una variante suma una fábrica; agregar un tipo de producto obliga a ampliar todas las fábricas."
+        ],
+        "steps": [
+          {
+            "title": "Crear el botón",
+            "text": "Cliente pide un Boton a la fábrica Web sin invocar BotonWeb directamente.",
+            "focus": "B"
+          },
+          {
+            "title": "Crear el campo",
+            "text": "La misma fábrica entrega un Campo de la misma familia.",
+            "focus": "T"
+          },
+          {
+            "title": "Trabajar con contratos",
+            "text": "El cliente dibuja ambos productos a través de sus interfaces.",
+            "focus": "C"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Qué cambia al agregar un producto Menu, y qué cambia al agregar una familia Móvil?",
+        "answer": "Menu requiere crear su contrato y ampliar cada fábrica con crearMenu(). Móvil requiere una nueva fábrica que implemente los métodos existentes y sus productos correspondientes."
+      }
+    },
+    "adapter": {
+      "structure": {
+        "id": "adapter-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Cliente conoce Administrable. LibroDigitalAdapter realiza ese contrato; LibroDigital no necesita modificar su interfaz.",
+          "LibroDigitalAdapter --> LibroDigital representa la referencia al servicio existente que permite delegar.",
+          "Este es un adaptador de objetos: usa composición de objetos y delegación. No supone herencia del servicio adaptado."
+        ],
+        "steps": [
+          {
+            "title": "Mantener el contrato esperado",
+            "text": "Cliente usa vender() del contrato Administrable. No necesita conocer LibroDigital.",
+            "focus": "Administrable"
+          },
+          {
+            "title": "Traducir la llamada",
+            "text": "LibroDigitalAdapter recibe la operación y la transforma cuando hace falta para el servicio existente.",
+            "focus": "LibroDigitalAdapter"
+          },
+          {
+            "title": "Delegar al servicio",
+            "text": "LibroDigital realiza la venta. Si no ofrece stock físico, el adaptador debe definir una política explícita para ese requisito.",
+            "focus": "LibroDigital"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "adapter-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as LibroDigitalAdapter\nparticipant L as LibroDigital\nC->>A: vender() mediante Administrable\nA->>L: vender()\nL-->>A: venta realizada\nA-->>C: resultado compatible\nNote over A,L: El adaptador delega, no inventa stock físico",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "El cliente ve el contrato esperado y el adaptador conoce el servicio existente.",
+          "Este ejemplo de venta no necesita cambiar parámetros; otros adaptadores también traducen formatos, nombres o resultados."
+        ],
+        "steps": [
+          {
+            "title": "Recibir el pedido",
+            "text": "El cliente invoca el contrato Administrable que ya usa en su negocio.",
+            "focus": "C"
+          },
+          {
+            "title": "Adaptar y delegar",
+            "text": "El adaptador comunica ese pedido al objeto LibroDigital.",
+            "focus": "A"
+          },
+          {
+            "title": "Devolver el resultado",
+            "text": "El servicio responde y el adaptador devuelve un resultado compatible al cliente.",
+            "focus": "L"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿La existencia del adaptador permite agregarStock() si el servicio no maneja stock?",
+        "answer": "No automáticamente. Hay que definir el comportamiento requerido: almacenamiento adicional, operación no aplicable o error explícito, según el dominio."
+      }
+    },
+    "composite": {
+      "structure": {
+        "id": "composite-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Archivo y Carpeta heredan Elemento y comparten tamano(). Cliente trabaja con ese contrato para ambos casos.",
+          "Carpeta agrupa Elementos, no solo Archivos: así una carpeta puede contener otra carpeta.",
+          "El rombo vacío expresa agregación en este ejemplo. Composite no exige rombo lleno: el ciclo de vida de las partes decide la relación UML."
+        ],
+        "steps": [
+          {
+            "title": "Una operación común",
+            "text": "Elemento define tamano() para hojas y compuestos. El cliente no necesita preguntar de qué tipo es cada hijo.",
+            "focus": "Elemento"
+          },
+          {
+            "title": "Caso base",
+            "text": "Archivo devuelve su tamaño; no recorre hijos porque es una hoja.",
+            "focus": "Archivo"
+          },
+          {
+            "title": "Recorrer el árbol",
+            "text": "Carpeta llama tamano() sobre cada Elemento hijo y suma los resultados. Una subcarpeta repite ese recorrido.",
+            "focus": "Carpeta"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "composite-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant R as Carpeta raíz\nparticipant A as Archivo A\nparticipant S as Subcarpeta\nparticipant B as Archivo B\nC->>R: tamano()\nR->>A: tamano()\nA-->>R: 10 bytes\nR->>S: tamano()\nS->>B: tamano()\nB-->>S: 20 bytes\nS-->>R: 20 bytes\nR-->>C: 30 bytes",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "Carpeta raíz y Subcarpeta son objetos diferentes de la misma clase Carpeta.",
+          "10 y 20 bytes son valores ilustrativos. La recursión llega a las hojas y acumula los resultados al volver."
+        ],
+        "steps": [
+          {
+            "title": "Consultar la raíz",
+            "text": "El cliente pide tamano() una vez; la carpeta organiza el recorrido.",
+            "focus": "R"
+          },
+          {
+            "title": "Resolver una hoja",
+            "text": "Archivo A devuelve el valor base de 10 bytes.",
+            "focus": "A"
+          },
+          {
+            "title": "Resolver el subárbol",
+            "text": "Subcarpeta consulta Archivo B y devuelve 20 bytes. La raíz suma 10 + 20.",
+            "focus": "S"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Por qué hijos debe ser una colección de Elemento y no de Archivo?",
+        "answer": "Porque una colección de Archivo impide guardar otras carpetas. La abstracción Elemento admite hojas y compuestos, conservando la operación uniforme."
+      }
+    },
+    "facade": {
+      "structure": {
+        "id": "facade-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Cliente --> TiendaFacade muestra la entrada de alto nivel comprar(). El cliente no coordina tres subsistemas.",
+          "Las asociaciones de la fachada con Inventario, Pedidos y Envios permiten organizar el trabajo interno.",
+          "La fachada simplifica acceso. No elimina los subsistemas ni impide que otros clientes especializados los utilicen."
+        ],
+        "steps": [
+          {
+            "title": "Una operación de negocio",
+            "text": "Cliente llama comprar(), sin repetir los pasos internos en cada cliente.",
+            "focus": "Cliente"
+          },
+          {
+            "title": "Coordinar el subsistema",
+            "text": "TiendaFacade organiza reserva de inventario, creación de pedido y programación de envío.",
+            "focus": "TiendaFacade"
+          },
+          {
+            "title": "Mantener responsabilidades",
+            "text": "Cada subsistema conserva su trabajo. La fachada no debe convertirse en una clase que hace todo.",
+            "focus": "Pedidos"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "facade-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as TiendaFacade\nparticipant I as Inventario\nparticipant P as Pedidos\nparticipant E as Envios\nC->>F: comprar()\nF->>I: reservar()\nI-->>F: reserva confirmada\nF->>P: crear()\nP-->>F: pedido creado\nF->>E: programar()\nE-->>F: envío programado\nF-->>C: compra confirmada\nNote over F,E: Camino exitoso, los fallos requieren una política aparte",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "Una llamada pública dispara varias colaboraciones internas; este es el camino exitoso simplificado.",
+          "Facade no garantiza transacciones ni reversión automática: hay que diseñar qué pasa si un paso falla."
+        ],
+        "steps": [
+          {
+            "title": "Pedir una compra",
+            "text": "El cliente conoce una entrada simple del subsistema.",
+            "focus": "C"
+          },
+          {
+            "title": "Organizar los pasos",
+            "text": "La fachada coordina los servicios sin trasladar su lógica al cliente.",
+            "focus": "F"
+          },
+          {
+            "title": "Confirmar el resultado",
+            "text": "Después de reservar, crear y programar, la fachada responde al cliente.",
+            "focus": "E"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Qué distingue esta fachada de un adaptador?",
+        "answer": "La fachada reduce la complejidad de acceso a varios servicios. El adaptador hace compatible un contrato existente con otro esperado; no basta con ser un intermediario para ser Adapter."
+      }
+    },
+    "observer": {
+      "structure": {
+        "id": "observer-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Archivo mantiene una colección de Observer. La multiplicidad 0..* permite ningún suscriptor o varios.",
+          "ExportadorCSV/XLS/PDF implementan Observer. Archivo invoca actualizar() sin conocer cada formato concreto.",
+          "suscribir() y desuscribir() cambian la colección durante la ejecución. Evitá dependencias directas del sujeto a cada exportador."
+        ],
+        "steps": [
+          {
+            "title": "Compartir el contrato",
+            "text": "Observer define cómo se recibe una notificación. Cada exportador implementa su reacción.",
+            "focus": "Observer"
+          },
+          {
+            "title": "Registrarse",
+            "text": "Los receptores se suscriben al Archivo; este guarda referencias al contrato común.",
+            "focus": "Archivo"
+          },
+          {
+            "title": "Reaccionar al cambio",
+            "text": "Archivo notifica a los suscriptores actuales. Cada uno decide qué hacer con el evento recibido.",
+            "focus": "ExportadorCSV"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "observer-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as Archivo\nparticipant CSV as ExportadorCSV\nparticipant PDF as ExportadorPDF\nCSV->>A: suscribir(this)\nPDF->>A: suscribir(this)\nC->>A: modificarContenido(texto)\nA->>A: notificar()\nA->>CSV: actualizar(archivo)\nA->>PDF: actualizar(archivo)\nPDF->>A: desuscribir(this)\nNote over A,PDF: Orden ilustrativo, el patrón no garantiza un orden",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "Los mensajes de suscripción preceden al cambio observado. Una baja evita notificaciones futuras.",
+          "CSV y PDF son ejemplos de receptores; podrían sumarse otros sin modificar el sujeto. El orden mostrado no es una garantía del patrón."
+        ],
+        "steps": [
+          {
+            "title": "Suscribirse",
+            "text": "Cada receptor solicita su registro. Archivo guarda la referencia por la interfaz Observer.",
+            "focus": "A"
+          },
+          {
+            "title": "Producir el evento",
+            "text": "Una modificación del contenido dispara notificar().",
+            "focus": "C"
+          },
+          {
+            "title": "Avisar y gestionar bajas",
+            "text": "Los receptores reaccionan; PDF puede cancelar su suscripción para eventos posteriores.",
+            "focus": "PDF"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Por qué Archivo no debería guardar listas distintas de CSV, XLS y PDF?",
+        "answer": "Porque se acoplaría a cada clase concreta y habría que modificarlo para sumar un receptor. Una colección de Observer permite usar el mismo contrato de notificación."
+      }
+    },
+    "strategy": {
+      "structure": {
+        "id": "strategy-estructura",
+        "title": "Estructura",
+        "caption": "Modelo de referencia: identificá el contrato estable y la responsabilidad que cambia.",
+        "reading": [
+          "Coche --> IComportamientoFrenos es la referencia que hace posible delegar. La herencia de estrategias por sí sola no basta.",
+          "FrenoNormal y FrenoABS implementan la interfaz; el triángulo apunta al contrato, no a la variante.",
+          "setFrenos() permite cambiar el objeto estrategia. Coche usa frenar() sin conocer cómo funciona cada algoritmo."
+        ],
+        "steps": [
+          {
+            "title": "Guardar una estrategia",
+            "text": "Coche conserva una referencia al contrato IComportamientoFrenos.",
+            "focus": "Coche"
+          },
+          {
+            "title": "Implementar las variantes",
+            "text": "FrenoNormal y FrenoABS encapsulan algoritmos diferentes bajo la misma operación.",
+            "focus": "FrenoABS"
+          },
+          {
+            "title": "Delegar la tarea",
+            "text": "El contexto llama frenar() sobre la estrategia actual. El cliente selecciona qué variante usar.",
+            "focus": "IComportamientoFrenos"
+          }
+        ]
+      },
+      "sequence": {
+        "id": "strategy-secuencia",
+        "title": "En acción",
+        "type": "sequence",
+        "source": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as Coche\nparticipant N as FrenoNormal\nparticipant ABS as FrenoABS\nC->>A: setFrenos(normal)\nC->>A: frenar()\nA->>N: frenar()\nN-->>A: frenado normal\nC->>A: setFrenos(abs)\nC->>A: frenar()\nA->>ABS: frenar()\nABS-->>A: frenado ABS",
+        "caption": "Ejemplo didáctico de una ejecución; las flechas se leen de arriba hacia abajo.",
+        "reading": [
+          "Cada llamada a frenar() se delega a una estrategia activa; no se difunde a todas las variantes.",
+          "El cambio se hace en ejecución con setFrenos(). La clase Coche mantiene el mismo contrato público."
+        ],
+        "steps": [
+          {
+            "title": "Elegir la variante",
+            "text": "El cliente instala FrenoNormal en el contexto.",
+            "focus": "C"
+          },
+          {
+            "title": "Delegar",
+            "text": "Coche recibe frenar() y llama al algoritmo normal seleccionado.",
+            "focus": "N"
+          },
+          {
+            "title": "Cambiar sin rehacer el contexto",
+            "text": "El cliente instala FrenoABS; la siguiente llamada se delega a ABS.",
+            "focus": "ABS"
+          }
+        ]
+      },
+      "check": {
+        "question": "¿Qué cambiaría si Coche notificara simultáneamente a todos los frenos registrados?",
+        "answer": "Ya no mostraría la intención de Strategy: resolver una tarea con una variante seleccionada. La difusión de un evento a varios receptores corresponde al problema de Observer."
+      }
+    }
+  },
+  "lessons": {
+    "fundamentos": [
+      {
+        "title": "Un mapa para elegir sin memorizar dibujos",
+        "text": "Elegí por el problema: una instancia, creación variable, contratos incompatibles, árboles, una entrada simple, eventos o algoritmos. El dibujo sirve para justificar la decisión.",
+        "patterns": [
+          "singleton",
+          "factory",
+          "abstract",
+          "adapter",
+          "composite",
+          "facade",
+          "observer",
+          "strategy"
+        ],
+        "visuals": [
+          {
+            "id": "familias-patrones",
+            "title": "Qué cambia en cada familia",
+            "type": "activity",
+            "source": "flowchart TB\nP[\"Problema recurrente de diseño\"]\nC[\"Creación de objetos\"]\nE[\"Estructura de objetos\"]\nB[\"Colaboración y comportamiento\"]\nP --> C\nP --> E\nP --> B\nC --> S[\"Singleton: cantidad de instancias\"]\nC --> F[\"Factory Method: producto variable\"]\nC --> A[\"Abstract Factory: familias compatibles\"]\nE --> AD[\"Adapter: contrato incompatible\"]\nE --> CO[\"Composite: árbol uniforme\"]\nE --> FA[\"Facade: entrada simple\"]\nB --> O[\"Observer: evento a suscriptores\"]\nB --> ST[\"Strategy: algoritmo intercambiable\"]",
+            "caption": "Mapa conceptual, no flujo de ejecución. Reúne los ocho patrones desarrollados por el material.",
+            "reading": [
+              "Las ramas clasifican por propósito; una aplicación puede combinar varios patrones.",
+              "La señal de la consigna importa más que la forma del dibujo."
+            ],
+            "steps": [
+              {
+                "title": "Creación",
+                "text": "Decidí quién crea objetos y qué varía: la cantidad, el producto o una familia completa.",
+                "focus": "C"
+              },
+              {
+                "title": "Estructura",
+                "text": "Buscá incompatibilidades, jerarquías de partes o un subsistema complejo.",
+                "focus": "E"
+              },
+              {
+                "title": "Colaboración",
+                "text": "Distinguí difusión de eventos de selección de un algoritmo.",
+                "focus": "B"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "creacional": [
+      {
+        "title": "De la estructura a la ejecución",
+        "text": "Abrí cada ficha: Estructura muestra las clases y En acción muestra una llamada concreta. En Abstract Factory compará tipos de producto con variantes de familia.",
+        "patterns": [
+          "singleton",
+          "factory",
+          "abstract"
+        ],
+        "table": [
+          [
+            "Tipo de producto",
+            "Familia Web",
+            "Familia Escritorio"
+          ],
+          [
+            "Boton",
+            "BotonWeb",
+            "BotonEscritorio"
+          ],
+          [
+            "Campo",
+            "CampoWeb",
+            "CampoEscritorio"
+          ]
+        ]
+      }
+    ],
+    "estructural": [
+      {
+        "title": "Tres intermediarios, tres intenciones",
+        "text": "Adapter traduce un contrato; Facade simplifica una entrada; Composite permite tratar hojas y compuestos por igual. Ser una clase intermedia no alcanza para identificar el patrón.",
+        "patterns": [
+          "adapter",
+          "composite",
+          "facade"
+        ]
+      }
+    ],
+    "comportamiento": [
+      {
+        "title": "No confundas avisar con elegir",
+        "text": "Observer propaga un evento a los receptores suscritos. Strategy delega una tarea a la variante activa. Compará ambas secuencias en las fichas UML.",
+        "patterns": [
+          "observer",
+          "strategy"
+        ]
+      }
+    ],
+    "calidad": [
+      {
+        "title": "Del requisito a una evidencia de calidad",
+        "text": "Ejemplo didáctico: una meta de respuesta se convierte en una prueba, una medición y una decisión. Los valores son ilustrativos, no resultados observados ni umbrales universales.",
+        "visuals": [
+          {
+            "id": "calidad-evidencia",
+            "title": "Verificar una meta de calidad",
+            "type": "activity",
+            "source": "flowchart TB\nR[\"Requisito: responder en menos de 2 s\"]\nP[\"Diseñar prueba de carga representativa\"]\nM[\"Medir latencia p95 en segundos\"]\nD{\"¿Cumple la meta bajo esa carga?\"}\nA[\"Registrar evidencia y monitorear\"]\nF[\"Investigar cuellos de botella y corregir\"]\nR --> P\nP --> M\nM --> D\nD -->|Sí| A\nD -->|No| F\nF --> P",
+            "caption": "Cumplir una métrica de rendimiento no demuestra por sí solo seguridad, usabilidad ni calidad total.",
+            "reading": [
+              "La decisión incluye unidad, carga de prueba y umbral definido.",
+              "Después de corregir se vuelve a medir bajo condiciones comparables."
+            ],
+            "steps": [
+              {
+                "title": "Definir",
+                "text": "Acordá una meta verificable y las condiciones de prueba.",
+                "focus": "R"
+              },
+              {
+                "title": "Medir",
+                "text": "Usá una muestra de tiempos de respuesta para calcular el percentil 95.",
+                "focus": "M"
+              },
+              {
+                "title": "Decidir",
+                "text": "Si no cumple, investigá y repetí la prueba; si cumple, conservá evidencia y monitoreá.",
+                "focus": "D"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "procesos": [
+      {
+        "title": "AS-IS → TO-BE con una comprobación",
+        "text": "Mejorar un proceso necesita una situación inicial, una meta y un seguimiento. Automatizar una tarea no demuestra que el proceso completo haya mejorado.",
+        "visuals": [
+          {
+            "id": "ciclo-mejora",
+            "title": "Un ciclo de mejora con evidencia",
+            "type": "activity",
+            "source": "flowchart TB\nAS[\"AS-IS: relevar proceso y medir línea base\"]\nOB[\"Acordar objetivo y responsables\"]\nTO[\"TO-BE: diseñar proceso propuesto\"]\nPI[\"Planificar recursos, riesgos y piloto\"]\nIM[\"Implementar y capacitar\"]\nEV{\"¿La evidencia cumple la meta?\"}\nES[\"Estandarizar y seguir monitoreando\"]\nAJ[\"Analizar causas y ajustar el plan\"]\nAS --> OB\nOB --> TO\nTO --> PI\nPI --> IM\nIM --> EV\nEV -->|Sí| ES\nEV -->|No| AJ\nAJ --> TO",
+            "caption": "Esquema de estudio de mejora de procesos: conecta personas, método y herramientas con un resultado comprobable.",
+            "reading": [
+              "AS-IS describe lo actual; TO-BE describe la propuesta, no un resultado ya alcanzado.",
+              "El piloto y la evaluación evitan dar por exitosa una mejora solo porque se implementó."
+            ],
+            "steps": [
+              {
+                "title": "Conocer el punto de partida",
+                "text": "Relevá cómo se trabaja y medí una línea base.",
+                "focus": "AS"
+              },
+              {
+                "title": "Diseñar y ejecutar",
+                "text": "Fijá objetivo, responsables, recursos y riesgos antes del piloto.",
+                "focus": "TO"
+              },
+              {
+                "title": "Comprobar y ajustar",
+                "text": "Compará con la meta y decidí si estandarizar o revisar la propuesta.",
+                "focus": "EV"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "cmmi": [
+      {
+        "title": "Reconocer el nivel por la evidencia",
+        "text": "Esta progresión representa los cinco niveles utilizados en las guías. Es un mapa de estudio, no una evaluación oficial ni una certificación de una organización.",
+        "visuals": [
+          {
+            "id": "cmmi-progresion",
+            "title": "Qué evidencia agrega cada nivel",
+            "type": "activity",
+            "source": "flowchart TB\nN1[\"1 Inicial: resultado depende de personas\"]\nN2[\"2 Gestionado: plan y seguimiento por proyecto\"]\nN3[\"3 Definido: proceso estándar organizacional\"]\nN4[\"4 Gestionado cuantitativamente: variación y predicción\"]\nN5[\"5 En optimización: mejora sistemática con datos\"]\nN1 --> N2\nN2 --> N3\nN3 --> N4\nN4 --> N5",
+            "caption": "Tener herramientas o una planilla de métricas no alcanza para afirmar nivel 4; buscá cómo se usan para controlar y predecir.",
+            "reading": [
+              "Los niveles acumulan capacidad de gestión; no son estados de un producto individual.",
+              "La diferencia entre 2 y 3 es el alcance: proyecto frente a estándar organizacional."
+            ],
+            "steps": [
+              {
+                "title": "Gestionar un proyecto",
+                "text": "Planes, responsables y seguimiento son pistas del nivel 2.",
+                "focus": "N2"
+              },
+              {
+                "title": "Estandarizar la organización",
+                "text": "Procesos comunes, documentados y adaptables son pistas del nivel 3.",
+                "focus": "N3"
+              },
+              {
+                "title": "Medir para controlar",
+                "text": "Uso cuantitativo de variación y predicción diferencia al nivel 4 de una mera colección de datos.",
+                "focus": "N4"
+              },
+              {
+                "title": "Mejorar con evidencia",
+                "text": "El nivel 5 usa los resultados para experimentar y mejorar sistemáticamente.",
+                "focus": "N5"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "git": [
+      {
+        "title": "Un cambio necesita decisión y trazabilidad",
+        "text": "Control de cambios decide qué se aprueba; control de versiones conserva qué se modificó. Un commit no equivale a la aprobación de una solicitud.",
+        "visuals": [
+          {
+            "id": "solicitud-cambio",
+            "title": "Ciclo de una solicitud de cambio",
+            "type": "state",
+            "source": "stateDiagram-v2\n[*] --> Propuesta\nPropuesta --> Evaluacion: registrar solicitud\nEvaluacion --> Aprobada: impacto aceptado\nEvaluacion --> Rechazada: no se autoriza\nAprobada --> Implementacion: asignar trabajo\nImplementacion --> Verificacion: vincular commits y pruebas\nVerificacion --> Implementacion: pruebas fallan\nVerificacion --> Cerrada: pruebas pasan\nRechazada --> [*]\nCerrada --> [*]",
+            "caption": "Modelo didáctico de estados de una solicitud. Los commits aportan trazabilidad al trabajo aprobado.",
+            "reading": [
+              "Cada flecha representa un cambio de estado con una condición o evento.",
+              "Git ayuda a rastrear el código; no reemplaza la evaluación del impacto ni las reglas de aprobación."
+            ],
+            "steps": [
+              {
+                "title": "Evaluar",
+                "text": "Registrá el cambio y analizá tiempo, recursos, riesgos y requisitos afectados.",
+                "focus": "Evaluacion"
+              },
+              {
+                "title": "Implementar lo aprobado",
+                "text": "Relacioná la solicitud con commits, revisiones y pruebas.",
+                "focus": "Implementacion"
+              },
+              {
+                "title": "Verificar",
+                "text": "Si fallan las pruebas, el trabajo vuelve a implementación; si pasan, puede cerrarse según el proceso.",
+                "focus": "Verificacion"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Add, commit y push hacen cosas distintas",
+        "text": "El índice contiene una selección de cambios. El commit guarda esa selección en el historial local; push intenta transferir commits al remoto y puede ser rechazado.",
+        "visuals": [
+          {
+            "id": "git-zonas",
+            "title": "De tu archivo al repositorio remoto",
+            "type": "activity",
+            "source": "flowchart TB\nW[\"Directorio de trabajo: editar archivos\"]\nS[\"Índice: preparar cambios elegidos\"]\nL[\"Repositorio local: crear commit\"]\nR[\"Repositorio remoto: recibir commits\"]\nW -->|git add| S\nS -->|git commit| L\nL -->|git push si el remoto lo acepta| R",
+            "caption": "Este esquema muestra transferencia de información; las etapas previas siguen existiendo. Los conflictos se trabajan en Git Lab.",
+            "reading": [
+              "Editar después de add no actualiza automáticamente lo preparado.",
+              "Commit puede hacerse sin conexión; push necesita acceso al remoto y permisos."
+            ],
+            "steps": [
+              {
+                "title": "Preparar",
+                "text": "Seleccioná los cambios que formarán el próximo commit.",
+                "focus": "S"
+              },
+              {
+                "title": "Registrar localmente",
+                "text": "Guardá la instantánea preparada con un mensaje explicativo.",
+                "focus": "L"
+              },
+              {
+                "title": "Compartir",
+                "text": "Transferí commits al remoto; si hay divergencia, integrá los cambios antes de reintentar.",
+                "focus": "R"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "medicion": [
+      {
+        "title": "GQM: empezar por la decisión",
+        "text": "Ejemplo de una mesa de ayuda: primero definís el objetivo, luego las preguntas que lo vuelven comprobable y finalmente los datos y métricas. Los umbrales se acuerdan antes de interpretar resultados.",
+        "visuals": [
+          {
+            "id": "gqm-soporte",
+            "title": "Objetivo → preguntas → métricas",
+            "type": "activity",
+            "source": "flowchart TB\nG[\"Objetivo: reducir la espera sin bajar calidad\"]\nQ1[\"¿Cuánto tarda la resolución?\"]\nQ2[\"¿Las soluciones se sostienen?\"]\nM1[\"Mediana y p95 de resolución, en horas\"]\nM2[\"Porcentaje de casos reabiertos\"]\nD[\"Comparar períodos y decidir una mejora\"]\nG --> Q1\nQ1 --> M1\nM1 --> D\nG --> Q2\nQ2 --> M2\nM2 --> D",
+            "caption": "Un tiempo menor con muchas reaperturas puede indicar una mejora aparente. Combiná rapidez y calidad de la resolución.",
+            "reading": [
+              "Goal define lo que querés mejorar; Question fija qué necesitás conocer; Metric define cómo lo medís.",
+              "Registrá población, período, unidad y criterio de reapertura para que los valores sean comparables."
+            ],
+            "steps": [
+              {
+                "title": "Objetivo",
+                "text": "La meta une rapidez con sostenibilidad de las soluciones.",
+                "focus": "G"
+              },
+              {
+                "title": "Preguntas",
+                "text": "Separá el tiempo de espera del resultado posterior del caso.",
+                "focus": "Q2"
+              },
+              {
+                "title": "Métricas y decisión",
+                "text": "Usá tiempos y reaperturas juntos para elegir y evaluar una mejora.",
+                "focus": "D"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "exercises": [
+    {
+      "id": "e75",
+      "level": 3,
+      "title": "Seguí las llamadas de Singleton",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Singleton usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Singleton, usá como guía: Primera solicitud → Solicitud posterior → Una referencia común.",
+      "starter": "sequenceDiagram\nparticipant A as Cliente A\nparticipant C as Configuracion\nparticipant B as Cliente B\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. Cliente A pide acceso. Solo si no hay instancia se crea y se guarda. Cliente B utiliza el mismo método público. Configuracion devuelve el objeto guardado en vez de construir otro. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant A as Cliente A\nparticipant C as Configuracion\nparticipant B as Cliente B\nA->>C: obtenerInstancia()\nalt Todavía no existe\n  C->>C: crear y guardar instancia\nelse Ya existe\n  C->>C: reutilizar instancia\nend\nC-->>A: referencia compartida\nB->>C: obtenerInstancia()\nC-->>B: la misma referencia",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "alt representa alternativas según el estado de instancia; no son dos creaciones consecutivas."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e76",
+      "level": 3,
+      "title": "Seguí las llamadas de Factory Method",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Factory Method usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Factory Method, usá como guía: Iniciar la operación → Invocar el método fábrica → Entregar el producto.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as FabricaAuto\nparticipant A as Auto\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. El cliente trabaja con un creador seleccionado y pide vender(). La operación heredada llama a crearVehiculo(); la redefinición de FabricaAuto decide qué construir. El vehículo concreto responde al contrato común entregar(). No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as FabricaAuto\nparticipant A as Auto\nC->>F: vender()\nF->>F: crearVehiculo() redefinido\nF->>A: construir Auto\nA-->>F: producto como Vehiculo\nF->>A: entregar()\nF-->>C: venta completada",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "vender() es la operación heredada del creador; crearVehiculo() se resuelve en la subclase concreta."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e77",
+      "level": 3,
+      "title": "Seguí las llamadas de Abstract Factory",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Abstract Factory usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Abstract Factory, usá como guía: Crear el botón → Crear el campo → Trabajar con contratos.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as FabricaWeb\nparticipant B as BotonWeb\nparticipant T as CampoWeb\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. Cliente pide un Boton a la fábrica Web sin invocar BotonWeb directamente. La misma fábrica entrega un Campo de la misma familia. El cliente dibuja ambos productos a través de sus interfaces. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as FabricaWeb\nparticipant B as BotonWeb\nparticipant T as CampoWeb\nC->>F: crearBoton()\nF->>B: construir botón Web\nF-->>C: Boton\nC->>F: crearCampo()\nF->>T: construir campo Web\nF-->>C: Campo\nC->>B: dibujar()\nC->>T: dibujar()",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "Dos pedidos, dos tipos de producto, una sola variante de familia: Web."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e78",
+      "level": 3,
+      "title": "Seguí las llamadas de Adapter",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Adapter usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Adapter, usá como guía: Recibir el pedido → Adaptar y delegar → Devolver el resultado.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as LibroDigitalAdapter\nparticipant L as LibroDigital\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. El cliente invoca el contrato Administrable que ya usa en su negocio. El adaptador comunica ese pedido al objeto LibroDigital. El servicio responde y el adaptador devuelve un resultado compatible al cliente. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as LibroDigitalAdapter\nparticipant L as LibroDigital\nC->>A: vender() mediante Administrable\nA->>L: vender()\nL-->>A: venta realizada\nA-->>C: resultado compatible\nNote over A,L: El adaptador delega, no inventa stock físico",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "El cliente ve el contrato esperado y el adaptador conoce el servicio existente."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e79",
+      "level": 3,
+      "title": "Seguí las llamadas de Composite",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Composite usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Composite, usá como guía: Consultar la raíz → Resolver una hoja → Resolver el subárbol.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant R as Carpeta raíz\nparticipant A as Archivo A\nparticipant S as Subcarpeta\nparticipant B as Archivo B\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. El cliente pide tamano() una vez; la carpeta organiza el recorrido. Archivo A devuelve el valor base de 10 bytes. Subcarpeta consulta Archivo B y devuelve 20 bytes. La raíz suma 10 + 20. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant R as Carpeta raíz\nparticipant A as Archivo A\nparticipant S as Subcarpeta\nparticipant B as Archivo B\nC->>R: tamano()\nR->>A: tamano()\nA-->>R: 10 bytes\nR->>S: tamano()\nS->>B: tamano()\nB-->>S: 20 bytes\nS-->>R: 20 bytes\nR-->>C: 30 bytes",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "Carpeta raíz y Subcarpeta son objetos diferentes de la misma clase Carpeta."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e80",
+      "level": 3,
+      "title": "Seguí las llamadas de Facade",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Facade usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Facade, usá como guía: Pedir una compra → Organizar los pasos → Confirmar el resultado.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as TiendaFacade\nparticipant I as Inventario\nparticipant P as Pedidos\nparticipant E as Envios\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. El cliente conoce una entrada simple del subsistema. La fachada coordina los servicios sin trasladar su lógica al cliente. Después de reservar, crear y programar, la fachada responde al cliente. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant F as TiendaFacade\nparticipant I as Inventario\nparticipant P as Pedidos\nparticipant E as Envios\nC->>F: comprar()\nF->>I: reservar()\nI-->>F: reserva confirmada\nF->>P: crear()\nP-->>F: pedido creado\nF->>E: programar()\nE-->>F: envío programado\nF-->>C: compra confirmada\nNote over F,E: Camino exitoso, los fallos requieren una política aparte",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "Una llamada pública dispara varias colaboraciones internas; este es el camino exitoso simplificado."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e81",
+      "level": 3,
+      "title": "Seguí las llamadas de Observer",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Observer usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Observer, usá como guía: Suscribirse → Producir el evento → Avisar y gestionar bajas.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as Archivo\nparticipant CSV as ExportadorCSV\nparticipant PDF as ExportadorPDF\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. Cada receptor solicita su registro. Archivo guarda la referencia por la interfaz Observer. Una modificación del contenido dispara notificar(). Los receptores reaccionan; PDF puede cancelar su suscripción para eventos posteriores. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as Archivo\nparticipant CSV as ExportadorCSV\nparticipant PDF as ExportadorPDF\nCSV->>A: suscribir(this)\nPDF->>A: suscribir(this)\nC->>A: modificarContenido(texto)\nA->>A: notificar()\nA->>CSV: actualizar(archivo)\nA->>PDF: actualizar(archivo)\nPDF->>A: desuscribir(this)\nNote over A,PDF: Orden ilustrativo, el patrón no garantiza un orden",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "Los mensajes de suscripción preceden al cambio observado. Una baja evita notificaciones futuras."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e82",
+      "level": 3,
+      "title": "Seguí las llamadas de Strategy",
+      "topic": "Secuencias de patrones",
+      "kind": "uml",
+      "diagramType": "sequence",
+      "refs": [
+        27
+      ],
+      "prompt": "Representá una ejecución de Strategy usando el mismo dominio de su ficha UML. Ya tenés los participantes: agregá mensajes en orden, indicá quién delega y explicá qué responsabilidad conserva cada objeto. Para Strategy, usá como guía: Elegir la variante → Delegar → Cambiar sin rehacer el contexto.",
+      "starter": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as Coche\nparticipant N as FrenoNormal\nparticipant ABS as FrenoABS\n%% Agregá los mensajes: origen, destino y texto.\n",
+      "solution": "Una solución orientativa es la secuencia de la ficha. El cliente instala FrenoNormal en el contexto. Coche recibe frenar() y llama al algoritmo normal seleccionado. El cliente instala FrenoABS; la siguiente llamada se delega a ABS. No hace falta copiar todos los mensajes: justificá el orden y la intención del patrón.",
+      "uml": "sequenceDiagram\nparticipant C as Cliente\nparticipant A as Coche\nparticipant N as FrenoNormal\nparticipant ABS as FrenoABS\nC->>A: setFrenos(normal)\nC->>A: frenar()\nA->>N: frenar()\nN-->>A: frenado normal\nC->>A: setFrenos(abs)\nC->>A: frenar()\nA->>ABS: frenar()\nABS-->>A: frenado ABS",
+      "hints": [
+        "Pensá quién recibe la primera llamada del cliente.",
+        "Cada llamada a frenar() se delega a una estrategia activa; no se difunde a todas las variantes."
+      ],
+      "rubric": [
+        "Los participantes corresponden a objetos o roles del ejemplo, no a flechas de herencia.",
+        "Los mensajes respetan el orden de la colaboración y muestran la delegación o creación relevante.",
+        "Expliqué la intención del patrón y una limitación del ejemplo."
+      ]
+    },
+    {
+      "id": "e83",
+      "title": "Observer no selecciona un algoritmo",
+      "level": 2,
+      "topic": "Lectura visual",
+      "prompt": "Un archivo cambia y sus exportadores CSV y PDF reaccionan. ¿Qué estructura corresponde?",
+      "choices": [
+        "Una estrategia activa que el archivo elige para cada evento",
+        "Una colección de observadores que implementan actualizar()",
+        "Una fábrica por cada cambio del archivo"
+      ],
+      "answer": 1,
+      "solution": "Observer notifica a los receptores suscritos por una interfaz común; Strategy selecciona una variante para resolver una tarea.",
+      "kind": "choice",
+      "refs": [
+        27
+      ],
+      "hints": [
+        "Buscá qué requisito debe conservar la estructura, no solo cómo se llama el patrón."
+      ],
+      "rubric": []
+    },
+    {
+      "id": "e84",
+      "title": "La matriz de Abstract Factory",
+      "level": 2,
+      "topic": "Lectura visual",
+      "prompt": "Ya existen fábricas Web y Escritorio de Boton y Campo. Querés agregar el tipo Menu. ¿Qué cambia?",
+      "choices": [
+        "Solo agrego FabricaMenu",
+        "Amplío el contrato de fábrica y las dos fábricas con crearMenu(), más los productos Menu de cada familia",
+        "Convierto todos los productos en Singleton"
+      ],
+      "answer": 1,
+      "solution": "Agregar un tipo de producto afecta a todas las familias. Agregar una familia nueva requiere una fábrica concreta con los tipos ya definidos.",
+      "kind": "choice",
+      "refs": [
+        27
+      ],
+      "hints": [
+        "Buscá qué requisito debe conservar la estructura, no solo cómo se llama el patrón."
+      ],
+      "rubric": []
+    },
+    {
+      "id": "e85",
+      "title": "Composite admite subcarpetas",
+      "level": 2,
+      "topic": "Lectura visual",
+      "prompt": "¿Qué tipo debe tener la colección de hijos de Carpeta para permitir archivos y carpetas anidadas?",
+      "choices": [
+        "Archivo[]",
+        "Carpeta[]",
+        "Elemento[]"
+      ],
+      "answer": 2,
+      "solution": "La abstracción Elemento permite guardar hojas y compuestos. Cada hijo responde a tamano(), con caso base o recursión según corresponda.",
+      "kind": "choice",
+      "refs": [
+        27
+      ],
+      "hints": [
+        "Buscá qué requisito debe conservar la estructura, no solo cómo se llama el patrón."
+      ],
+      "rubric": []
+    },
+    {
+      "id": "e86",
+      "title": "Una mejora aparente en soporte",
+      "level": 2,
+      "topic": "Lectura visual",
+      "prompt": "La resolución es más rápida, pero crecen las reaperturas. ¿Qué harías con GQM?",
+      "choices": [
+        "Declaro la mejora exitosa por el tiempo menor",
+        "Reviso rapidez y reaperturas juntas, con períodos y criterios comparables",
+        "Cuento commits como sustituto de calidad"
+      ],
+      "answer": 1,
+      "solution": "El objetivo incluye rapidez y calidad. Una sola métrica puede premiar cierres prematuros; las preguntas y métricas deben reflejar ambas partes de la meta.",
+      "kind": "choice",
+      "refs": [
+        27
+      ],
+      "hints": [
+        "Buscá qué requisito debe conservar la estructura, no solo cómo se llama el patrón."
+      ],
+      "rubric": []
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Ingeniería de Software II
 Resumen para estudiar teoría y resolver la práctica
 
-Material de base: 25 documentos, 183 páginas PDF y 3 archivos Word. Las soluciones son propuestas didácticas elaboradas para estudiar, no un solucionario oficial. Las referencias de páginas PDF cuentan desde la primera hoja del archivo.
+Material de base y ampliaciones: 30 documentos, 219 páginas PDF, 3 archivos Word y 4 imágenes de parciales. Las soluciones son propuestas didácticas elaboradas para estudiar, no un solucionario oficial. Las referencias de páginas PDF cuentan desde la primera hoja del archivo.
 
 ## Cómo usarlo
 1. Leé Fundamentos y UML.
@@ -9,6 +9,18 @@ Material de base: 25 documentos, 183 páginas PDF y 3 archivos Word. Las solucio
 3. Pasá por calidad, procesos, CMMI y métricas.
 4. Repasá Git, Docker y agentes.
 5. Practicá por niveles en el sector Estudio IS II de UML Studio.
+
+### Casos y código de los parciales
+
+Estudio incorpora las imágenes de los parciales de 2024 y del 8 de octubre de 2025, con adaptaciones de sensores, farmacia, Muebles Express y SoftMetrics. Los originales se conservan en Material original. Los textos de empresa se trabajan separando requisitos, participantes, responsabilidades y consecuencias de cada decisión; no basta con enumerar patrones.
+
+Las 16 actividades con código usan C++17 para **leer y analizar**, incluso las versiones de ejemplos originalmente escritos en PHP, C# o Eiffel. No tenés que escribir ni ejecutar C++ en la aplicación. Identificá el patrón y sus roles, seguí llamadas y salida, revisá vida útil y supuestos y explicá cómo se relacionan con el caso. Cuando se pide diseñar, respondé con texto o con el motor UML.
+
+Hay 19 actividades nuevas de empresas y lectura de código; el recorrido tiene 105 desafíos y 6 simulacros. Se conservan los identificadores de ejercicios anteriores, sus respuestas y progreso. Los simulacros usan tiempos propuestos para entrenar, no duraciones oficiales.
+
+### Corregir tu respuesta con una IA
+
+Después de responder, pulsá **Copiar y corregir**. Copia título, caso, consigna, código provisto si corresponde, tu razonamiento, tu borrador UML y criterios de revisión. Pegá el texto en la IA que elijas para recibir una explicación de aciertos, errores y mejoras. No se incluye la solución orientativa de la aplicación ni se envía nada automáticamente. Si el navegador bloquea el portapapeles, podés seleccionar/copiar el texto manualmente o descargarlo. Durante un simulacro esperá a finalizar para usar este recurso.
 
 ## Cómo pensar un patrón
 
@@ -804,3 +816,416 @@ Fuentes: Modelo Parcial 2024.docx, Parcial N°2 - 8 de octubre.pdf, PRACTICA ADI
 - [Practica_03_patrones_subir.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/24.pdf)
 - [Practica_integral_patrones1.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/25.pdf)
 - [Practica_Metricas_3_Enunciados.pdf](https://uml-studio-ariel.arielfeger.chatgpt.site/estudio/fuentes/26.pdf)
+
+## Guía visual ampliada del segundo parcial
+Basada en el resumen aportado por Ariel (36 páginas). Las secuencias, los mapas y sus valores de ejemplo son propuestas didácticas, no soluciones oficiales ni evidencia observada. En UML Studio se pueden explorar y abrir como copias editables.
+[Resumen original aportado](fuentes/27.pdf)
+
+### Singleton: leer la estructura y seguir las llamadas
+- Cliente ..> Configuracion: el cliente solicita el acceso; no llama al constructor privado.
+- El símbolo - hace privado al constructor. El $ al final indica un atributo o método estático; UML Studio lo muestra subrayado.
+- La instancia se conserva en la propia clase. Una multiplicidad 1 en una asociación no impide crear otras instancias.
+
+1. **Primera solicitud**: Cliente A pide acceso. Solo si no hay instancia se crea y se guarda.
+
+2. **Solicitud posterior**: Cliente B utiliza el mismo método público.
+
+3. **Una referencia común**: Configuracion devuelve el objeto guardado en vez de construir otro.
+
+```mermaid
+sequenceDiagram
+participant A as Cliente A
+participant C as Configuracion
+participant B as Cliente B
+A->>C: obtenerInstancia()
+alt Todavía no existe
+  C->>C: crear y guardar instancia
+else Ya existe
+  C->>C: reutilizar instancia
+end
+C-->>A: referencia compartida
+B->>C: obtenerInstancia()
+C-->>B: la misma referencia
+```
+
+**Para comprobarte:** ¿Por qué un constructor público rompería la intención de este Singleton?
+
+Porque un cliente podría usar new para crear objetos adicionales, salteando el control de obtenerInstancia().
+
+### Factory Method: leer la estructura y seguir las llamadas
+- Creador <|-- FabricaAuto/FabricaMoto: las clases concretas heredan y redefinen crearVehiculo(). El triángulo apunta al creador abstracto.
+- Vehiculo <|.. Auto/Moto: línea discontinua y triángulo indican que cada producto implementa el contrato.
+- Las dependencias 'crea' señalan quién construye cada producto. vender() utiliza Vehiculo, sin depender de Auto o Moto.
+
+1. **Iniciar la operación**: El cliente trabaja con un creador seleccionado y pide vender().
+
+2. **Invocar el método fábrica**: La operación heredada llama a crearVehiculo(); la redefinición de FabricaAuto decide qué construir.
+
+3. **Entregar el producto**: El vehículo concreto responde al contrato común entregar().
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant F as FabricaAuto
+participant A as Auto
+C->>F: vender()
+F->>F: crearVehiculo() redefinido
+F->>A: construir Auto
+A-->>F: producto como Vehiculo
+F->>A: entregar()
+F-->>C: venta completada
+```
+
+**Para comprobarte:** ¿Un método con un switch que construye todos los vehículos demuestra Factory Method GoF?
+
+Por sí solo demuestra una fábrica simple. El rasgo que mostrás aquí es un método fábrica redefinido por creadores concretos.
+
+### Abstract Factory: leer la estructura y seguir las llamadas
+- FabricaUI declara dos métodos: uno por tipo de producto. Boton y Campo son los contratos que consume Cliente.
+- FabricaWeb crea BotonWeb y CampoWeb; FabricaEscritorio crea las dos variantes de escritorio. Esa coherencia define la familia.
+- Los triángulos discontinuos terminan en las interfaces. Las flechas 'crea' unen cada fábrica con sus productos concretos.
+
+1. **Crear el botón**: Cliente pide un Boton a la fábrica Web sin invocar BotonWeb directamente.
+
+2. **Crear el campo**: La misma fábrica entrega un Campo de la misma familia.
+
+3. **Trabajar con contratos**: El cliente dibuja ambos productos a través de sus interfaces.
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant F as FabricaWeb
+participant B as BotonWeb
+participant T as CampoWeb
+C->>F: crearBoton()
+F->>B: construir botón Web
+F-->>C: Boton
+C->>F: crearCampo()
+F->>T: construir campo Web
+F-->>C: Campo
+C->>B: dibujar()
+C->>T: dibujar()
+```
+
+**Para comprobarte:** ¿Qué cambia al agregar un producto Menu, y qué cambia al agregar una familia Móvil?
+
+Menu requiere crear su contrato y ampliar cada fábrica con crearMenu(). Móvil requiere una nueva fábrica que implemente los métodos existentes y sus productos correspondientes.
+
+### Adapter: leer la estructura y seguir las llamadas
+- Cliente conoce Administrable. LibroDigitalAdapter realiza ese contrato; LibroDigital no necesita modificar su interfaz.
+- LibroDigitalAdapter --> LibroDigital representa la referencia al servicio existente que permite delegar.
+- Este es un adaptador de objetos: usa composición de objetos y delegación. No supone herencia del servicio adaptado.
+
+1. **Recibir el pedido**: El cliente invoca el contrato Administrable que ya usa en su negocio.
+
+2. **Adaptar y delegar**: El adaptador comunica ese pedido al objeto LibroDigital.
+
+3. **Devolver el resultado**: El servicio responde y el adaptador devuelve un resultado compatible al cliente.
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant A as LibroDigitalAdapter
+participant L as LibroDigital
+C->>A: vender() mediante Administrable
+A->>L: vender()
+L-->>A: venta realizada
+A-->>C: resultado compatible
+Note over A,L: El adaptador delega, no inventa stock físico
+```
+
+**Para comprobarte:** ¿La existencia del adaptador permite agregarStock() si el servicio no maneja stock?
+
+No automáticamente. Hay que definir el comportamiento requerido: almacenamiento adicional, operación no aplicable o error explícito, según el dominio.
+
+### Composite: leer la estructura y seguir las llamadas
+- Archivo y Carpeta heredan Elemento y comparten tamano(). Cliente trabaja con ese contrato para ambos casos.
+- Carpeta agrupa Elementos, no solo Archivos: así una carpeta puede contener otra carpeta.
+- El rombo vacío expresa agregación en este ejemplo. Composite no exige rombo lleno: el ciclo de vida de las partes decide la relación UML.
+
+1. **Consultar la raíz**: El cliente pide tamano() una vez; la carpeta organiza el recorrido.
+
+2. **Resolver una hoja**: Archivo A devuelve el valor base de 10 bytes.
+
+3. **Resolver el subárbol**: Subcarpeta consulta Archivo B y devuelve 20 bytes. La raíz suma 10 + 20.
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant R as Carpeta raíz
+participant A as Archivo A
+participant S as Subcarpeta
+participant B as Archivo B
+C->>R: tamano()
+R->>A: tamano()
+A-->>R: 10 bytes
+R->>S: tamano()
+S->>B: tamano()
+B-->>S: 20 bytes
+S-->>R: 20 bytes
+R-->>C: 30 bytes
+```
+
+**Para comprobarte:** ¿Por qué hijos debe ser una colección de Elemento y no de Archivo?
+
+Porque una colección de Archivo impide guardar otras carpetas. La abstracción Elemento admite hojas y compuestos, conservando la operación uniforme.
+
+### Facade: leer la estructura y seguir las llamadas
+- Cliente --> TiendaFacade muestra la entrada de alto nivel comprar(). El cliente no coordina tres subsistemas.
+- Las asociaciones de la fachada con Inventario, Pedidos y Envios permiten organizar el trabajo interno.
+- La fachada simplifica acceso. No elimina los subsistemas ni impide que otros clientes especializados los utilicen.
+
+1. **Pedir una compra**: El cliente conoce una entrada simple del subsistema.
+
+2. **Organizar los pasos**: La fachada coordina los servicios sin trasladar su lógica al cliente.
+
+3. **Confirmar el resultado**: Después de reservar, crear y programar, la fachada responde al cliente.
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant F as TiendaFacade
+participant I as Inventario
+participant P as Pedidos
+participant E as Envios
+C->>F: comprar()
+F->>I: reservar()
+I-->>F: reserva confirmada
+F->>P: crear()
+P-->>F: pedido creado
+F->>E: programar()
+E-->>F: envío programado
+F-->>C: compra confirmada
+Note over F,E: Camino exitoso, los fallos requieren una política aparte
+```
+
+**Para comprobarte:** ¿Qué distingue esta fachada de un adaptador?
+
+La fachada reduce la complejidad de acceso a varios servicios. El adaptador hace compatible un contrato existente con otro esperado; no basta con ser un intermediario para ser Adapter.
+
+### Observer: leer la estructura y seguir las llamadas
+- Archivo mantiene una colección de Observer. La multiplicidad 0..* permite ningún suscriptor o varios.
+- ExportadorCSV/XLS/PDF implementan Observer. Archivo invoca actualizar() sin conocer cada formato concreto.
+- suscribir() y desuscribir() cambian la colección durante la ejecución. Evitá dependencias directas del sujeto a cada exportador.
+
+1. **Suscribirse**: Cada receptor solicita su registro. Archivo guarda la referencia por la interfaz Observer.
+
+2. **Producir el evento**: Una modificación del contenido dispara notificar().
+
+3. **Avisar y gestionar bajas**: Los receptores reaccionan; PDF puede cancelar su suscripción para eventos posteriores.
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant A as Archivo
+participant CSV as ExportadorCSV
+participant PDF as ExportadorPDF
+CSV->>A: suscribir(this)
+PDF->>A: suscribir(this)
+C->>A: modificarContenido(texto)
+A->>A: notificar()
+A->>CSV: actualizar(archivo)
+A->>PDF: actualizar(archivo)
+PDF->>A: desuscribir(this)
+Note over A,PDF: Orden ilustrativo, el patrón no garantiza un orden
+```
+
+**Para comprobarte:** ¿Por qué Archivo no debería guardar listas distintas de CSV, XLS y PDF?
+
+Porque se acoplaría a cada clase concreta y habría que modificarlo para sumar un receptor. Una colección de Observer permite usar el mismo contrato de notificación.
+
+### Strategy: leer la estructura y seguir las llamadas
+- Coche --> IComportamientoFrenos es la referencia que hace posible delegar. La herencia de estrategias por sí sola no basta.
+- FrenoNormal y FrenoABS implementan la interfaz; el triángulo apunta al contrato, no a la variante.
+- setFrenos() permite cambiar el objeto estrategia. Coche usa frenar() sin conocer cómo funciona cada algoritmo.
+
+1. **Elegir la variante**: El cliente instala FrenoNormal en el contexto.
+
+2. **Delegar**: Coche recibe frenar() y llama al algoritmo normal seleccionado.
+
+3. **Cambiar sin rehacer el contexto**: El cliente instala FrenoABS; la siguiente llamada se delega a ABS.
+
+```mermaid
+sequenceDiagram
+participant C as Cliente
+participant A as Coche
+participant N as FrenoNormal
+participant ABS as FrenoABS
+C->>A: setFrenos(normal)
+C->>A: frenar()
+A->>N: frenar()
+N-->>A: frenado normal
+C->>A: setFrenos(abs)
+C->>A: frenar()
+A->>ABS: frenar()
+ABS-->>A: frenado ABS
+```
+
+**Para comprobarte:** ¿Qué cambiaría si Coche notificara simultáneamente a todos los frenos registrados?
+
+Ya no mostraría la intención de Strategy: resolver una tarea con una variante seleccionada. La difusión de un evento a varios receptores corresponde al problema de Observer.
+
+### Un mapa para elegir sin memorizar dibujos
+
+Elegí por el problema: una instancia, creación variable, contratos incompatibles, árboles, una entrada simple, eventos o algoritmos. El dibujo sirve para justificar la decisión.
+
+```mermaid
+flowchart TB
+P["Problema recurrente de diseño"]
+C["Creación de objetos"]
+E["Estructura de objetos"]
+B["Colaboración y comportamiento"]
+P --> C
+P --> E
+P --> B
+C --> S["Singleton: cantidad de instancias"]
+C --> F["Factory Method: producto variable"]
+C --> A["Abstract Factory: familias compatibles"]
+E --> AD["Adapter: contrato incompatible"]
+E --> CO["Composite: árbol uniforme"]
+E --> FA["Facade: entrada simple"]
+B --> O["Observer: evento a suscriptores"]
+B --> ST["Strategy: algoritmo intercambiable"]
+```
+
+Mapa conceptual, no flujo de ejecución. Reúne los ocho patrones desarrollados por el material.
+- Las ramas clasifican por propósito; una aplicación puede combinar varios patrones.
+- La señal de la consigna importa más que la forma del dibujo.
+
+### Del requisito a una evidencia de calidad
+
+Ejemplo didáctico: una meta de respuesta se convierte en una prueba, una medición y una decisión. Los valores son ilustrativos, no resultados observados ni umbrales universales.
+
+```mermaid
+flowchart TB
+R["Requisito: responder en menos de 2 s"]
+P["Diseñar prueba de carga representativa"]
+M["Medir latencia p95 en segundos"]
+D{"¿Cumple la meta bajo esa carga?"}
+A["Registrar evidencia y monitorear"]
+F["Investigar cuellos de botella y corregir"]
+R --> P
+P --> M
+M --> D
+D -->|Sí| A
+D -->|No| F
+F --> P
+```
+
+Cumplir una métrica de rendimiento no demuestra por sí solo seguridad, usabilidad ni calidad total.
+- La decisión incluye unidad, carga de prueba y umbral definido.
+- Después de corregir se vuelve a medir bajo condiciones comparables.
+
+### AS-IS → TO-BE con una comprobación
+
+Mejorar un proceso necesita una situación inicial, una meta y un seguimiento. Automatizar una tarea no demuestra que el proceso completo haya mejorado.
+
+```mermaid
+flowchart TB
+AS["AS-IS: relevar proceso y medir línea base"]
+OB["Acordar objetivo y responsables"]
+TO["TO-BE: diseñar proceso propuesto"]
+PI["Planificar recursos, riesgos y piloto"]
+IM["Implementar y capacitar"]
+EV{"¿La evidencia cumple la meta?"}
+ES["Estandarizar y seguir monitoreando"]
+AJ["Analizar causas y ajustar el plan"]
+AS --> OB
+OB --> TO
+TO --> PI
+PI --> IM
+IM --> EV
+EV -->|Sí| ES
+EV -->|No| AJ
+AJ --> TO
+```
+
+Esquema de estudio de mejora de procesos: conecta personas, método y herramientas con un resultado comprobable.
+- AS-IS describe lo actual; TO-BE describe la propuesta, no un resultado ya alcanzado.
+- El piloto y la evaluación evitan dar por exitosa una mejora solo porque se implementó.
+
+### Reconocer el nivel por la evidencia
+
+Esta progresión representa los cinco niveles utilizados en las guías. Es un mapa de estudio, no una evaluación oficial ni una certificación de una organización.
+
+```mermaid
+flowchart TB
+N1["1 Inicial: resultado depende de personas"]
+N2["2 Gestionado: plan y seguimiento por proyecto"]
+N3["3 Definido: proceso estándar organizacional"]
+N4["4 Gestionado cuantitativamente: variación y predicción"]
+N5["5 En optimización: mejora sistemática con datos"]
+N1 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+```
+
+Tener herramientas o una planilla de métricas no alcanza para afirmar nivel 4; buscá cómo se usan para controlar y predecir.
+- Los niveles acumulan capacidad de gestión; no son estados de un producto individual.
+- La diferencia entre 2 y 3 es el alcance: proyecto frente a estándar organizacional.
+
+### Un cambio necesita decisión y trazabilidad
+
+Control de cambios decide qué se aprueba; control de versiones conserva qué se modificó. Un commit no equivale a la aprobación de una solicitud.
+
+```mermaid
+stateDiagram-v2
+[*] --> Propuesta
+Propuesta --> Evaluacion: registrar solicitud
+Evaluacion --> Aprobada: impacto aceptado
+Evaluacion --> Rechazada: no se autoriza
+Aprobada --> Implementacion: asignar trabajo
+Implementacion --> Verificacion: vincular commits y pruebas
+Verificacion --> Implementacion: pruebas fallan
+Verificacion --> Cerrada: pruebas pasan
+Rechazada --> [*]
+Cerrada --> [*]
+```
+
+Modelo didáctico de estados de una solicitud. Los commits aportan trazabilidad al trabajo aprobado.
+- Cada flecha representa un cambio de estado con una condición o evento.
+- Git ayuda a rastrear el código; no reemplaza la evaluación del impacto ni las reglas de aprobación.
+
+### Add, commit y push hacen cosas distintas
+
+El índice contiene una selección de cambios. El commit guarda esa selección en el historial local; push intenta transferir commits al remoto y puede ser rechazado.
+
+```mermaid
+flowchart TB
+W["Directorio de trabajo: editar archivos"]
+S["Índice: preparar cambios elegidos"]
+L["Repositorio local: crear commit"]
+R["Repositorio remoto: recibir commits"]
+W -->|git add| S
+S -->|git commit| L
+L -->|git push si el remoto lo acepta| R
+```
+
+Este esquema muestra transferencia de información; las etapas previas siguen existiendo. Los conflictos se trabajan en Git Lab.
+- Editar después de add no actualiza automáticamente lo preparado.
+- Commit puede hacerse sin conexión; push necesita acceso al remoto y permisos.
+
+### GQM: empezar por la decisión
+
+Ejemplo de una mesa de ayuda: primero definís el objetivo, luego las preguntas que lo vuelven comprobable y finalmente los datos y métricas. Los umbrales se acuerdan antes de interpretar resultados.
+
+```mermaid
+flowchart TB
+G["Objetivo: reducir la espera sin bajar calidad"]
+Q1["¿Cuánto tarda la resolución?"]
+Q2["¿Las soluciones se sostienen?"]
+M1["Mediana y p95 de resolución, en horas"]
+M2["Porcentaje de casos reabiertos"]
+D["Comparar períodos y decidir una mejora"]
+G --> Q1
+Q1 --> M1
+M1 --> D
+G --> Q2
+Q2 --> M2
+M2 --> D
+```
+
+Un tiempo menor con muchas reaperturas puede indicar una mejora aparente. Combiná rapidez y calidad de la resolución.
+- Goal define lo que querés mejorar; Question fija qué necesitás conocer; Metric define cómo lo medís.
+- Registrá población, período, unidad y criterio de reapertura para que los valores sean comparables.

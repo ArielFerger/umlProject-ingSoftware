@@ -10,14 +10,18 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 
 - Editor Mermaid para clases, secuencia, estados, actividades, casos de uso, componentes y entidad-relación: formularios, edición por código, movimiento, conexiones con el mouse, menú con click derecho, deshacer/rehacer e importación/exportación.
 - Animaciones y controles adaptados a pantallas pequeñas, teclado y preferencias de movimiento reducido.
-- 17 temas de teoría, 8 fichas de patrones UML, 74 ejercicios distribuidos en 5 niveles y 3 simulacros.
-- Resumen descargable y los 25 documentos originales del curso en `public/estudio/`.
+- 17 temas de teoría, 8 fichas de patrones con estructura y secuencia, 105 ejercicios distribuidos en 5 niveles y 6 simulacros. Casos de empresas para identificar, argumentar y modelar; 16 actividades incluyen C++17 de solo lectura y análisis.
+- 23 diagramas guiados para aprender: 16 vistas de patrones y 7 mapas de familias, calidad, mejora de procesos, CMMI, cambios, Git y GQM. Pasos con selección de participantes, lectura de flechas, preguntas de comprensión y copias editables en el mismo motor Mermaid.
+- Resumen descargable ampliado y 30 documentos originales, incluido el resumen de 36 páginas y cuatro imágenes de parciales 2024/2025, en `public/estudio/`.
 - Progreso de estudio guardado en el navegador y diagramas guardados por usuario en D1.
+- Las copias de referencia se crean al pulsar **Abrir copia editable**; volver a abrirlas conserva las modificaciones. Las prácticas de secuencia permiten código, mensajes origen → destino y formularios, con soluciones orientativas y rúbrica de autoevaluación.
 - Git Lab con Working directory, Staging area, historial local y remoto, consola simulada, siete ejercicios, repositorios vacíos y práctica libre.
 - Cuatro temas de interfaz: Claro, Grafito, Noche azul y Papel, con selección persistente en el navegador.
 - Código fuente, dependencias fijadas, migraciones y pruebas del editor.
 
 Las respuestas de opción múltiple y numéricas tienen corrección automática. Las respuestas de desarrollo y los diagramas se revisan con una rúbrica.
+
+**Copiar y corregir** prepara un texto con consigna, caso o C++ provisto, respuesta del estudiante, borrador Mermaid y criterios para pegar en la IA elegida. No incluye la solución de referencia ni envía información a servicios externos. Si el portapapeles falla, ofrece selección manual y descarga de texto. Durante un simulacro queda disponible al finalizar. Las versiones de C++ son adaptaciones didácticas para leer; no hay un editor ni ejecución de C++ en la app. Se mantienen los identificadores y borradores de ejercicios previos.
 
 ## Ejecutar en tu computadora
 

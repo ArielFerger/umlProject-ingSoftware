@@ -1,0 +1,685 @@
+{
+  "sources": [
+    {
+      "id": 28,
+      "name": "Parcial 2.jpg",
+      "pages": 0,
+      "format": "image",
+      "url": "/estudio/fuentes/28.jpg"
+    },
+    {
+      "id": 29,
+      "name": "Parcial 2a 8-10-2025.png",
+      "pages": 0,
+      "format": "image",
+      "url": "/estudio/fuentes/29.png"
+    },
+    {
+      "id": 30,
+      "name": "Parcial 2b 8-10-2025.png",
+      "pages": 0,
+      "format": "image",
+      "url": "/estudio/fuentes/30.png"
+    },
+    {
+      "id": 31,
+      "name": "Parcial 2c 8-10-2025.png",
+      "pages": 0,
+      "format": "image",
+      "url": "/estudio/fuentes/31.png"
+    }
+  ],
+  "overrides": {
+    "e39": {
+      "title": "C++ convierte y conversor",
+      "prompt": "Leé el ejemplo en C++17. Identificá el patrón, asigná Target, convierte, conversor y ClientCode a sus roles y explicá qué imprime el programa. ¿Por qué servicio debe vivir más que puente?",
+      "solution": "Adapter. Target es el contrato esperado; convierte es el servicio adaptado; conversor traduce la llamada y ClientCode usa Target. Imprime Hola. La referencia no es propietaria: servicio debe seguir vivo mientras conversor lo usa.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <string>\nstruct Target { virtual ~Target() = default; virtual std::string Request() const = 0; };\nclass convierte {\npublic: std::string SpecificRequest() const { return \"aloH\"; }\n};\nclass conversor : public Target {\n    const convierte& original;\npublic:\n    explicit conversor(const convierte& c) : original(c) {}\n    std::string Request() const override {\n        auto texto = original.SpecificRequest();\n        std::reverse(texto.begin(), texto.end());\n        return texto;\n    }\n};\nvoid ClientCode(const Target& destino) { std::cout << destino.Request() << '\\n'; }\nint main() { convierte servicio; conversor puente(servicio); ClientCode(puente); }\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e40": {
+      "title": "C++ átomo y molécula",
+      "prompt": "Leé el ejemplo en C++17. Identificá patrón, hoja, compuesto y contrato. Seguí operation() desde raiz y calculá su resultado. Explicá por qué un hijo puede ser otra molécula.",
+      "solution": "Composite: Component es el contrato, atomo la hoja y molecula el compuesto. El grupo devuelve 2+3=5 y raiz 1+5=6. La recursión usa el contrato común; unique_ptr expresa propiedad exclusiva de los hijos. No hay puntero padre ni devolución de null que deba adaptarse del ejemplo original.",
+      "code": "#include <iostream>\n#include <memory>\n#include <vector>\nstruct Component { virtual ~Component() = default; virtual double operation() const = 0; };\nclass atomo : public Component {\n    double masa;\npublic:\n    explicit atomo(double m) : masa(m) {}\n    double operation() const override { return masa; }\n};\nclass molecula : public Component {\n    std::vector<std::unique_ptr<Component>> children;\npublic:\n    void add(std::unique_ptr<Component> c) { if(c) children.push_back(std::move(c)); }\n    double operation() const override {\n        double total = 0;\n        for(const auto& c : children) total += c->operation();\n        return total;\n    }\n};\nint main() {\n    auto grupo = std::make_unique<molecula>();\n    grupo->add(std::make_unique<atomo>(2));\n    grupo->add(std::make_unique<atomo>(3));\n    molecula raiz;\n    raiz.add(std::make_unique<atomo>(1));\n    raiz.add(std::move(grupo));\n    std::cout << raiz.operation() << '\\n';\n}\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e41": {
+      "title": "Pantalla y subsistemas",
+      "prompt": "Leé esta adaptación en C++17. Identificá la intención del patrón y sus participantes. Enumerá las llamadas y compará el diseño con un cliente que invoca cada subsistema por separado.",
+      "solution": "Facade: Pantalla coordina Subsystem1 y Subsystem2. Se imprime Preparar, Registrar, Confirmar. El cliente depende de la operación de alto nivel; no se están intercambiando algoritmos como en Strategy.",
+      "code": "#include <iostream>\nstruct Subsystem1 {\n    void operation1() { std::cout << \"Preparar\\n\"; }\n    void operationN() { std::cout << \"Confirmar\\n\"; }\n};\nstruct Subsystem2 { void operationZ() { std::cout << \"Registrar\\n\"; } };\nclass Pantalla {\n    Subsystem1 uno;\n    Subsystem2 dos;\npublic: void Operation() { uno.operation1(); dos.operationZ(); uno.operationN(); }\n};\nint main() { Pantalla pantalla; pantalla.Operation(); }\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e42": {
+      "title": "Ordenar con dispositivo",
+      "prompt": "Leé la adaptación en C++17. Identificá patrón y participantes, indicá las dos salidas y explicá cómo se cambia el comportamiento sin modificar ordenar().",
+      "solution": "Strategy: Context es contexto, dispositivo el contrato y Ascendente/Descendente las estrategias. Salidas: 1 2 3 y 3 2 1. El setter cambia la estrategia; ordenar delega. La comprobación evita desreferenciar un algoritmo ausente, aunque sería razonable exigirlo desde la construcción.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <memory>\n#include <vector>\n#include <functional>\nstruct dispositivo {\n    virtual ~dispositivo() = default;\n    virtual void doAlgorithm(std::vector<int>& datos) const = 0;\n};\nstruct Ascendente : dispositivo {\n    void doAlgorithm(std::vector<int>& d) const override { std::sort(d.begin(), d.end()); }\n};\nstruct Descendente : dispositivo {\n    void doAlgorithm(std::vector<int>& d) const override {\n        std::sort(d.begin(), d.end(), std::greater<int>());\n    }\n};\nclass Context {\n    std::unique_ptr<dispositivo> algoritmo;\npublic:\n    void setdispositivo(std::unique_ptr<dispositivo> a) { algoritmo = std::move(a); }\n    void ordenar(std::vector<int>& d) const { if(algoritmo) algoritmo->doAlgorithm(d); }\n};\nint main() {\n    Context contexto; std::vector<int> datos{3,1,2};\n    contexto.setdispositivo(std::make_unique<Ascendente>()); contexto.ordenar(datos);\n    for(int n : datos) std::cout << n << ' ';\n    std::cout << '\\n';\n    contexto.setdispositivo(std::make_unique<Descendente>()); contexto.ordenar(datos);\n    for(int n : datos) std::cout << n << ' ';\n    std::cout << '\\n';\n}\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e43": {
+      "title": "C++ Subject e Ialarma",
+      "prompt": "Leé el ejemplo en C++17. Identificá participantes, indicá qué se imprime antes y después de Detach, y explicá la regla de vida útil de los receptores.",
+      "solution": "Observer: Subject mantiene suscripciones, Ialarma es el contrato y alarma el receptor. Solo imprime Alerta 7; tras la baja, 9 no se comunica a aviso. Los punteros no son propietarios: un receptor debe darse de baja antes de destruirse. El ejemplo asume notificación secuencial y que Update no modifica las suscripciones; el patrón no garantiza un orden universal.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\nstruct Ialarma { virtual ~Ialarma() = default; virtual void Update(int valor) = 0; };\nclass Subject {\n    std::vector<Ialarma*> receptores; // Referencias no propietarias.\npublic:\n    void Attach(Ialarma& a) {\n        if(std::find(receptores.begin(), receptores.end(), &a) == receptores.end())\n            receptores.push_back(&a);\n    }\n    void Detach(Ialarma& a) {\n        receptores.erase(std::remove(receptores.begin(), receptores.end(), &a), receptores.end());\n    }\n    void Notify(int valor) { for(auto* a : receptores) a->Update(valor); }\n};\nstruct alarma : Ialarma {\n    void Update(int valor) override { std::cout << \"Alerta \" << valor << '\\n'; }\n};\nint main() {\n    alarma aviso; Subject emisor;\n    emisor.Attach(aviso); emisor.Notify(7);\n    emisor.Detach(aviso); emisor.Notify(9);\n    // El receptor vive hasta la baja. Update no modifica las suscripciones.\n}\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e44": {
+      "title": "Inicio_Serie y dos hilos",
+      "prompt": "Leé el C++17. El main secuencial imprime 1; imaginá ahora dos hilos llamando simultáneamente GetInstance(). Identificá el patrón intentado y describí la carrera. Proponé una corrección en palabras; no escribas código.",
+      "solution": "Intenta Singleton. La comprobación y la asignación del puntero no están sincronizadas: hay una carrera de datos y el programa concurrente tiene comportamiento indefinido. Puede crearse más de una instancia. Un static local correctamente construido permite inicialización segura desde C++11, y hay que mantener la copia prohibida. Esa garantía no sincroniza automáticamente los métodos o datos mutables. El main secuencial no demuestra seguridad concurrente.",
+      "code": "#include <iostream>\n// Ejemplo intencionalmente inseguro si dos hilos llaman GetInstance a la vez.\nclass Inicio_Serie {\n    static Inicio_Serie* instancia;\n    Inicio_Serie() = default;\npublic:\n    Inicio_Serie(const Inicio_Serie&) = delete;\n    Inicio_Serie& operator=(const Inicio_Serie&) = delete;\n    static Inicio_Serie* GetInstance() {\n        if(instancia == nullptr) instancia = new Inicio_Serie();\n        return instancia;\n    }\n};\nInicio_Serie* Inicio_Serie::instancia = nullptr;\nint main() { std::cout << (Inicio_Serie::GetInstance() == Inicio_Serie::GetInstance()) << '\\n'; }\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e45": {
+      "title": "YouTubeDownloader",
+      "prompt": "Leé esta adaptación del código del parcial a C++17. Identificá el patrón y sus participantes. Seguí downloadVideo() y explicá qué complejidad oculta al cliente. No hay que descargar videos ni usar APIs reales.",
+      "solution": "Facade. YouTubeDownloader coordina YouTube, FFMpeg y FFMpegVideo: obtiene título, guarda temporal, abre, redimensiona, captura preview y exporta tres formatos. El cliente hace una sola llamada de alto nivel. Las clases son simuladas; el código no es una integración real con YouTube/FFmpeg.",
+      "code": "#include <iostream>\n#include <string>\n// Simulación didáctica: no descarga ni procesa archivos reales.\nstruct YouTube {\n    std::string fetchVideo(const std::string&) { return \"demo\"; }\n    void saveAs(const std::string&) { std::cout << \"Guardar temporal\\n\"; }\n};\nstruct FFMpegVideo {\n    void resize(int, int) { std::cout << \"Redimensionar\\n\"; }\n    void frame(int) { std::cout << \"Capturar preview\\n\"; }\n    void save(const std::string& formato) { std::cout << \"Exportar \" << formato << '\\n'; }\n};\nstruct FFMpeg { FFMpegVideo open(const std::string&) { return {}; } };\nclass YouTubeDownloader {\n    YouTube youtube;\n    FFMpeg ffmpeg;\npublic:\n    void downloadVideo(const std::string& url) {\n        auto titulo = youtube.fetchVideo(url);\n        youtube.saveAs(\"video.mpg\");\n        auto video = ffmpeg.open(\"video.mpg\");\n        video.resize(320,240); video.frame(10);\n        video.save(titulo+\".mp4\"); video.save(titulo+\".wmv\"); video.save(titulo+\".webm\");\n    }\n};\nint main() { YouTubeDownloader api; api.downloadVideo(\"video-de-ejemplo\"); }\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null,
+      "refs": [
+        19,
+        30,
+        31
+      ]
+    },
+    "e46": {
+      "title": "Operador de facturación",
+      "prompt": "Leé el C++17. El cliente solo invoca Operador.Operation(). Identificá patrón, participantes y orden de salida. ¿Qué cambiaría si los subsistemas fallaran?",
+      "solution": "Facade: Operador coordina Facturacion y Compras. Salida: Iniciar factura, Registrar compra, Emitir factura. El fragmento no resuelve atomicidad ni recuperación: ante fallos habría que definir errores, compensación o transacción según el dominio. Eso no surge automáticamente del patrón.",
+      "code": "#include <iostream>\nstruct Facturacion {\n    void iniciar() { std::cout << \"Iniciar factura\\n\"; }\n    void emitir() { std::cout << \"Emitir factura\\n\"; }\n};\nstruct Compras { void registrar() { std::cout << \"Registrar compra\\n\"; } };\nclass Operador {\n    Facturacion facturacion;\n    Compras compras;\npublic:\n    void Operation() { facturacion.iniciar(); compras.registrar(); facturacion.emitir(); }\n};\nint main() { Operador operador; operador.Operation(); }\n",
+      "provenance": "Adaptación didáctica a C++17 para lectura y análisis; el material original conserva su lenguaje.",
+      "uml": null
+    },
+    "e69": {
+      "scenario": "Muebles Express S.A. fabrica y vende muebles personalizados por una plataforma web. El comprador elige material, color, tamaño y estilo de ensamblaje; el sistema aplica el cálculo apropiado y obtiene un presupuesto. En producción, cada tipo de mueble (silla, mesa, estantería o escritorio) tiene un procedimiento de creación específico que ventas no necesita conocer. Se desea agregar nuevos tipos sin modificar la lógica de compra. El cliente puede suscribirse al estado de su pedido: avances, demoras, finalización y despacho deben generar avisos automáticos por los canales habilitados.",
+      "prompt": "Identificá tres necesidades diferentes y asociá un patrón a cada una. Justificá con datos del caso. Modelá clases, contratos y relaciones e indicá el flujo desde el presupuesto hasta la notificación. Distinguí crear un producto de crear familias compatibles.",
+      "refs": [
+        19,
+        30
+      ],
+      "provenance": "Adaptación del caso del parcial del 8/10/2025; solución de entrenamiento, no oficial.",
+      "uml": "classDiagram\nclass Calculador {\n  <<interface>>\n  +presupuestar() double\n}\nclass Estandar\nclass Personalizado\nCalculador <|.. Estandar\nCalculador <|.. Personalizado\nclass Venta\nVenta --> Calculador : delega\nclass Mueble {\n  <<interface>>\n  +fabricar() void\n}\nclass Silla\nclass Mesa\nMueble <|.. Silla\nMueble <|.. Mesa\nclass Taller {\n  <<abstract>>\n  +crear() Mueble\n  +producir() void\n}\nclass TallerSillas\nclass TallerMesas\nTaller <|-- TallerSillas\nTaller <|-- TallerMesas\nTaller ..> Mueble : usa\nTallerSillas ..> Silla : crea\nTallerMesas ..> Mesa : crea\nVenta --> Taller\nclass Pedido {\n  +suscribir(Receptor r) void\n  +cambiarEstado() void\n  +notificar() void\n}\nclass Receptor {\n  <<interface>>\n  +actualizar(Pedido p) void\n}\nclass Correo\nclass AvisoWeb\nReceptor <|.. Correo\nReceptor <|.. AvisoWeb\nPedido --> Receptor : notifica\nVenta --> Pedido : registra\n",
+      "rubric": [
+        "Cada patrón está ligado a un requisito concreto del caso.",
+        "Separé cálculo intercambiable, creación por tipo y notificación a suscriptores.",
+        "Los contratos y relaciones coinciden con los roles; expliqué el flujo y cómo extenderlo."
+      ]
+    },
+    "e72": {
+      "scenario": "SoftMetrics desarrolla aplicaciones web y empresariales con POO. Utiliza Git y Jira; los equipos tienen un proceso documentado pero lo aplican con distinta rigurosidad. No mide cuantitativamente desempeño ni cumplimiento; las revisiones manuales dependen de la experiencia del revisor. Quiere usar IA para sugerir código y detectar errores, pero todavía no dispone de análisis predictivo ni optimización formal de procesos. También necesita crear familias compatibles de objetos e integrar módulos con interfaces incompatibles.",
+      "prompt": "Argumentá el nivel CMMI probable y los supuestos que necesitás. Identificá dos riesgos. Proponé tres acciones progresivas hacia la optimización, incluyendo IA, y completá atributo, medida, unidad, métrica e indicador para una medición de calidad.",
+      "refs": [
+        19,
+        29
+      ],
+      "provenance": "Adaptación de la teoría del parcial del 8/10/2025; no constituye una evaluación oficial CMMI."
+    },
+    "e73": {
+      "refs": [
+        19,
+        9,
+        29
+      ]
+    },
+    "e70": {
+      "prompt": "En un edificio, los sensores nacen desconectados y tienen un umbral configurado. Los grupos pueden contener sensores simples u otros grupos. La alarma del grupo depende de su propia media y de su propio umbral. Leé el ejemplo en C++17 y representá Sensor, Simple y Grupo en UML. Explicá la salida, la política para desconectados/grupos vacíos y el promedio por hijos directos; no escribas C++.",
+      "code": "#include <iostream>\n#include <memory>\n#include <vector>\n#include <optional>\nstruct Sensor {\n    bool conectado=false;\n    double umbral=0;\n    virtual ~Sensor()=default;\n    virtual std::optional<double> medir() const=0;\n    bool alarma() const { auto valor=medir(); return conectado && valor && *valor>umbral; }\n};\nstruct Simple : Sensor {\n    double valor;\n    explicit Simple(double v) : valor(v) {}\n    std::optional<double> medir() const override { return conectado ? std::optional<double>(valor) : std::nullopt; }\n};\nstruct Grupo : Sensor {\n    std::vector<std::unique_ptr<Sensor>> hijos;\n    std::optional<double> medir() const override {\n        if(!conectado) return std::nullopt;\n        double suma=0; int n=0;\n        for(const auto& hijo : hijos) { auto valor=hijo->medir(); if(valor) { suma+=*valor; ++n; } }\n        return n ? std::optional<double>(suma/n) : std::nullopt;\n    }\n};\nint main() {\n    Grupo grupo; grupo.conectado=true; grupo.umbral=20;\n    auto a=std::make_unique<Simple>(10); a->conectado=true;\n    auto b=std::make_unique<Simple>(40); b->conectado=true;\n    grupo.hijos.push_back(std::move(a)); grupo.hijos.push_back(std::move(b));\n    std::cout << *grupo.medir() << ' ' << grupo.alarma() << '\\n';\n}\n",
+      "refs": [
+        17,
+        28
+      ],
+      "provenance": "Adaptación a C++17 del modelo de 2024. Política didáctica: excluir hijos sin medición y promediar hijos directos con igual peso.",
+      "uml": "classDiagram\nclass Sensor {\n  <<abstract>>\n  +bool conectado\n  +double umbral\n  +medir() optionalDouble\n  +alarma() bool\n}\nclass Simple {\n  +double valor\n  +medir() optionalDouble\n}\nclass Grupo {\n  +Sensor[] hijos\n  +medir() optionalDouble\n}\nSensor <|-- Simple\nSensor <|-- Grupo\nGrupo \"1\" *-- \"0..*\" Sensor : hijos\n",
+      "solution": "Composite: Sensor es componente, Simple hoja y Grupo compuesto. El ejemplo imprime 25 1: (10+40)/2=25 supera 20. Un sensor desconectado y un grupo vacío devuelven sin medición, y no generan alarma. Los subgrupos aportan su media como un hijo: no es la media de todas las hojas ponderada por cantidad. Esta política se declara porque el texto original no resuelve todas las ambigüedades. La propiedad exclusiva y el árbol evitan compartir hijos; detectar ciclos es necesario si otra implementación los permite."
+    },
+    "e71": {
+      "refs": [
+        17,
+        28
+      ],
+      "uml": "classDiagram\nclass Usuario\nclass Cliente\nclass Farmaceutico\nUsuario <|-- Cliente\nUsuario <|-- Farmaceutico\nclass Medicamento {\n  +imprimirLote() void\n}\nUsuario --> Medicamento : administra\nclass GestorUsuarios {\n  -GestorUsuarios()\n  +obtenerInstancia() GestorUsuarios$\n  +login() bool\n  +cambiarClave() void\n  +alta() void\n  +baja() void\n}\nGestorUsuarios --> Usuario\nclass ServicioLotes {\n  +imprimir() void\n  +suscribir(ObservadorLote o) void\n  +notificar(String idLote) void\n}\nclass ObservadorLote {\n  <<interface>>\n  +actualizar(String idLote) void\n}\nclass AlertaFarmaceutico\nclass RegistroLotes\nObservadorLote <|.. AlertaFarmaceutico\nObservadorLote <|.. RegistroLotes\nServicioLotes --> ObservadorLote : notifica\nServicioLotes --> Medicamento : imprime\nAlertaFarmaceutico --> Farmaceutico : avisa\n"
+    }
+  },
+  "exercises": [
+    {
+      "id": "e87",
+      "level": 1,
+      "title": "RutaSur: elegí cómo cotizar",
+      "topic": "Casos de empresas",
+      "scenario": "RutaSur calcula el precio de un envío según una modalidad normal, urgente o refrigerada. La modalidad puede cambiar antes de confirmar el envío. El cálculo recibe la misma distancia; cada modalidad aplica una regla distinta.",
+      "prompt": "Identificá un patrón, nombrá contexto, contrato y variantes. Citá dos señales del texto y explicá por qué no es una notificación a suscriptores.",
+      "solution": "Strategy: Envio delega en Tarifa y variantes Normal, Urgente y Refrigerada. La señal es un cálculo intercambiable con un contrato común; Observer sería para avisar cambios a receptores, algo no pedido.",
+      "refs": [
+        27,
+        30
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e88",
+      "level": 2,
+      "title": "SaludUI: familias compatibles",
+      "topic": "Casos de empresas",
+      "scenario": "SaludUI crea un botón y un campo de ingreso para cada pantalla. En la versión web ambos deben ser web; en escritorio ambos deben ser de escritorio. El armado de pantalla no debe conocer las clases concretas.",
+      "prompt": "Elegí entre Factory Method y Abstract Factory y justificá. Asigná roles. Compará agregar otra plataforma con agregar otro tipo de control.",
+      "solution": "Abstract Factory: FabricaUI ofrece crearBoton y crearCampo; fábricas Web y PC generan familias compatibles. Agregar una plataforma agrega una fábrica y sus productos; agregar un tipo de producto modifica el contrato y todas las fábricas. Factory Method aislado crea un producto por operación y no expresa por sí solo esa familia.",
+      "refs": [
+        27,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e89",
+      "level": 2,
+      "title": "Clínica Delta: sistema legado",
+      "topic": "Casos de empresas",
+      "scenario": "Clínica Delta necesita integrar un equipo que devuelve temperatura en Fahrenheit. El nuevo sistema solo acepta un contrato leerCelsius(). No se puede modificar el firmware del equipo.",
+      "prompt": "Identificá el patrón y la traducción necesaria. Comparalo con una fachada. Explicá por qué renombrar el método no alcanza.",
+      "solution": "Adapter: SensorC es el contrato; SensorAntiguo es el adaptado; Puente traduce la llamada y convierte (F−32)×5/9. Facade simplifica la coordinación de un subsistema; acá hay incompatibilidad de contrato y unidad. Cambiar solo el nombre conservaría una medición incorrecta.",
+      "refs": [
+        27,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e90",
+      "level": 2,
+      "title": "Fábrica Nexo: seguimiento del pedido",
+      "topic": "Casos de empresas",
+      "scenario": "Nexo permite a clientes suscribirse al pedido. Cada avance debe actualizar la pantalla y enviar un mail. Se desea agregar un receptor de auditoría sin cambiar el emisor, y permitir la baja de suscripciones.",
+      "prompt": "Identificá patrón y participantes. Describí alta, cambio de estado y baja. Explicá dos problemas operativos que el patrón por sí solo no resuelve.",
+      "solution": "Observer: Pedido es sujeto, Receptor es contrato y Pantalla/Correo/Auditoria son observadores. El pedido actualiza estado y notifica a suscriptores activos. Hay que definir vida útil/baja, errores o reintentos y duplicados; no implica entrega garantizada ni orden universal.",
+      "refs": [
+        27,
+        30
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e91",
+      "level": 3,
+      "title": "RutaSur: diseñá la cotización",
+      "topic": "Casos de empresas",
+      "scenario": "RutaSur calcula el precio de un envío según una modalidad normal, urgente o refrigerada. La modalidad puede cambiar antes de confirmar el envío. El cálculo recibe la misma distancia; cada modalidad aplica una regla distinta.",
+      "prompt": "Creá un UML de clases con Envio, contrato de tarifa y tres variantes. Incluí métodos y relaciones. Describí la llamada del cliente y dónde seleccionaría el algoritmo.",
+      "solution": "Envio guarda una referencia a Tarifa; cotizar delega en costo(km). Normal/Urgente/Refrigerada implementan Tarifa. Un cliente/configurador elige la variante. Una referencia por contexto basta; el sistema puede manejar muchos envíos con distintas tarifas.",
+      "refs": [
+        27,
+        30
+      ],
+      "kind": "uml",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "uml": "classDiagram\nclass Tarifa {\n  <<interface>>\n  +costo(double km) double\n}\nclass Normal\nclass Urgente\nTarifa <|.. Normal\nTarifa <|.. Urgente\nclass Envio {\n  +cambiar(Tarifa t) void\n  +cotizar(double km) double\n}\nEnvio --> Tarifa : delega\nclass Refrigerada\nTarifa <|.. Refrigerada\n"
+    },
+    {
+      "id": "e92",
+      "level": 3,
+      "title": "SaludUI: creá las dos familias",
+      "topic": "Casos de empresas",
+      "scenario": "SaludUI crea un botón y un campo de ingreso para cada pantalla. En la versión web ambos deben ser web; en escritorio ambos deben ser de escritorio. El armado de pantalla no debe conocer las clases concretas.",
+      "prompt": "Creá UML de clases con el cliente, dos tipos de productos, su contrato abstracto y dos familias. Mostrá quién crea cada producto y quién lo usa.",
+      "solution": "Pantalla depende de FabricaUI, Boton y Campo. FabricaWeb crea BotonWeb/CampoWeb; FabricaPC crea BotonPC/CampoPC. Las interfaces de producto separan uso de implementación; no conectes la pantalla directamente a cada concreto.",
+      "refs": [
+        27,
+        29
+      ],
+      "kind": "uml",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "uml": "classDiagram\nclass FabricaUI {\n  <<interface>>\n  +crearBoton() Boton\n  +crearCampo() Campo\n}\nclass FabricaWeb\nclass FabricaPC\nFabricaUI <|.. FabricaWeb\nFabricaUI <|.. FabricaPC\nclass Boton {\n  <<interface>>\n}\nclass Campo {\n  <<interface>>\n}\nclass BotonWeb\nclass BotonPC\nclass CampoWeb\nclass CampoPC\nBoton <|.. BotonWeb\nBoton <|.. BotonPC\nCampo <|.. CampoWeb\nCampo <|.. CampoPC\nFabricaWeb ..> BotonWeb : crea\nFabricaWeb ..> CampoWeb : crea\nFabricaPC ..> BotonPC : crea\nFabricaPC ..> CampoPC : crea\nclass Pantalla\nPantalla --> FabricaUI\nPantalla --> Boton\nPantalla --> Campo\n"
+    },
+    {
+      "id": "e93",
+      "level": 3,
+      "title": "Hotel Atlas: una reserva completa",
+      "topic": "Casos de empresas",
+      "scenario": "Para reservar, Hotel Atlas verifica disponibilidad, bloquea habitación, registra la reserva y solicita el cobro. La web quiere invocar una sola operación sin coordinar esos servicios. El cobro puede ser rechazado.",
+      "prompt": "Creá el UML con contratos y una operación de alto nivel. Explicá el flujo exitoso y una política explícita ante rechazo. Distinguí simplificar el acceso de garantizar una transacción.",
+      "solution": "Facade: ReservasFacade coordina Disponibilidad, Reservas y Cobros. Ante rechazo podría liberar el bloqueo y marcar rechazo, con operaciones idempotentes o compensación definida. Facade no vuelve atómicas operaciones de sistemas distintos. Declarar cuándo confirmar y qué hacer si falla liberar.",
+      "refs": [
+        27,
+        31
+      ],
+      "kind": "uml",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "uml": "classDiagram\nclass Web\nclass ReservasFacade {\n  +reservar() Resultado\n}\nclass Disponibilidad {\n  +bloquear() bool\n  +liberar() void\n}\nclass Reservas {\n  +registrar() void\n  +marcarRechazo() void\n}\nclass Cobros {\n  +cobrar() bool\n}\nWeb --> ReservasFacade\nReservasFacade --> Disponibilidad\nReservasFacade --> Reservas\nReservasFacade --> Cobros\n"
+    },
+    {
+      "id": "e94",
+      "level": 3,
+      "title": "RutaSur en C++: seguí los precios",
+      "topic": "Lectura C++",
+      "scenario": "RutaSur publicó este fragmento de cotización. Todos los envíos del ejemplo tienen una tarifa válida.",
+      "prompt": "Leé el C++17. Indicá las dos salidas, el patrón y sus participantes. Explicá qué pasaría si se permitiera construir Envio con nullptr y qué parte cambiaría al agregar otra tarifa. No escribas código.",
+      "solution": "Salidas 100 y 200. Strategy: Envio, Tarifa, Normal y Urgente. Con nullptr cotizar desreferenciaría un puntero nulo: se debe rechazar desde la construcción o definir un error. Otra tarifa agrega implementación y selección, sin modificar la delegación de cotizar.",
+      "refs": [
+        27,
+        30
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <iostream>\n#include <memory>\nstruct Tarifa { virtual ~Tarifa() = default; virtual double costo(double km) const = 0; };\nstruct Normal : Tarifa { double costo(double km) const override { return km*10; } };\nstruct Urgente : Tarifa { double costo(double km) const override { return km*15+50; } };\nclass Envio {\n    std::unique_ptr<Tarifa> tarifa;\npublic:\n    explicit Envio(std::unique_ptr<Tarifa> t) : tarifa(std::move(t)) {}\n    void cambiar(std::unique_ptr<Tarifa> t) { if(t) tarifa=std::move(t); }\n    double cotizar(double km) const { return tarifa->costo(km); }\n};\nint main() {\n    Envio envio(std::make_unique<Normal>());\n    std::cout << envio.cotizar(10) << '\\n';\n    envio.cambiar(std::make_unique<Urgente>());\n    std::cout << envio.cotizar(10) << '\\n';\n}\n"
+    },
+    {
+      "id": "e95",
+      "level": 3,
+      "title": "BioLab en C++: recorré el árbol",
+      "topic": "Lectura C++",
+      "scenario": "BioLab representa una muestra por átomos y moléculas anidadas; cada molécula suma las masas de sus hijos.",
+      "prompt": "Leé el C++17 y dibujá mentalmente el árbol. Explicá por qué el resultado es 6 y qué ocurriría con una molécula vacía. Compará suma recursiva con recorrer solo hojas de un nivel.",
+      "solution": "Composite: raiz contiene un átomo de masa 1 y un grupo con 2 y 3. operation recorre hijos y delega; grupo produce 5 y raiz 6. Un compuesto vacío produce 0. El contrato permite tratar de la misma manera hoja y compuesto; una colección plana no representa arbitraria anidación.",
+      "refs": [
+        27,
+        28
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <iostream>\n#include <memory>\n#include <vector>\nstruct Component { virtual ~Component() = default; virtual double operation() const = 0; };\nclass atomo : public Component {\n    double masa;\npublic:\n    explicit atomo(double m) : masa(m) {}\n    double operation() const override { return masa; }\n};\nclass molecula : public Component {\n    std::vector<std::unique_ptr<Component>> children;\npublic:\n    void add(std::unique_ptr<Component> c) { if(c) children.push_back(std::move(c)); }\n    double operation() const override {\n        double total = 0;\n        for(const auto& c : children) total += c->operation();\n        return total;\n    }\n};\nint main() {\n    auto grupo = std::make_unique<molecula>();\n    grupo->add(std::make_unique<atomo>(2));\n    grupo->add(std::make_unique<atomo>(3));\n    molecula raiz;\n    raiz.add(std::make_unique<atomo>(1));\n    raiz.add(std::move(grupo));\n    std::cout << raiz.operation() << '\\n';\n}\n"
+    },
+    {
+      "id": "e96",
+      "level": 3,
+      "title": "Clínica Delta en C++: verificá la unidad",
+      "topic": "Lectura C++",
+      "scenario": "Clínica Delta necesita integrar un equipo que devuelve temperatura en Fahrenheit. El nuevo sistema solo acepta un contrato leerCelsius(). No se puede modificar el firmware del equipo.",
+      "prompt": "Leé el C++17. Indicá la salida y asigná roles. Explicá por qué se usa 5.0/9.0 y qué restricción impone la referencia al sensor. No escribas código.",
+      "solution": "Imprime 30. Adapter: SensorC contrato, SensorAntiguo adaptado y Puente adaptador. 5.0/9.0 evita la división entera 5/9=0. El sensor original debe seguir vivo durante el uso de la referencia; el puente no es su dueño.",
+      "refs": [
+        27,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <iostream>\nstruct SensorC { virtual ~SensorC()=default; virtual double leerCelsius() const=0; };\nstruct SensorAntiguo { double leerFahrenheit() const { return 86; } };\nclass Puente : public SensorC {\n    const SensorAntiguo& sensor;\npublic:\n    explicit Puente(const SensorAntiguo& s) : sensor(s) {}\n    double leerCelsius() const override { return (sensor.leerFahrenheit()-32)*5.0/9.0; }\n};\nint main() { SensorAntiguo original; Puente puente(original); const SensorC& destino=puente; std::cout << destino.leerCelsius() << '\\n'; }\n"
+    },
+    {
+      "id": "e97",
+      "level": 3,
+      "title": "Nexo en C++: seguí las suscripciones",
+      "topic": "Lectura C++",
+      "scenario": "Nexo permite a clientes suscribirse al pedido. Cada avance debe actualizar la pantalla y enviar un mail. Se desea agregar un receptor de auditoría sin cambiar el emisor, y permitir la baja de suscripciones.",
+      "prompt": "Leé el C++17 e indicá la salida. Identificá patrón y explicá qué cambia si se omite Detach antes de destruir el receptor. ¿Es seguro permitir que Update quite suscripciones durante este bucle?",
+      "solution": "Imprime Alerta 7; no Alerta 9. Observer con referencias no propietarias. Destruir un receptor sin darlo de baja deja puntero colgante. Modificar el vector durante el recorrido puede invalidar iteradores: el ejemplo lo prohíbe; habría que diseñar notificación mediante snapshot o altas/bajas diferidas.",
+      "refs": [
+        27,
+        30
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\nstruct Ialarma { virtual ~Ialarma() = default; virtual void Update(int valor) = 0; };\nclass Subject {\n    std::vector<Ialarma*> receptores; // Referencias no propietarias.\npublic:\n    void Attach(Ialarma& a) {\n        if(std::find(receptores.begin(), receptores.end(), &a) == receptores.end())\n            receptores.push_back(&a);\n    }\n    void Detach(Ialarma& a) {\n        receptores.erase(std::remove(receptores.begin(), receptores.end(), &a), receptores.end());\n    }\n    void Notify(int valor) { for(auto* a : receptores) a->Update(valor); }\n};\nstruct alarma : Ialarma {\n    void Update(int valor) override { std::cout << \"Alerta \" << valor << '\\n'; }\n};\nint main() {\n    alarma aviso; Subject emisor;\n    emisor.Attach(aviso); emisor.Notify(7);\n    emisor.Detach(aviso); emisor.Notify(9);\n    // El receptor vive hasta la baja. Update no modifica las suscripciones.\n}\n"
+    },
+    {
+      "id": "e98",
+      "level": 4,
+      "title": "DataNorte: evidencia de madurez",
+      "topic": "Casos de empresas",
+      "scenario": "DataNorte usa Git y un tablero de tareas. Cada proyecto documenta su propio proceso; algunos cumplen cronogramas, otros improvisan. No hay estándar organizacional adoptado ni datos históricos confiables. La gerencia compró un asistente de IA y afirma que alcanzó nivel 5.",
+      "prompt": "Proponé nivel probable con supuestos. Refutá o justificá la afirmación con evidencias. Diseñá tres acciones progresivas con responsables y una medida de resultado.",
+      "solution": "Nivel 2 es defendible si hay gestión repetible por proyecto; si no está demostrada, ni ese nivel está confirmado. No hay evidencia de estándar común (3), control cuantitativo (4) ni optimización causal evaluada (5). Adoptar proceso y responsables, definir/recolectar datos y baselines, pilotear IA con revisión humana y verificar mejora antes de extender. Comprar IA no certifica madurez.",
+      "refs": [
+        21,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e99",
+      "level": 4,
+      "title": "Mercado Ágil: diseñá GQM",
+      "topic": "Casos de empresas",
+      "scenario": "Mercado Ágil cerró 1000 tickets el mes pasado; 120 reabrieron. La gerencia propone cerrar más rápido, pero soporte teme respuestas incompletas. El historial del trimestre todavía no está consolidado.",
+      "prompt": "Definí un objetivo y dos preguntas GQM. Completá atributo, medidas, unidades, métrica e indicador. Calculá reaperturas y proponé cómo verificar la mejora sin sacrificar tiempos.",
+      "solution": "Objetivo: reducir retrabajo sin aumentar tiempos. Preguntas: ¿qué proporción reabre? y ¿cómo evolucionan mediana/p95 de resolución? Métrica: 120/1000×100=12 %. Medidas tickets reabiertos y cerrados, unidad tickets; atributo efectividad de resolución. Indicador compara con baseline/umbral acordado, no inferido de la foto. Consolidar períodos y definiciones, pilotear mejora y medir ambas dimensiones.",
+      "refs": [
+        18,
+        26,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e100",
+      "level": 5,
+      "title": "TecnoHogar: del caso al diseño",
+      "topic": "Integrales",
+      "scenario": "TecnoHogar vende kits de domótica para hogares y oficinas. Cada familia contiene un sensor y un controlador compatibles. El precio del servicio se calcula con una política básica o premium intercambiable. Durante la instalación, el pedido notifica cambios a mail, panel web y futuros receptores.",
+      "prompt": "Identificá tres patrones y sus participantes; construí UML integrado. Explicá creación, cálculo y aviso como responsabilidades separadas. Indicá dos decisiones que requieren reglas del negocio.",
+      "solution": "Abstract Factory crea familias Sensor/Controlador para Hogar/Oficina; Strategy calcula servicio mediante TarifaBasica/Premium; Observer comunica estado de Pedido. Selección de familia, compatibilidad efectiva, tarifa y confiabilidad de avisos requieren política explícita; los patrones no validan esos datos automáticamente.",
+      "refs": [
+        27,
+        29,
+        30
+      ],
+      "kind": "uml",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "uml": "classDiagram\nclass FabricaKit {\n  <<interface>>\n  +crearSensor() Sensor\n  +crearControlador() Controlador\n}\nclass Hogar\nclass Oficina\nFabricaKit <|.. Hogar\nFabricaKit <|.. Oficina\nclass Sensor {\n  <<interface>>\n}\nclass Controlador {\n  <<interface>>\n}\nclass SensorHogar\nclass SensorOficina\nclass ControladorHogar\nclass ControladorOficina\nSensor <|.. SensorHogar\nSensor <|.. SensorOficina\nControlador <|.. ControladorHogar\nControlador <|.. ControladorOficina\nHogar ..> SensorHogar : crea\nHogar ..> ControladorHogar : crea\nOficina ..> SensorOficina : crea\nOficina ..> ControladorOficina : crea\nFabricaKit ..> Sensor\nFabricaKit ..> Controlador\nclass Tarifa {\n  <<interface>>\n  +calcular() double\n}\nclass Basica\nclass Premium\nTarifa <|.. Basica\nTarifa <|.. Premium\nclass Servicio\nServicio --> FabricaKit\nServicio --> Tarifa\nclass Pedido {\n  +cambiarEstado() void\n  +notificar() void\n}\nclass Receptor {\n  <<interface>>\n  +actualizar(Pedido p) void\n}\nclass Mail\nclass Panel\nReceptor <|.. Mail\nReceptor <|.. Panel\nPedido --> Receptor\nServicio --> Pedido\n"
+    },
+    {
+      "id": "e101",
+      "level": 5,
+      "title": "MediaPyme: del C++ al UML",
+      "topic": "Integrales",
+      "scenario": "MediaPyme necesita ofrecer a su web una operación de preparación de videos. El ejemplo provisto es una simulación del flujo y no usa servicios externos.",
+      "prompt": "Leé el C++17, reconocé el patrón y representá sus participantes en UML con nombres del código. Explicá el orden de llamadas y una estrategia de manejo de fallos; no escribas C++.",
+      "solution": "Facade: Cliente usa YouTubeDownloader, que coordina YouTube, FFMpeg y FFMpegVideo. Primero título/temporal, después apertura, tamaño, preview y exportación. Se necesitan errores claros, limpieza de temporales y política de reintentos; la simulación no implementa esos mecanismos.",
+      "refs": [
+        30,
+        31
+      ],
+      "kind": "uml",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <iostream>\n#include <string>\n// Simulación didáctica: no descarga ni procesa archivos reales.\nstruct YouTube {\n    std::string fetchVideo(const std::string&) { return \"demo\"; }\n    void saveAs(const std::string&) { std::cout << \"Guardar temporal\\n\"; }\n};\nstruct FFMpegVideo {\n    void resize(int, int) { std::cout << \"Redimensionar\\n\"; }\n    void frame(int) { std::cout << \"Capturar preview\\n\"; }\n    void save(const std::string& formato) { std::cout << \"Exportar \" << formato << '\\n'; }\n};\nstruct FFMpeg { FFMpegVideo open(const std::string&) { return {}; } };\nclass YouTubeDownloader {\n    YouTube youtube;\n    FFMpeg ffmpeg;\npublic:\n    void downloadVideo(const std::string& url) {\n        auto titulo = youtube.fetchVideo(url);\n        youtube.saveAs(\"video.mpg\");\n        auto video = ffmpeg.open(\"video.mpg\");\n        video.resize(320,240); video.frame(10);\n        video.save(titulo+\".mp4\"); video.save(titulo+\".wmv\"); video.save(titulo+\".webm\");\n    }\n};\nint main() { YouTubeDownloader api; api.downloadVideo(\"video-de-ejemplo\"); }\n",
+      "uml": "classDiagram\nclass Cliente\nclass YouTubeDownloader {\n  +downloadVideo(String url) void\n}\nclass YouTube {\n  +fetchVideo(String url) String\n  +saveAs(String path) void\n}\nclass FFMpeg {\n  +open(String path) FFMpegVideo\n}\nclass FFMpegVideo {\n  +resize(int w, int h) void\n  +frame(int seconds) void\n  +save(String formato) void\n}\nCliente --> YouTubeDownloader\nYouTubeDownloader --> YouTube\nYouTubeDownloader --> FFMpeg\nYouTubeDownloader --> FFMpegVideo\nFFMpeg ..> FFMpegVideo : devuelve\n"
+    },
+    {
+      "id": "e102",
+      "level": 5,
+      "title": "NovaSoft: calidad y entrega",
+      "topic": "Integrales",
+      "scenario": "NovaSoft aplica un proceso común en todos sus equipos, con adaptación documentada y auditorías de cumplimiento. Recién empieza a registrar tiempos de revisión; no usa modelos ni rangos cuantitativos. Quiere entregar una mejora desarrollada en develop y validada antes de integrar en main.",
+      "prompt": "Argumentá madurez probable, diseñá GQM para revisión de código y proponé una mejora con IA medible. Describí workflow Git con supuestos, comprobaciones y manejo de conflictos.",
+      "solution": "Nivel 3 probable por estándar adoptado; recolectar tiempos no prueba nivel 4. GQM: reducir espera sin aumentar defectos, medir mediana/p95 y defectos escapados. IA como ayuda con revisión humana y piloto comparado. Git: revisar y registrar cambios en develop, fetch/integrar remoto y probar, publicar develop, actualizar main, integrar según política/PR, probar/publicar, sincronizar develop. Detenerse ante fallos y resolver conflictos; no asumir permiso de push a ramas protegidas.",
+      "refs": [
+        9,
+        21,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial."
+    },
+    {
+      "id": "e103",
+      "level": 3,
+      "title": "Taller en C++: quién decide qué crear",
+      "topic": "Lectura C++",
+      "scenario": "La empresa Taller usa una operación producir() común, pero cada taller fabrica un tipo de mueble distinto.",
+      "prompt": "Leé C++17. Indicá salidas y roles. Identificá dónde se decide la clase concreta y explicá por qué el ejemplo no demuestra una familia de productos compatibles.",
+      "solution": "Factory Method: Taller creador, crear método fábrica, TallerSillas/TallerMesas creadores concretos, Mueble producto y Silla/Mesa concretos. Salidas Silla y Mesa. producir usa el producto devuelto por el método virtual; no ofrece un conjunto de tipos de producto como una Abstract Factory.",
+      "refs": [
+        27,
+        30
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <iostream>\n#include <memory>\nstruct Mueble { virtual ~Mueble()=default; virtual void fabricar() const=0; };\nstruct Silla : Mueble { void fabricar() const override { std::cout << \"Silla\\n\"; } };\nstruct Mesa : Mueble { void fabricar() const override { std::cout << \"Mesa\\n\"; } };\nclass Taller {\nprotected: virtual std::unique_ptr<Mueble> crear() const=0;\npublic:\n    virtual ~Taller()=default;\n    void producir() const { auto mueble=crear(); mueble->fabricar(); }\n};\nstruct TallerSillas : Taller { std::unique_ptr<Mueble> crear() const override { return std::make_unique<Silla>(); } };\nstruct TallerMesas : Taller { std::unique_ptr<Mueble> crear() const override { return std::make_unique<Mesa>(); } };\nint main() { TallerSillas sillas; TallerMesas mesas; sillas.producir(); mesas.producir(); }\n"
+    },
+    {
+      "id": "e104",
+      "level": 3,
+      "title": "ZenUI en C++: no mezcles familias",
+      "topic": "Lectura C++",
+      "scenario": "ZenUI construye pantallas web y PC manteniendo compatibles botones y campos de cada plataforma.",
+      "prompt": "Leé C++17. Indicá ambas salidas, los dos tipos de producto y sus familias. Explicá qué contratos cambian si se agrega Checkbox, y cuáles si se agrega una plataforma móvil.",
+      "solution": "Abstract Factory: FabricaUI produce Boton y Campo. Web crea BotonWeb/CampoWeb y PC BotonPC/CampoPC. Imprime web web y pc pc. Checkbox exige agregar otro producto abstracto, método de fábrica e implementaciones en todas las familias; móvil agrega una fábrica concreta y los productos existentes de esa familia sin cambiar FabricaUI.",
+      "refs": [
+        27,
+        29
+      ],
+      "kind": "open",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "code": "#include <iostream>\n#include <memory>\nstruct Boton { virtual ~Boton()=default; virtual const char* plataforma() const=0; };\nstruct Campo { virtual ~Campo()=default; virtual const char* plataforma() const=0; };\nstruct BotonWeb : Boton { const char* plataforma() const override { return \"web\"; } };\nstruct CampoWeb : Campo { const char* plataforma() const override { return \"web\"; } };\nstruct BotonPC : Boton { const char* plataforma() const override { return \"pc\"; } };\nstruct CampoPC : Campo { const char* plataforma() const override { return \"pc\"; } };\nstruct FabricaUI {\n    virtual ~FabricaUI()=default;\n    virtual std::unique_ptr<Boton> boton() const=0;\n    virtual std::unique_ptr<Campo> campo() const=0;\n};\nstruct Web : FabricaUI {\n    std::unique_ptr<Boton> boton() const override { return std::make_unique<BotonWeb>(); }\n    std::unique_ptr<Campo> campo() const override { return std::make_unique<CampoWeb>(); }\n};\nstruct PC : FabricaUI {\n    std::unique_ptr<Boton> boton() const override { return std::make_unique<BotonPC>(); }\n    std::unique_ptr<Campo> campo() const override { return std::make_unique<CampoPC>(); }\n};\nvoid pantalla(const FabricaUI& fabrica) {\n    auto b=fabrica.boton(); auto c=fabrica.campo();\n    std::cout << b->plataforma() << ' ' << c->plataforma() << '\\n';\n}\nint main() { Web web; PC pc; pantalla(web); pantalla(pc); }\n"
+    },
+    {
+      "id": "e105",
+      "level": 5,
+      "title": "SoftMetrics: familias e integración",
+      "topic": "Integrales",
+      "scenario": "SoftMetrics desarrolla aplicaciones web y empresariales con POO. Utiliza Git y Jira; los equipos tienen un proceso documentado pero lo aplican con distinta rigurosidad. No mide cuantitativamente desempeño ni cumplimiento; las revisiones manuales dependen de la experiencia del revisor. Quiere usar IA para sugerir código y detectar errores, pero todavía no dispone de análisis predictivo ni optimización formal de procesos. También necesita crear familias compatibles de objetos e integrar módulos con interfaces incompatibles.",
+      "prompt": "Concentrate en los dos requisitos de diseño del caso. Creá UML para familias de objetos compatibles y para un módulo legado incompatible. Nombrá todos los roles, justificá los patrones y explicá qué datos necesitás confirmar con la empresa.",
+      "solution": "Abstract Factory para familias compatibles; Adapter para integrar un contrato diferente. Ejemplo asumido: familias de UI Web/PC y módulo Legacy que expone enviarCSV, frente al contrato Exportador.exportar. El adaptador traduce datos y llamada, sin inventar capacidades del legado. Confirmar tipos de productos, compatibilidad, formatos y errores; son supuestos didácticos y no datos dados por el examen.",
+      "refs": [
+        29
+      ],
+      "kind": "uml",
+      "hints": [
+        "Separá los requisitos: ¿qué cambia, quién delega y qué contrato necesita el cliente?",
+        "Asigná participantes concretos y justificá cada relación con una frase del caso."
+      ],
+      "rubric": [
+        "Usé evidencias concretas de la actividad y declaré mis supuestos.",
+        "Identifiqué roles, responsabilidades y límites de la solución.",
+        "Justifiqué la respuesta y expliqué una alternativa o una prueba de mi interpretación."
+      ],
+      "provenance": "Actividad nueva de entrenamiento inspirada en los formatos de los parciales; no es una consigna ni solución oficial.",
+      "uml": "classDiagram\nclass FabricaUI {\n  <<interface>>\n  +crearBoton() Boton\n  +crearCampo() Campo\n}\nclass FabricaWeb\nclass FabricaPC\nFabricaUI <|.. FabricaWeb\nFabricaUI <|.. FabricaPC\nclass Boton {\n  <<interface>>\n}\nclass Campo {\n  <<interface>>\n}\nclass BotonWeb\nclass BotonPC\nclass CampoWeb\nclass CampoPC\nBoton <|.. BotonWeb\nBoton <|.. BotonPC\nCampo <|.. CampoWeb\nCampo <|.. CampoPC\nFabricaWeb ..> BotonWeb : crea\nFabricaWeb ..> CampoWeb : crea\nFabricaPC ..> BotonPC : crea\nFabricaPC ..> CampoPC : crea\nclass Pantalla\nPantalla --> FabricaUI\nPantalla --> Boton\nPantalla --> Campo\nclass Exportador {\n  <<interface>>\n  +exportar() void\n}\nclass Legacy {\n  +enviarCSV() void\n}\nclass PuenteLegacy {\n  +exportar() void\n}\nExportador <|.. PuenteLegacy\nPuenteLegacy --> Legacy : traduce\nclass Aplicacion\nAplicacion --> Exportador\n"
+    }
+  ],
+  "examSets": [
+    {
+      "id": "empresas",
+      "title": "Casos de empresas: reconocer y modelar",
+      "minutes": 70,
+      "exerciseTitles": [
+        "RutaSur: elegí cómo cotizar",
+        "SaludUI: familias compatibles",
+        "Clínica Delta: sistema legado",
+        "Fábrica Nexo: seguimiento del pedido",
+        "RutaSur: diseñá la cotización",
+        "SaludUI: creá las dos familias",
+        "Hotel Atlas: una reserva completa"
+      ]
+    },
+    {
+      "id": "lectura-cpp",
+      "title": "Lectura de C++: patrones y ejecución",
+      "minutes": 60,
+      "exerciseTitles": [
+        "RutaSur en C++: seguí los precios",
+        "BioLab en C++: recorré el árbol",
+        "Clínica Delta en C++: verificá la unidad",
+        "Nexo en C++: seguí las suscripciones",
+        "Taller en C++: quién decide qué crear",
+        "ZenUI en C++: no mezcles familias"
+      ]
+    },
+    {
+      "id": "empresa-integral",
+      "title": "Empresa integral: diseño, calidad y procesos",
+      "minutes": 90,
+      "exerciseTitles": [
+        "DataNorte: evidencia de madurez",
+        "Mercado Ágil: diseñá GQM",
+        "TecnoHogar: del caso al diseño",
+        "MediaPyme: del C++ al UML",
+        "NovaSoft: calidad y entrega"
+      ]
+    }
+  ],
+  "examOverrides": {
+    "2024": {
+      "exerciseTitles": [
+        "Alarmas y sensores compuestos",
+        "Configuración global",
+        "Farmacia y lotes impresos"
+      ]
+    },
+    "2025": {
+      "exerciseTitles": [
+        "Muebles Express del parcial",
+        "YouTubeDownloader",
+        "SoftMetrics razonado",
+        "Workflow del parcial",
+        "SoftMetrics: familias e integración",
+        "GQM y mesa de ayuda"
+      ]
+    }
+  }
+}

@@ -1,11 +1,39 @@
 import content from "./study-data.json";
+import visualContent from "./study-visuals.json";
+import examContent from "./study-exams.json";
 import { z } from "zod";
+import type { Diagram } from "./diagrams";
 
-export type Section = { title: string; text?: string; items?: string[]; table?: string[][]; code?: string };
+export type StudyVisual = { id: string; title: string; type: Diagram["type"]; source: string; caption: string; reading: string[]; steps: { title: string; text: string; focus?: string }[] };
+export type Section = { title: string; text?: string; items?: string[]; table?: string[][]; code?: string; visuals?: StudyVisual[]; patterns?: string[] };
 export type Lesson = { id: string; title: string; lead: string; refs: number[]; sections: Section[] };
-export type Pattern = { id: string; name: string; family: string; purpose: string; signal: string; roles: string; example: string; benefit: string; cost: string; error: string; refs: number[]; uml: string };
-export type Exercise = { id: string; level: number; title: string; topic: string; prompt: string; solution: string; refs: number[]; kind: string; choices?: string[]; answer?: number; expected?: number; hints: string[]; uml?: string; rubric: string[] };
-export const STUDY = content as typeof content & { lessons: Lesson[]; patterns: Pattern[]; exercises: Exercise[] };
+export type Pattern = { id: string; name: string; family: string; purpose: string; signal: string; roles: string; example: string; benefit: string; cost: string; error: string; refs: number[]; uml: string; visuals: StudyVisual[]; check: { question: string; answer: string } };
+export type Exercise = { id: string; level: number; title: string; topic: string; scenario?: string; prompt: string; code?: string; provenance?: string; solution: string; refs: number[]; kind: string; choices?: string[]; answer?: number; expected?: number; hints: string[]; uml?: string | null; diagramType?: Diagram["type"]; starter?: string; rubric: string[] };
+export type StudySource = { id: number; name: string; pages: number; url: string; format?: "image" };
+export type ExamSet = { id: string; title: string; minutes: number; exerciseTitles: string[] };
+const additions = visualContent as {
+  source: { id: number; name: string; pages: number; url: string };
+  patterns: Record<string, { structure: Omit<StudyVisual, "source" | "type">; sequence: StudyVisual; check: Pattern["check"] }>;
+  lessons: Record<string, Section[]>;
+  exercises: Exercise[];
+};
+const exams = examContent as {
+  sources: StudySource[]; overrides: Record<string, Partial<Exercise>>;
+  exercises: Exercise[]; examSets: ExamSet[]; examOverrides: Record<string, Partial<ExamSet>>;
+};
+export const STUDY = {
+  ...content,
+  sources: [...content.sources, additions.source, ...exams.sources],
+  sourceCount: content.sourceCount + 1 + exams.sources.length,
+  pdfPages: content.pdfPages + additions.source.pages,
+  lessons: content.lessons.map(lesson => ({ ...lesson, refs: additions.lessons[lesson.id] ? [...lesson.refs, additions.source.id] : lesson.refs, sections: [...lesson.sections, ...(additions.lessons[lesson.id] || [])] })),
+  patterns: content.patterns.map(pattern => {
+    const extra = additions.patterns[pattern.id];
+    return { ...pattern, refs: [...pattern.refs, additions.source.id], visuals: [{ ...extra.structure, type: "class", source: pattern.uml }, extra.sequence], check: extra.check };
+  }),
+  exercises: [...content.exercises.map(exercise => ({ ...exercise, ...exams.overrides[exercise.id], id: exercise.id })), ...additions.exercises, ...exams.exercises],
+  examSets: [...content.examSets.map(exam => ({ ...exam, ...exams.examOverrides[exam.id], id: exam.id })), ...exams.examSets],
+} as Omit<typeof content, "lessons" | "patterns" | "exercises" | "sources" | "examSets"> & { lessons: Lesson[]; patterns: Pattern[]; exercises: Exercise[]; sources: StudySource[]; examSets: ExamSet[] };
 export const ENTRY_SCHEMA = z.object({
   answer: z.string().max(30000).default(""), draft: z.string().max(80000).default(""),
   attempts: z.number().int().min(0).max(100000).default(0), done: z.boolean().default(false),
@@ -47,5 +75,6 @@ export function completion(p: Progress) {
   return { done, total: STUDY.exercises.length, xp: done * 25, percent: Math.round(done / STUDY.exercises.length * 100) };
 }
 export function starter(exercise: Exercise) {
+  if (exercise.starter) return exercise.starter;
   return `classDiagram\ndirection TB\n%% ${exercise.title}\n%% Agregá las clases, sus miembros y relaciones.\n`;
 }

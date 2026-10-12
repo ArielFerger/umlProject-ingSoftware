@@ -18,7 +18,7 @@ let renderQueue: Promise<unknown> = Promise.resolve();
 export type SvgResult = { svg: string; width: number; height: number };
 type Drag = { kind: "node" | "pan" | "edge"; name?: string; x: number; y: number; start: Point; moved: boolean; edgeId?: string; handle?: string; next?: CanvasSettings };
 
-export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest }: {
+export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable" }: {
   diagram: Diagram; onRendered: (result: SvgResult | null) => void; onClassClick: (name: string) => void;
   onSettingsChange: (settings: CanvasSettings) => void;
   onConnect: (from: string, to: string, kind: RelationKind, positions: Record<string, Point>) => void;
@@ -28,6 +28,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   onSelectionChange?: (name: string) => void;
   inspectorOpen?: boolean;
   insertRequest?: { serial: number; kind: string };
+  initialFit?: "readable" | "contain";
 }) {
   const { isDark } = useAppTheme();
   const dark = diagram.theme === "dark" || (diagram.theme === "studio" && isDark);
@@ -42,6 +43,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [busy, setBusy] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const viewState = useRef({ zoom, pan });
+  viewState.current = { zoom, pan };
   const [mode, setMode] = useState<"move" | "connect">("move");
   const [relationKind, setRelationKind] = useState<RelationKind>("-->");
   const [origin, setOrigin] = useState("");
@@ -76,7 +79,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const nodesInSource = useMemo(() => visualNodes(diagram.source, diagram.type), [diagram.source, diagram.type]);
   const availableRelations = isClass ? RELATIONS : VISUAL_RELATIONS[diagram.type] || [];
   const activeKind = isClass ? relationKind : visualKind || availableRelations[0]?.value || "-->";
-  const selection = isClass ? selectedNode : localSelection;
+  const selection = selectedNode;
   const root = () => art.current?.querySelector<SVGSVGElement>("svg") || null;
   useEffect(() => {
     if (!insertRequest || !onSourceChange || isClass) return;
@@ -205,8 +208,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         }
       }
     }
-    if (fittedId.current !== diagram.id) { fittedId.current = diagram.id; fit(true); }
-  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence]);
+    if (fittedId.current !== diagram.id) { fittedId.current = diagram.id; fit(initialFit === "readable"); }
+  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit]);
 
   useEffect(() => {
     setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = "";
@@ -231,9 +234,36 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => { setSelectedEdge(""); setHoveredEdge(""); }, [content]);
   useEffect(() => {
     if (!viewport.current) return;
-    const observer = new ResizeObserver(() => { if (root()) fit(true); });
+    const observer = new ResizeObserver(() => { if (root()) fit(initialFit === "readable"); });
     observer.observe(viewport.current); return () => observer.disconnect();
-  }, [fit]);
+  }, [fit, initialFit]);
+
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el || busy || error) return;
+    const wheel = (event: WheelEvent) => {
+      if (!art.current?.querySelector("svg") || !event.deltaY) return;
+      if (event.target instanceof Element && event.target.closest("button,input,select,textarea,.zoom-toolbar,.error-panel")) return;
+      event.preventDefault();
+      if (drag.current) return;
+      // Normalize mouse notches and trackpad deltas; preserve the point under
+      // the cursor rather than zooming around the middle of the canvas.
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? el.clientHeight : 1);
+      const current = viewState.current;
+      const nextZoom = Math.min(4, Math.max(.1, current.zoom * Math.exp(-Math.max(-100, Math.min(100, delta)) * .0025)));
+      const ratio = nextZoom / current.zoom;
+      const box = el.getBoundingClientRect();
+      const x = event.clientX - box.left - el.clientWidth / 2;
+      const y = event.clientY - box.top - el.clientHeight / 2;
+      const nextPan = { x: x - (x - current.pan.x) * ratio, y: y - (y - current.pan.y) * ratio };
+      viewState.current = { zoom: nextZoom, pan: nextPan };
+      setZoom(nextZoom); setPan(nextPan);
+    };
+    // React's delegated wheel listener is passive, so use a local listener to
+    // stop page/browser scrolling only while the gesture belongs to the canvas.
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => el.removeEventListener("wheel", wheel);
+  }, [busy, error]);
 
   function setSelectedNode(name: string) { if (name) setSelectedEdge(""); setLocalSelection(name); callbacks.current.onSelectionChange?.(name); }
   function selectEdge(id: string) {
@@ -517,13 +547,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
         }
       }}
-      onWheel={e => { if (e.ctrlKey || e.metaKey) changeZoom(e.deltaY < 0 ? .1 : -.1); }}>
+      >
       {result && <div ref={art} className={"diagram-art " + (error ? "invalid-art" : "")}
         style={{ width: result.width, height: result.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, "--edge-emphasis-width": `${settings.lineWidth + 1.5}px` } as React.CSSProperties}
         dangerouslySetInnerHTML={markup} />}
       {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
       {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-      {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">{isSequence ? "Arrastrá participantes para reordenarlos · conectá origen y destino para crear mensajes" : "Arrastrá elementos · doble clic para editar · conectá origen y destino"}</span></span>}
+      {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">{!onSourceChange ? "Referencia · seleccioná elementos · ruedita para acercar o alejar" : isSequence ? "Ruedita para zoom · arrastrá participantes · conectá origen y destino" : "Ruedita para zoom · arrastrá elementos · doble clic para editar"}</span></span>}
       {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
       <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
         <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>

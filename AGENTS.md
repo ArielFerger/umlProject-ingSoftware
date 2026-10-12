@@ -18,7 +18,9 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 - Sequence dragging reorders participant declarations only; preserve message order and grouped participants. All seven diagram families share the editor history. Complex source structures must fail safely rather than drop unrelated declarations.
 - `components/study.tsx`, `app/estudio/`, `app/study.css`: IS II theory, exercises, study progress and mock exams.
 - `lib/study-data.json`: course content derived from Ariel's 25 documents; `public/estudio/` retains the originals and downloadable summary.
+- `lib/study-visuals.json`, `components/study-visual.tsx`: additions from the supplied 36-page summary (`public/estudio/fuentes/27.pdf`), guided pattern structures/sequences and theory maps. Keep original exercise IDs and source references; scope editable-copy IDs to the study owner and reopen without overwriting changes. `Exercise.diagramType` and `starter` preserve sequence diagrams in drafts, solutions and editor transfer.
 - `lib/study.ts`: validated browser-local progress, scoped using the authenticated owner returned by `/api/study-profile`.
+- `lib/study-exams.json`: exam-image sources, overrides preserving existing exercise IDs, company cases and C++17 readings. C++ is read-only: students answer in prose or UML, never in a C++ editor. `lib/study-correction.ts` copies the task and actual student answer/draft, never the reference solution or answer key. Preserve clipboard recovery and the active mock-exam restriction.
 - `db/schema.ts` and `drizzle/`: schema and generated migrations.
 
 Keep the interface in Spanish. Use Mermaid as the canonical diagram engine. Use lucide-react icons. Check types with `node node_modules/typescript/bin/tsc --noEmit` and follow Sites skills for publication.
