@@ -87,3 +87,4 @@
 @media(max-width:760px){.study-paper{margin-top:20px}.study-paper-questions{padding-left:20px}.study-paper-questions>li{padding-left:4px}.study-paper-answer-actions>.btn{width:100%;white-space:normal}.study-paper-header>div{gap:12px}.study-paper-header .study-text-btn{overflow-wrap:anywhere;white-space:normal}.study-paper-card-actions .btn{flex:1 1 auto}}
 @media print{.study-paper-back,.study-paper-answer,.study-paper-header>div,.study-paper .study-correction{display:none!important}.study-paper{max-width:none}.study-paper-questions>li{break-inside:auto}.study-paper .study-code-reading pre{max-height:none;overflow:visible;white-space:pre-wrap}}
 @media(max-width:600px){.study-company-case{padding:20px}.study-code-reading pre{padding:16px;max-height:430px}.study-correction{gap:16px}.study-correction>.btn{width:100%;justify-content:center}}
+.study-choice-link{margin-top:18px}

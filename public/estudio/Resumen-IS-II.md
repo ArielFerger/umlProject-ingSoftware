@@ -1,7 +1,7 @@
 # Ingeniería de Software II
 Resumen para estudiar teoría y resolver la práctica
 
-Material de base y ampliaciones: 30 documentos, 219 páginas PDF, 3 archivos Word y 4 imágenes de parciales. Las soluciones son propuestas didácticas elaboradas para estudiar, no un solucionario oficial. Las referencias de páginas PDF cuentan desde la primera hoja del archivo.
+Material de base y ampliaciones: 31 documentos, 255 páginas PDF (incluidas ambas versiones aportadas del resumen), 3 archivos Word y 4 imágenes de parciales. Las soluciones son propuestas didácticas elaboradas para estudiar, no un solucionario oficial. Las referencias de páginas PDF cuentan desde la primera hoja del archivo.
 
 ## Cómo usarlo
 1. Leé Fundamentos y UML.
@@ -20,9 +20,15 @@ La vista histórica mantiene el lenguaje y el texto de las hojas, incluidos PHP 
 
 Estudio incorpora las imágenes de los parciales de 2024 y del 8 de octubre de 2025, con adaptaciones de sensores, farmacia, Muebles Express y SoftMetrics. Los originales se conservan en Material original. Los textos de empresa se trabajan separando requisitos, participantes, responsabilidades y consecuencias de cada decisión; no basta con enumerar patrones.
 
-Las 16 actividades con código usan C++17 para **leer y analizar**, incluso las versiones de ejemplos originalmente escritos en PHP, C# o Eiffel. No tenés que escribir ni ejecutar C++ en la aplicación. Identificá el patrón y sus roles, seguí llamadas y salida, revisá vida útil y supuestos y explicá cómo se relacionan con el caso. Cuando se pide diseñar, respondé con texto o con el motor UML.
+Las 19 actividades de entrenamiento con código usan C++17 para **leer y analizar**, incluso las versiones de ejemplos originalmente escritos en PHP, C# o Eiffel. No tenés que escribir ni ejecutar C++ en la aplicación. Identificá el patrón y sus roles, seguí llamadas y salida, revisá vida útil y supuestos y explicá cómo se relacionan con el caso. Cuando se pide diseñar, respondé con texto o con el motor UML.
 
-Hay 19 actividades nuevas de empresas y lectura de código; el recorrido tiene 105 desafíos y 6 simulacros. Se conservan los identificadores de ejercicios anteriores, sus respuestas y progreso. Los simulacros usan tiempos propuestos para entrenar, no duraciones oficiales.
+La ampliación de casos incorporó 19 actividades de empresas y lectura de código. Con las preguntas de opción múltiple, el recorrido tiene 155 desafíos, dos parciales originales y cuatro simulacros de práctica adicional. Se conservan los identificadores de ejercicios anteriores, sus respuestas y progreso. Los simulacros usan tiempos propuestos para entrenar, no duraciones oficiales.
+
+### Elegir la respuesta correcta
+
+El acceso **Elegir la respuesta correcta** abre práctica de opción múltiple. Se añadieron 50 preguntas (10 por nivel) basadas en el resumen y en necesidades de los parciales: patrones y roles, lectura de C++, calidad, mejora de procesos, CMMI, Git, métricas y casos de Muebles Express, SoftMetrics, farmacia y sensores. El recorrido completo tiene 155 ejercicios; 74 son de opción múltiple. Estas preguntas son entrenamiento adicional, no reemplazos de los exámenes históricos.
+
+Elegí una de cuatro opciones y pulsá Comprobar respuesta. Si es correcta, se explica la solución y se registra el avance. Si no, se explica el distractor elegido y podés volver a intentar; también podés consultar la guía. Usá Tipo de actividad, nivel, tema y Solo para repasar para concentrarte en lo que necesites. En este modo, Siguiente desafío continúa con otra pregunta de opción múltiple. Los tres ejemplos C++ nuevos son de lectura, sin editor de C++.
 
 ### Corregir tu respuesta con una IA
 

@@ -5,10 +5,11 @@ import { readFileSync, existsSync } from "node:fs";
 const base = JSON.parse(readFileSync(new URL("../lib/study-data.json", import.meta.url), "utf8"));
 const extra = JSON.parse(readFileSync(new URL("../lib/study-visuals.json", import.meta.url), "utf8"));
 const exams = JSON.parse(readFileSync(new URL("../lib/study-exams.json", import.meta.url), "utf8"));
+const choices = JSON.parse(readFileSync(new URL("../lib/study-choice.json", import.meta.url), "utf8"));
 
 test("visual study additions preserve stable exercise IDs and valid source references", () => {
-  const exercises = [...base.exercises.map(exercise => ({ ...exercise, ...exams.overrides[exercise.id], id: exercise.id })), ...extra.exercises, ...exams.exercises];
-  const sources = new Set([...base.sources, extra.source, ...exams.sources].map(source => source.id));
+  const exercises = [...base.exercises.map(exercise => ({ ...exercise, ...exams.overrides[exercise.id], id: exercise.id })), ...extra.exercises, ...exams.exercises, ...choices.exercises];
+  const sources = new Set([...base.sources, extra.source, ...exams.sources, choices.source].map(source => source.id));
   assert.equal(new Set(exercises.map(exercise => exercise.id)).size, exercises.length);
   assert.ok(existsSync(new URL("../public" + extra.source.url, import.meta.url)));
   for (const exercise of exercises) {

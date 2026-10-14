@@ -10,9 +10,9 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 
 - Editor Mermaid para clases, secuencia, estados, actividades, casos de uso, componentes y entidad-relación: formularios, edición por código, movimiento, conexiones con el mouse, menú con click derecho, deshacer/rehacer e importación/exportación.
 - Animaciones y controles adaptados a pantallas pequeñas, teclado y preferencias de movimiento reducido.
-- 17 temas de teoría, 8 fichas de patrones con estructura y secuencia y 105 ejercicios distribuidos en 5 niveles. Dos parciales originales por año y cuatro simulacros de práctica adicional; 16 actividades de entrenamiento incluyen C++17 de solo lectura y análisis.
+- 17 temas de teoría, 8 fichas de patrones con estructura y secuencia y 155 ejercicios distribuidos en 5 niveles. Dos parciales originales por año y cuatro simulacros de práctica adicional; 19 actividades de entrenamiento incluyen C++17 de solo lectura y análisis.
 - 23 diagramas guiados para aprender: 16 vistas de patrones y 7 mapas de familias, calidad, mejora de procesos, CMMI, cambios, Git y GQM. Pasos con selección de participantes, lectura de flechas, preguntas de comprensión y copias editables en el mismo motor Mermaid.
-- Resumen descargable ampliado y 30 documentos originales, incluido el resumen de 36 páginas y cuatro imágenes de parciales 2024/2025, en `public/estudio/`.
+- Resumen descargable ampliado y 31 documentos originales, incluidas las dos versiones aportadas del resumen de 36 páginas y cuatro imágenes de parciales 2024/2025, en `public/estudio/`.
 - Progreso de estudio guardado en el navegador y diagramas guardados por usuario en D1.
 - Las copias de referencia se crean al pulsar **Abrir copia editable**; volver a abrirlas conserva las modificaciones. Las prácticas de secuencia permiten código, mensajes origen → destino y formularios, con soluciones orientativas y rúbrica de autoevaluación.
 - Git Lab con Working directory, Staging area, historial local y remoto, consola simulada, siete ejercicios, repositorios vacíos y práctica libre.
@@ -24,6 +24,8 @@ Las respuestas de opción múltiple y numéricas tienen corrección automática.
 **Copiar y corregir** prepara un texto con consigna, caso o C++ provisto, respuesta del estudiante, borrador Mermaid y criterios para pegar en la IA elegida. No incluye la solución de referencia ni envía información a servicios externos. Si el portapapeles falla, ofrece selección manual y descarga de texto. Durante un simulacro queda disponible al finalizar. Las versiones de C++ son adaptaciones didácticas para leer; no hay un editor ni ejecución de C++ en la app. Se mantienen los identificadores y borradores de ejercicios previos.
 
 **Parciales por año** conserva la consigna y el enunciado completos, en orden y en una sola página: `/estudio?parcial=2025` muestra Teoría 1–5 con puntajes, seguida de Práctica 1–2; `/estudio?parcial=2024` contiene las cuatro preguntas del Word original y la foto. Se preservan el PHP y las referencias a Eiffel de las hojas históricas; las versiones en C++ y ejercicios ampliados se abren como práctica adicional. Las respuestas de los parciales tienen IDs propios y se guardan/importan/exportan sin sobrescribir el trabajo previo de entrenamiento. Se puede copiar una respuesta o el parcial completo para corrección. El tiempo propuesto es de entrenamiento, no una duración oficial.
+
+**Elegir la respuesta correcta** abre `/estudio?modo=opciones`. Incluye 50 nuevas preguntas del resumen y casos de parciales (10 por nivel), para 74 actividades de opción múltiple en total. Cada pregunta nueva tiene cuatro opciones, explicación de la correcta y una explicación específica de cada distractor. Tras una elección incorrecta se explica por qué no encaja, sin marcar el ejercicio como completado. El filtro de tipo permite combinar formato, tema, nivel y pendientes de repaso; Siguiente desafío permanece en opción múltiple mientras ese modo esté seleccionado. Las posiciones de respuestas correctas están distribuidas. Se conservan todos los IDs y el progreso previo; los parciales originales no se modifican.
 
 ## Ejecutar en tu computadora
 

@@ -1,0 +1,1538 @@
+{
+  "source": {
+    "id": 32,
+    "name": "Copia de Resumen IS2 Parcial 2.pdf",
+    "pages": 36,
+    "url": "/estudio/fuentes/32.pdf"
+  },
+  "exercises": [
+    {
+      "id": "e106",
+      "level": 1,
+      "title": "Un patrón necesita contexto",
+      "topic": "Fundamentos",
+      "kind": "choice",
+      "prompt": "Un equipo copia una estructura de clases porque reconoce su nombre, pero no puede explicar qué problema resuelve. ¿Qué criterio de uso del resumen debería aplicar?",
+      "choices": [
+        "Justificar el propósito y adaptar la solución al problema concreto.",
+        "Usar siempre todos los patrones del catálogo.",
+        "Copiar las clases exactamente, aunque cambien los requisitos.",
+        "Elegir el patrón que tenga más clases."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "Un patrón expresa una solución recurrente con propósito, participantes y consecuencias. Hay que justificarlo y adaptarlo; copiar una estructura por su nombre no alcanza.",
+        "Agregar patrones sin necesidad puede aumentar el acoplamiento y la complejidad.",
+        "La estructura se adapta al contexto; los nombres o clases de un ejemplo no son requisitos universales.",
+        "La cantidad de clases no demuestra que un diseño resuelva el problema."
+      ],
+      "solution": "Un patrón expresa una solución recurrente con propósito, participantes y consecuencias. Hay que justificarlo y adaptarlo; copiar una estructura por su nombre no alcanza.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 1–3."
+    },
+    {
+      "id": "e107",
+      "level": 1,
+      "title": "La familia de los creadores",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "¿Cuál de estos conjuntos contiene únicamente patrones creacionales desarrollados en el resumen?",
+      "choices": [
+        "Adapter, Composite y Facade.",
+        "Singleton, Factory Method y Abstract Factory.",
+        "Observer, Strategy y Singleton.",
+        "Composite, Factory Method y Observer."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "Esos tres patrones son estructurales: tratan colaboración, composición y simplificación.",
+        "Singleton, Factory Method y Abstract Factory pertenecen a la familia creacional. Adapter/Composite/Facade son estructurales y Observer/Strategy son de comportamiento.",
+        "Observer y Strategy son de comportamiento; Singleton es creacional.",
+        "El conjunto mezcla un patrón estructural, uno creacional y uno de comportamiento."
+      ],
+      "solution": "Singleton, Factory Method y Abstract Factory pertenecen a la familia creacional. Adapter/Composite/Facade son estructurales y Observer/Strategy son de comportamiento.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 3–9."
+    },
+    {
+      "id": "e108",
+      "level": 1,
+      "title": "Productos abstractos en una fábrica",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Una pantalla usa una fábrica abstracta para obtener un botón y un campo. ¿De qué deberían depender sus variables al utilizar los productos?",
+      "choices": [
+        "De los contratos Boton y Campo, sin exigir clases concretas de una plataforma.",
+        "Solo de BotonWeb y CampoWeb.",
+        "Del nombre del archivo que contiene cada clase.",
+        "De una lista de cadenas sin operaciones de producto."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "Abstract Factory devuelve productos mediante contratos abstractos. La fábrica concreta decide sus implementaciones; el cliente usa las interfaces de producto.",
+        "Eso liga el cliente a la variante web y dificulta usar otra familia.",
+        "Los nombres de archivos no reemplazan los contratos de los productos.",
+        "El cliente necesita operaciones comunes para usar los productos, no solo nombres."
+      ],
+      "solution": "Abstract Factory devuelve productos mediante contratos abstractos. La fábrica concreta decide sus implementaciones; el cliente usa las interfaces de producto.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 5–7."
+    },
+    {
+      "id": "e109",
+      "level": 1,
+      "title": "Un contrato para hojas y grupos",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Una estructura permite tratar un archivo o una carpeta anidada mediante la misma operación. ¿Qué relación hace posible esa uniformidad?",
+      "choices": [
+        "Cada cliente conoce todas las clases de archivos y carpetas.",
+        "El compuesto solo puede contener hojas.",
+        "La hoja y el compuesto implementan un contrato común de componente.",
+        "Todos los elementos deben ser la misma instancia."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Eso obliga al cliente a distinguir concretos en vez de usar el contrato común.",
+        "Excluir compuestos como hijos elimina la posibilidad de anidación recursiva.",
+        "Composite comparte un contrato entre hoja y compuesto. Los hijos del compuesto también usan ese contrato, de modo que el árbol puede anidarse.",
+        "Compartir operaciones no implica unicidad de instancia."
+      ],
+      "solution": "Composite comparte un contrato entre hoja y compuesto. Los hijos del compuesto también usan ese contrato, de modo que el árbol puede anidarse.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 11–12."
+    },
+    {
+      "id": "e110",
+      "level": 1,
+      "title": "El publicador y sus receptores",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "En Observer, ¿cómo se comunica normalmente el publicador con distintos suscriptores?",
+      "choices": [
+        "Accede a campos privados específicos de cada receptor.",
+        "Invoca el método del contrato común de suscriptor.",
+        "Reemplaza todos los receptores por una sola instancia global.",
+        "Hereda de todas las clases suscriptoras."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "Eso acopla el publicador a cada implementación y evita una extensión uniforme.",
+        "El publicador almacena referencias a suscriptores y los notifica mediante una interfaz compartida. Así se pueden agregar receptores sin reescribir sus llamadas para cada concreto.",
+        "Observer admite varios suscriptores; no persigue unicidad.",
+        "La colaboración se establece por suscripción y referencias, no por esa herencia múltiple."
+      ],
+      "solution": "El publicador almacena referencias a suscriptores y los notifica mediante una interfaz compartida. Así se pueden agregar receptores sin reescribir sus llamadas para cada concreto.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 15–16."
+    },
+    {
+      "id": "e111",
+      "level": 1,
+      "title": "Qué hace el contexto",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "En un diseño Strategy, un objeto contexto conserva una estrategia asociada. ¿Cuál es su responsabilidad al ejecutar la operación variable?",
+      "choices": [
+        "Implementar de nuevo todos los algoritmos dentro de un gran condicional.",
+        "Crear una familia completa de controles de interfaz.",
+        "Notificar siempre a todos los algoritmos a la vez.",
+        "Delegar la operación en la estrategia asociada."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Eso conserva dentro del contexto la responsabilidad que se quería separar.",
+        "Crear familias de productos es una intención diferente de intercambiar algoritmos.",
+        "Strategy aplica la estrategia seleccionada; no es un mecanismo de notificación a receptores.",
+        "El contexto delega mediante el contrato de estrategia. La selección puede venir del cliente o de una política de configuración; no necesita duplicar cada algoritmo."
+      ],
+      "solution": "El contexto delega mediante el contrato de estrategia. La selección puede venir del cliente o de una política de configuración; no necesita duplicar cada algoritmo.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 16–18."
+    },
+    {
+      "id": "e112",
+      "level": 1,
+      "title": "Un requisito funcional concreto",
+      "topic": "Calidad",
+      "kind": "choice",
+      "prompt": "Un sistema de turnos debe impedir reservar dos turnos simultáneos para el mismo profesional. ¿Qué atributo se evalúa principalmente al comprobar esa regla?",
+      "choices": [
+        "Adecuación funcional: cumple correctamente la regla requerida.",
+        "Portabilidad entre sistemas operativos.",
+        "Tiempo de capacitación de los usuarios.",
+        "Cantidad de herramientas instaladas en el equipo."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "La prueba verifica que el software cumpla una función y una regla de negocio. Eso evalúa adecuación funcional, aunque el producto tenga otros atributos relevantes.",
+        "La pregunta no compara plataformas o entornos de ejecución.",
+        "Ese dato pertenece a la facilidad de aprendizaje y uso.",
+        "Instalar herramientas no demuestra que una regla funcional esté implementada."
+      ],
+      "solution": "La prueba verifica que el software cumpla una función y una regla de negocio. Eso evalúa adecuación funcional, aunque el producto tenga otros atributos relevantes.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 20."
+    },
+    {
+      "id": "e113",
+      "level": 1,
+      "title": "Aprender a usar una pantalla",
+      "topic": "Calidad",
+      "kind": "choice",
+      "prompt": "Los usuarios tardan mucho en entender cómo completar una operación de una pantalla, aunque el sistema responde rápido y no se cae. ¿Qué atributo conviene investigar primero?",
+      "choices": [
+        "Solo rendimiento.",
+        "Solo portabilidad.",
+        "Usabilidad.",
+        "Solo fiabilidad."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Se aclara que responde rápido; el problema descrito es comprender y usar la operación.",
+        "No se está describiendo una dificultad para mover el sistema entre plataformas.",
+        "La usabilidad se relaciona con comprender, aprender y operar el sistema. Una respuesta rápida o estable no garantiza una interfaz fácil de usar.",
+        "El sistema no se cae; la dificultad principal relatada está en su uso."
+      ],
+      "solution": "La usabilidad se relaciona con comprender, aprender y operar el sistema. Una respuesta rápida o estable no garantiza una interfaz fácil de usar.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 20."
+    },
+    {
+      "id": "e114",
+      "level": 1,
+      "title": "Qué abarca SCM",
+      "topic": "Gestión de configuración",
+      "kind": "choice",
+      "prompt": "¿Qué alcance describe mejor la gestión de configuración de software (SCM)?",
+      "choices": [
+        "Guardar únicamente el archivo principal del programa.",
+        "Elegir exclusivamente el color de la interfaz.",
+        "Controlar y trazar código, documentación, dependencias y artefactos relevantes del sistema.",
+        "Aprobar compras sin registrar versiones de artefactos."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "SCM abarca los elementos necesarios para construir, entender y mantener una versión.",
+        "Una decisión visual puede ser parte del producto, pero no define la gestión de configuración.",
+        "SCM tiene un alcance mayor que conservar código fuente: controla artefactos y configuraciones a lo largo del ciclo de vida. El control de versiones es una herramienta dentro de ese alcance.",
+        "La aprobación de compras no sustituye el control y la trazabilidad de los elementos del software."
+      ],
+      "solution": "SCM tiene un alcance mayor que conservar código fuente: controla artefactos y configuraciones a lo largo del ciclo de vida. El control de versiones es una herramienta dentro de ese alcance.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 28–30."
+    },
+    {
+      "id": "e115",
+      "level": 1,
+      "title": "El orden de GQM",
+      "topic": "Métricas",
+      "kind": "choice",
+      "prompt": "¿En qué orden se construye el planteo de Goal–Question–Metric del resumen?",
+      "choices": [
+        "Métricas disponibles → cualquier pregunta → un objetivo inventado después.",
+        "Herramienta → cantidad de usuarios → nombre del proyecto.",
+        "Indicador de éxito → omitir preguntas → medir todo.",
+        "Objetivo → preguntas que lo evalúan → métricas que responden esas preguntas."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Empezar por datos disponibles puede producir medidas sin relación con una necesidad real.",
+        "Esa secuencia no establece la relación lógica de GQM.",
+        "Sin preguntas se pierde la conexión entre objetivo y medición.",
+        "GQM parte de un objetivo, lo convierte en preguntas evaluables y define métricas para responderlas. La medición tiene que servir a una decisión o necesidad."
+      ],
+      "solution": "GQM parte de un objetivo, lo convierte en preguntas evaluables y define métricas para responderlas. La medición tiene que servir a una decisión o necesidad.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 35–36."
+    },
+    {
+      "id": "e116",
+      "level": 2,
+      "title": "Otra familia o un nuevo tipo",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Una Abstract Factory ya crea Boton y Campo para Web y Escritorio. ¿Cuál es el cambio que normalmente exige modificar el contrato de fábrica y todas las fábricas concretas?",
+      "choices": [
+        "Agregar otra familia para una plataforma móvil manteniendo Boton y Campo.",
+        "Agregar un nuevo tipo de producto, como Checkbox.",
+        "Usar dos instancias de la misma fábrica web.",
+        "Cambiar el texto de un botón creado."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "Una nueva familia implementa los tipos existentes; no requiere por sí misma otro método de creación en el contrato.",
+        "Agregar un tipo de producto agrega otro método a la fábrica abstracta y productos correspondientes en cada familia. Agregar una familia suele incorporar otra fábrica concreta para los tipos ya definidos.",
+        "Cambiar la cantidad de instancias no agrega tipos de producto.",
+        "Cambiar datos de un producto no agrega una categoría nueva a la fábrica."
+      ],
+      "solution": "Agregar un tipo de producto agrega otro método a la fábrica abstracta y productos correspondientes en cada familia. Agregar una familia suele incorporar otra fábrica concreta para los tipos ya definidos.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 5–7."
+    },
+    {
+      "id": "e117",
+      "level": 2,
+      "title": "Alcance de una instancia única",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Una clase Singleton está diseñada para una instancia dentro de un proceso de la aplicación. ¿Qué afirmación puede sostenerse sin agregar un mecanismo de coordinación externo?",
+      "choices": [
+        "La instancia será necesariamente única en todo un clúster.",
+        "Singleton elimina cualquier condición de carrera en sus métodos.",
+        "Todos sus métodos deben devolver siempre la misma cadena.",
+        "Ese diseño no garantiza por sí solo una única instancia entre todos los procesos y servidores."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Distintos procesos tienen sus propios espacios de ejecución; la unicidad global necesita otra coordinación.",
+        "La unicidad y la sincronización de operaciones mutables son problemas diferentes.",
+        "La unicidad del objeto no obliga a que sus operaciones produzcan un valor constante.",
+        "Hay que declarar el alcance de la unicidad. Un Singleton de proceso no coordina automáticamente instancias de otros procesos ni sincroniza todas sus operaciones."
+      ],
+      "solution": "Hay que declarar el alcance de la unicidad. Un Singleton de proceso no coordina automáticamente instancias de otros procesos ni sincroniza todas sus operaciones.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 7–9."
+    },
+    {
+      "id": "e118",
+      "level": 2,
+      "title": "Adaptar sin inventar una capacidad",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Una biblioteca permite consultar el saldo, pero no realizar transferencias. El nuevo contrato requiere transferir dinero. ¿Alcanza crear un Adapter que renombre consultarSaldo como transferir?",
+      "choices": [
+        "Sí, porque cambiar el nombre cambia la operación real.",
+        "No: adaptar un contrato no crea una capacidad de transferencia inexistente.",
+        "Sí, siempre que el adaptador tenga más métodos.",
+        "Sí, si el cliente desconoce la biblioteca original."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "El nombre no altera lo que la biblioteca puede hacer.",
+        "Adapter traduce un contrato y puede transformar datos usando capacidades disponibles. Si el servicio carece de la operación requerida, hay que implementarla mediante otro mecanismo o declarar la limitación.",
+        "Agregar firmas sin implementar la capacidad no satisface el contrato.",
+        "Ocultar la implementación no convierte una consulta en una transferencia."
+      ],
+      "solution": "Adapter traduce un contrato y puede transformar datos usando capacidades disponibles. Si el servicio carece de la operación requerida, hay que implementarla mediante otro mecanismo o declarar la limitación.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 10–11."
+    },
+    {
+      "id": "e119",
+      "level": 2,
+      "title": "Cuando la fachada crece demasiado",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Una fachada comienza coordinando tres servicios de reservas y termina acumulando pagos, reportes, usuarios, analítica y reglas de todos los dominios. ¿Qué riesgo del resumen refleja?",
+      "choices": [
+        "Que ya no pueda existir un cliente de la fachada.",
+        "Que todos los subsistemas se vuelvan automáticamente Singleton.",
+        "Que ya no se puedan crear interfaces.",
+        "Convertirse en una clase todopoderosa con demasiadas responsabilidades y dependencias."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Tener un cliente no es el problema relatado; lo es concentrar responsabilidades.",
+        "Usar una fachada no cambia por sí mismo el ciclo de vida de los servicios.",
+        "El problema no es una prohibición de interfaces, sino el crecimiento del acoplamiento.",
+        "Facade simplifica el acceso a un subsistema, pero concentrar todas las funciones de la aplicación puede producir una clase difícil de mantener. Hay que limitar su alcance y sus responsabilidades."
+      ],
+      "solution": "Facade simplifica el acceso a un subsistema, pero concentrar todas las funciones de la aplicación puede producir una clase difícil de mantener. Hay que limitar su alcance y sus responsabilidades.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 12–14."
+    },
+    {
+      "id": "e120",
+      "level": 2,
+      "title": "Observer no define todo el protocolo",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Un pedido usa Observer para notificar receptores. Sin ver su implementación, ¿qué puede afirmarse sobre el orden de notificación?",
+      "choices": [
+        "Todos los diseños Observer notifican necesariamente en orden alfabético.",
+        "Todos los diseños Observer usan necesariamente un orden aleatorio.",
+        "Todos los observadores ejecutan antes de que cambie el estado observado.",
+        "El patrón por sí solo no garantiza un orden; el diseño concreto debe definirlo si importa."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Observer no establece una regla alfabética universal.",
+        "Una implementación puede recorrer una lista en un orden definido; no hay aleatoriedad obligatoria.",
+        "El momento del cambio y de la notificación se define en la implementación.",
+        "El comentario del resumen sobre orden aleatorio no es una garantía universal. Observer define suscripción y notificación; el orden, los fallos y el modo de entrega requieren reglas adicionales."
+      ],
+      "solution": "El comentario del resumen sobre orden aleatorio no es una garantía universal. Observer define suscripción y notificación; el orden, los fallos y el modo de entrega requieren reglas adicionales.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 15–18."
+    },
+    {
+      "id": "e121",
+      "level": 2,
+      "title": "Extender una estrategia",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "Un sistema ya tiene EstrategiaRuta y variantes para caminar y conducir. Se agrega una ruta en bicicleta. ¿Qué diseño preserva mejor la separación de Strategy?",
+      "choices": [
+        "Agregar una variante que implemente EstrategiaRuta y seleccionar esa variante donde corresponda.",
+        "Agregar todo el cálculo de bicicleta dentro de cada pantalla.",
+        "Eliminar el contrato común y exigir una clase concreta en el contexto.",
+        "Hacer que todos los contextos hereden del algoritmo de bicicleta."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "La nueva variante implementa el contrato existente. El contexto sigue delegando sin conocer sus detalles; el cliente o configurador necesita poder seleccionarla.",
+        "Eso dispersa el algoritmo en clientes y rompe la separación del comportamiento.",
+        "Eso vincula el contexto a una variante y dificulta el intercambio.",
+        "No permite que cada contexto asocie de manera independiente otra estrategia."
+      ],
+      "solution": "La nueva variante implementa el contrato existente. El contexto sigue delegando sin conocer sus detalles; el cliente o configurador necesita poder seleccionarla.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 16–18."
+    },
+    {
+      "id": "e122",
+      "level": 2,
+      "title": "Mejora de proceso o nuevo software",
+      "topic": "Procesos",
+      "kind": "choice",
+      "prompt": "Un equipo busca reducir la espera entre aprobación y despliegue. Releva tiempos, cambia responsabilidades y verifica resultados. ¿Qué tipo de esfuerzo describe principalmente?",
+      "choices": [
+        "Solo un cambio de color en una pantalla.",
+        "Un proyecto de mejora de procesos, aunque pueda necesitar cambios de software.",
+        "Necesariamente construir un producto nuevo desde cero.",
+        "Únicamente comprar una herramienta, sin medir resultados."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "El objetivo y la evaluación abarcan actividades, responsables y resultados del proceso.",
+        "La mejora de procesos busca mejorar cómo se trabaja y medir sus resultados. Puede incluir automatización o desarrollo, pero sus objetivos no se reducen a escribir software.",
+        "Mejorar un proceso no exige crear un producto nuevo.",
+        "La descripción incluye diagnóstico, cambios organizativos y evaluación, no solo una compra."
+      ],
+      "solution": "La mejora de procesos busca mejorar cómo se trabaja y medir sus resultados. Puede incluir automatización o desarrollo, pero sus objetivos no se reducen a escribir software.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 22–25."
+    },
+    {
+      "id": "e123",
+      "level": 2,
+      "title": "Madurez de proceso y calidad de producto",
+      "topic": "Calidad",
+      "kind": "choice",
+      "prompt": "¿Qué distinción entre CMMI y la evaluación de calidad del producto es coherente con el material?",
+      "choices": [
+        "CMMI mide únicamente el color de las pantallas.",
+        "Un nivel alto de proceso demuestra que un producto concreto nunca fallará.",
+        "Los atributos de un producto sirven para certificar automáticamente el nivel de toda la empresa.",
+        "CMMI trata la madurez de procesos; evaluar atributos del producto es una dimensión relacionada pero distinta."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "CMMI trata prácticas y procesos organizacionales, no un único atributo visual.",
+        "La madurez puede apoyar buenos resultados, pero no elimina la necesidad de evaluar el producto.",
+        "El nivel de procesos requiere evidencias del proceso; no se deduce de un solo producto.",
+        "Se distinguen calidad de proceso y de producto. CMMI se ocupa de prácticas y madurez; el producto se evalúa frente a requisitos y atributos con evidencia específica."
+      ],
+      "solution": "Se distinguen calidad de proceso y de producto. CMMI se ocupa de prácticas y madurez; el producto se evalúa frente a requisitos y atributos con evidencia específica.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 20–21, 25–28, 36."
+    },
+    {
+      "id": "e124",
+      "level": 2,
+      "title": "Aprobar un cambio no es versionarlo",
+      "topic": "Gestión de configuración",
+      "kind": "choice",
+      "prompt": "Un comité evalúa el impacto de un cambio y lo aprueba antes de implementarlo. ¿Qué actividad describe?",
+      "choices": [
+        "Control de cambios.",
+        "Solo ejecutar git commit.",
+        "Solo instalar una dependencia.",
+        "Solo crear una interfaz abstracta."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "El control de cambios solicita, evalúa, aprueba o rechaza y rastrea cambios. El control de versiones conserva el historial técnico de los artefactos; están relacionados pero no son lo mismo.",
+        "Un commit registra una versión; por sí mismo no constituye una aprobación del impacto del cambio.",
+        "La instalación no describe la evaluación y aprobación de una solicitud.",
+        "Diseñar una interfaz no reemplaza el proceso formal de cambios."
+      ],
+      "solution": "El control de cambios solicita, evalúa, aprueba o rechaza y rastrea cambios. El control de versiones conserva el historial técnico de los artefactos; están relacionados pero no son lo mismo.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 28–30."
+    },
+    {
+      "id": "e125",
+      "level": 2,
+      "title": "Una IA es una herramienta de apoyo",
+      "topic": "CMMI",
+      "kind": "choice",
+      "prompt": "Una empresa instala un asistente de IA para revisar código y afirma que eso demuestra nivel 5. ¿Cuál es la evaluación más defendible?",
+      "choices": [
+        "Toda herramienta de IA certifica nivel 5 al instalarse.",
+        "El número de licencias determina directamente el nivel.",
+        "La instalación no demuestra madurez; hay que verificar procesos, datos y mejoras evaluadas.",
+        "La revisión humana deja de ser necesaria en todos los casos."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "La tecnología no sustituye la evidencia de institucionalización y mejora de procesos.",
+        "Las licencias compradas no acreditan las prácticas de un nivel.",
+        "La IA es habilitadora, no una prueba automática de madurez. Su incorporación debe tener objetivo, responsables, datos y evaluación de resultados.",
+        "La IA puede apoyar la revisión, pero necesita controles acordes al riesgo y a los resultados."
+      ],
+      "solution": "La IA es habilitadora, no una prueba automática de madurez. Su incorporación debe tener objetivo, responsables, datos y evaluación de resultados.",
+      "refs": [
+        32,
+        29
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e126",
+      "level": 3,
+      "title": "Lectura C++: quién traduce la llamada",
+      "topic": "Lectura C++",
+      "kind": "choice",
+      "prompt": "Leé el C++. ¿Qué clase cumple el rol de adaptador al traducir Request() a SpecificRequest()?",
+      "choices": [
+        "Target.",
+        "convierte.",
+        "conversor.",
+        "ClientCode."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Target es el contrato esperado por el cliente, no la clase que traduce la llamada.",
+        "convierte es el servicio adaptado, con la operación SpecificRequest().",
+        "conversor implementa Target y guarda una referencia a convierte. Su Request() llama a SpecificRequest() y transforma el resultado; ese es el rol Adapter.",
+        "ClientCode es el cliente que utiliza Target; no implementa la traducción."
+      ],
+      "solution": "conversor implementa Target y guarda una referencia a convierte. Su Request() llama a SpecificRequest() y transforma el resultado; ese es el rol Adapter.",
+      "refs": [
+        32,
+        11
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 10–11.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <string>\nstruct Target { virtual ~Target() = default; virtual std::string Request() const = 0; };\nclass convierte {\npublic: std::string SpecificRequest() const { return \"aloH\"; }\n};\nclass conversor : public Target {\n    const convierte& original;\npublic:\n    explicit conversor(const convierte& c) : original(c) {}\n    std::string Request() const override {\n        auto texto = original.SpecificRequest();\n        std::reverse(texto.begin(), texto.end());\n        return texto;\n    }\n};\nvoid ClientCode(const Target& destino) { std::cout << destino.Request() << '\\n'; }\nint main() { convierte servicio; conversor puente(servicio); ClientCode(puente); }\n"
+    },
+    {
+      "id": "e127",
+      "level": 3,
+      "title": "Lectura C++: dos órdenes de una lista",
+      "topic": "Lectura C++",
+      "kind": "choice",
+      "prompt": "Leé el C++. ¿Qué secuencia de valores se imprime antes y después de cambiar el dispositivo del contexto?",
+      "choices": [
+        "Primero 1 2 3; después 3 2 1.",
+        "Primero 3 1 2; después 3 1 2.",
+        "Primero 3 2 1; después 1 2 3.",
+        "Primero 1 1 1; después 3 3 3."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "El main ordena con Ascendente y luego con Descendente. El contexto delega en dispositivo; cambiar la estrategia modifica el orden sin cambiar los datos del conjunto.",
+        "ordenar sí delega y modifica el vector usando el algoritmo instalado.",
+        "El main instala primero Ascendente y después Descendente, no al revés.",
+        "Ordenar cambia el orden, no los valores o su cantidad."
+      ],
+      "solution": "El main ordena con Ascendente y luego con Descendente. El contexto delega en dispositivo; cambiar la estrategia modifica el orden sin cambiar los datos del conjunto.",
+      "refs": [
+        32,
+        12
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 16–18.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <memory>\n#include <vector>\n#include <functional>\nstruct dispositivo {\n    virtual ~dispositivo() = default;\n    virtual void doAlgorithm(std::vector<int>& datos) const = 0;\n};\nstruct Ascendente : dispositivo {\n    void doAlgorithm(std::vector<int>& d) const override { std::sort(d.begin(), d.end()); }\n};\nstruct Descendente : dispositivo {\n    void doAlgorithm(std::vector<int>& d) const override {\n        std::sort(d.begin(), d.end(), std::greater<int>());\n    }\n};\nclass Context {\n    std::unique_ptr<dispositivo> algoritmo;\npublic:\n    void setdispositivo(std::unique_ptr<dispositivo> a) { algoritmo = std::move(a); }\n    void ordenar(std::vector<int>& d) const { if(algoritmo) algoritmo->doAlgorithm(d); }\n};\nint main() {\n    Context contexto; std::vector<int> datos{3,1,2};\n    contexto.setdispositivo(std::make_unique<Ascendente>()); contexto.ordenar(datos);\n    for(int n : datos) std::cout << n << ' ';\n    std::cout << '\\n';\n    contexto.setdispositivo(std::make_unique<Descendente>()); contexto.ordenar(datos);\n    for(int n : datos) std::cout << n << ' ';\n    std::cout << '\\n';\n}\n"
+    },
+    {
+      "id": "e128",
+      "level": 3,
+      "title": "Lectura C++: después de la baja",
+      "topic": "Lectura C++",
+      "kind": "choice",
+      "prompt": "Leé el C++. ¿Qué imprime el receptor del programa después de las dos llamadas a Notify?",
+      "choices": [
+        "Alerta 7 y Alerta 9.",
+        "Solo Alerta 7.",
+        "Solo Alerta 9.",
+        "Nada, porque Attach no registra referencias."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "Detach elimina la suscripción antes de Notify(9).",
+        "Attach suscribe aviso, Notify(7) lo llama, Detach lo quita y Notify(9) no vuelve a llamarlo. El receptor vive hasta su baja; el código usa referencias no propietarias.",
+        "El receptor está suscrito durante la primera notificación y dado de baja durante la segunda.",
+        "Attach registra la referencia al receptor si todavía no está en la lista."
+      ],
+      "solution": "Attach suscribe aviso, Notify(7) lo llama, Detach lo quita y Notify(9) no vuelve a llamarlo. El receptor vive hasta su baja; el código usa referencias no propietarias.",
+      "refs": [
+        32,
+        12
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 15–16.",
+      "code": "#include <algorithm>\n#include <iostream>\n#include <vector>\nstruct Ialarma { virtual ~Ialarma() = default; virtual void Update(int valor) = 0; };\nclass Subject {\n    std::vector<Ialarma*> receptores; // Referencias no propietarias.\npublic:\n    void Attach(Ialarma& a) {\n        if(std::find(receptores.begin(), receptores.end(), &a) == receptores.end())\n            receptores.push_back(&a);\n    }\n    void Detach(Ialarma& a) {\n        receptores.erase(std::remove(receptores.begin(), receptores.end(), &a), receptores.end());\n    }\n    void Notify(int valor) { for(auto* a : receptores) a->Update(valor); }\n};\nstruct alarma : Ialarma {\n    void Update(int valor) override { std::cout << \"Alerta \" << valor << '\\n'; }\n};\nint main() {\n    alarma aviso; Subject emisor;\n    emisor.Attach(aviso); emisor.Notify(7);\n    emisor.Detach(aviso); emisor.Notify(9);\n    // El receptor vive hasta la baja. Update no modifica las suscripciones.\n}\n"
+    },
+    {
+      "id": "e129",
+      "level": 3,
+      "title": "Leer una realización en Mermaid",
+      "topic": "UML",
+      "kind": "choice",
+      "prompt": "En Mermaid, Receptor <|.. AvisoWeb representa una interfaz Receptor implementada por AvisoWeb. ¿Qué interpretación es correcta?",
+      "choices": [
+        "Receptor contiene físicamente todas las instancias de AvisoWeb.",
+        "AvisoWeb es necesariamente una instancia Singleton.",
+        "AvisoWeb realiza el contrato Receptor.",
+        "Receptor hereda de AvisoWeb como clase concreta."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "La realización de interfaz no expresa una relación de propiedad o contención.",
+        "La realización no establece unicidad de instancia.",
+        "La realización expresa que el concreto implementa un contrato. La propiedad, la multiplicidad y el ciclo de vida se representan por otras relaciones y reglas.",
+        "La flecha de realización apunta al contrato; no indica esa herencia invertida."
+      ],
+      "solution": "La realización expresa que el concreto implementa un contrato. La propiedad, la multiplicidad y el ciclo de vida se representan por otras relaciones y reglas.",
+      "refs": [
+        32,
+        27
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 15–17."
+    },
+    {
+      "id": "e130",
+      "level": 3,
+      "title": "La multiplicidad de las suscripciones",
+      "topic": "UML",
+      "kind": "choice",
+      "prompt": "El modelo muestra Pedido \"1\" --> \"0..*\" Receptor. ¿Qué expresa el extremo 0..* del contrato Receptor?",
+      "choices": [
+        "Cada pedido exige exactamente un receptor.",
+        "La aplicación solo puede tener cero o un pedido.",
+        "Un pedido puede estar asociado a cero o más receptores.",
+        "Todos los receptores deben compartir la misma implementación."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Eso se expresaría con multiplicidad 1, no 0..*.",
+        "La pregunta describe el extremo Receptor, no un límite global de pedidos.",
+        "0..* permite una lista vacía o varios receptores. Los concretos pueden implementar el mismo contrato con comportamientos diferentes.",
+        "La multiplicidad cuenta asociaciones; no obliga a que los concretos sean de la misma clase."
+      ],
+      "solution": "0..* permite una lista vacía o varios receptores. Los concretos pueden implementar el mismo contrato con comportamientos diferentes.",
+      "refs": [
+        32,
+        27
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 15–16."
+    },
+    {
+      "id": "e131",
+      "level": 3,
+      "title": "El tipo de los hijos importa",
+      "topic": "UML",
+      "kind": "choice",
+      "prompt": "Carpeta debe contener Archivo y otras Carpetas. Ambas implementan Elemento. ¿Qué tipo de colección permite representar ese árbol con Composite?",
+      "choices": [
+        "Una colección exclusivamente de Archivo.",
+        "Una colección exclusivamente de Carpeta.",
+        "Una colección de Elemento.",
+        "Una colección de nombres sin relación con objetos."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Eso excluye carpetas como hijos e impide esa anidación.",
+        "Eso excluye las hojas Archivo.",
+        "El compuesto almacena componentes del contrato común, de modo que los hijos pueden ser hojas o compuestos. La operación se delega recursivamente por ese contrato.",
+        "Los nombres no permiten delegar las operaciones del contrato a los hijos."
+      ],
+      "solution": "El compuesto almacena componentes del contrato común, de modo que los hijos pueden ser hojas o compuestos. La operación se delega recursivamente por ese contrato.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 11–12."
+    },
+    {
+      "id": "e132",
+      "level": 3,
+      "title": "El retorno del método fábrica",
+      "topic": "UML",
+      "kind": "choice",
+      "prompt": "Taller.producir() necesita utilizar crearMueble() sin conocer si devuelve una Silla o una Mesa. ¿Qué retorno favorece ese diseño?",
+      "choices": [
+        "El contrato Mueble que ambas clases implementan.",
+        "Solo Silla en todos los talleres.",
+        "El nombre de la clase como sustituto de un objeto utilizable.",
+        "Todos los subsistemas de la empresa en una única clase."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "Factory Method devuelve un producto mediante un contrato común. Los creadores concretos deciden qué implementación producir; la operación común usa Mueble.",
+        "Eso limita el creador a un producto concreto.",
+        "producir necesita utilizar un producto, no solo conocer su nombre.",
+        "Eso no resuelve el contrato del producto y agrega responsabilidades no pedidas."
+      ],
+      "solution": "Factory Method devuelve un producto mediante un contrato común. Los creadores concretos deciden qué implementación producir; la operación común usa Mueble.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 4–5."
+    },
+    {
+      "id": "e133",
+      "level": 3,
+      "title": "Inicialización segura no es sincronización total",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "En C++11 y posteriores, un Singleton usa una variable static local para inicializar su instancia. ¿Qué distinción debe mantenerse al razonar sobre concurrencia?",
+      "choices": [
+        "Todos los métodos quedan sincronizados automáticamente.",
+        "La inicialización puede ser segura, pero el acceso a datos mutables de la instancia aún requiere el control adecuado.",
+        "La instancia se crea nuevamente en cada llamada.",
+        "Ya no es necesario impedir la copia si se exige una sola instancia."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "La garantía de inicialización no vuelve atómicas o protegidas todas las operaciones posteriores.",
+        "La inicialización de static local tiene una garantía de construcción una vez desde C++11. Los datos mutables, las copias y el alcance del Singleton siguen siendo decisiones separadas.",
+        "La variable static local conserva la instancia entre llamadas.",
+        "La posibilidad de crear copias debe tratarse aparte para sostener la unicidad pretendida."
+      ],
+      "solution": "La inicialización de static local tiene una garantía de construcción una vez desde C++11. Los datos mutables, las copias y el alcance del Singleton siguen siendo decisiones separadas.",
+      "refs": [
+        32,
+        10
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 7–9."
+    },
+    {
+      "id": "e134",
+      "level": 3,
+      "title": "Una llamada de alto nivel",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "La web llama Reservar() y una clase coordina disponibilidad, registro y cobro. ¿Qué evidencia permite reconocer Facade en esa estructura?",
+      "choices": [
+        "Todos los objetos tienen exactamente el mismo algoritmo.",
+        "Cada servicio debe heredar de la clase de la web.",
+        "El cobro está garantizado por el nombre del patrón.",
+        "El cliente utiliza una operación simplificada que coordina un subsistema."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Facade no exige algoritmos iguales en los subsistemas.",
+        "La simplificación del acceso no requiere esa herencia.",
+        "El patrón no garantiza que las operaciones del negocio nunca fallen.",
+        "La fachada ofrece una operación de alto nivel y coordina servicios. El manejo de fallos y la atomicidad o compensación requieren políticas adicionales."
+      ],
+      "solution": "La fachada ofrece una operación de alto nivel y coordina servicios. El manejo de fallos y la atomicidad o compensación requieren políticas adicionales.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 12–14."
+    },
+    {
+      "id": "e135",
+      "level": 3,
+      "title": "Cambiar interfaz y unidad",
+      "topic": "Patrones",
+      "kind": "choice",
+      "prompt": "El cliente pide leerCelsius(), pero un servicio ofrece leerFahrenheit(). ¿Qué debería hacer el adaptador para respetar el contrato?",
+      "choices": [
+        "Invocar la operación disponible y convertir la unidad además de traducir el nombre.",
+        "Devolver Fahrenheit etiquetado como Celsius.",
+        "Cambiar solo el nombre del archivo fuente.",
+        "Devolver siempre cero para evitar dependencias."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "La adaptación puede requerir cambiar formatos, parámetros, orden o unidades. Para temperatura, el resultado debe representar Celsius; renombrar la llamada no alcanza.",
+        "Eso incumple el significado del contrato aunque el método tenga el nombre esperado.",
+        "El archivo no modifica la llamada ni la unidad del valor obtenido.",
+        "Una constante no representa la medición del servicio."
+      ],
+      "solution": "La adaptación puede requerir cambiar formatos, parámetros, orden o unidades. Para temperatura, el resultado debe representar Celsius; renombrar la llamada no alcanza.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 10–11."
+    },
+    {
+      "id": "e136",
+      "level": 4,
+      "title": "Madurez: dependencia de personas",
+      "topic": "CMMI",
+      "kind": "choice",
+      "prompt": "En el esquema de niveles del curso, un equipo improvisa su proceso en cada proyecto; el éxito depende de personas puntuales y no hay gestión repetible demostrada. ¿Qué nivel describe mejor el caso?",
+      "choices": [
+        "Nivel 2, Gestionado.",
+        "Nivel 1, Inicial.",
+        "Nivel 4, Cuantitativamente gestionado.",
+        "Nivel 5, En optimización."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "El caso no demuestra planificación y control repetible por proyecto.",
+        "El nivel inicial del esquema describe procesos impredecibles y dependencia de esfuerzos individuales. La clasificación es una lectura didáctica del caso, no una evaluación oficial.",
+        "No hay evidencia de medición ni control cuantitativo de procesos.",
+        "No hay un proceso institucionalizado que se mejore sistemáticamente."
+      ],
+      "solution": "El nivel inicial del esquema describe procesos impredecibles y dependencia de esfuerzos individuales. La clasificación es una lectura didáctica del caso, no una evaluación oficial.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e137",
+      "level": 4,
+      "title": "Madurez: gestionado por proyecto",
+      "topic": "CMMI",
+      "kind": "choice",
+      "prompt": "Cada proyecto tiene plan, responsables, seguimiento de problemas y control de riesgos. Todavía no existe un proceso estándar adoptado por toda la organización. ¿Qué nivel del curso refleja principalmente esa evidencia?",
+      "choices": [
+        "Nivel 2, Gestionado.",
+        "Nivel 1 exclusivamente porque los proyectos son distintos.",
+        "Nivel 3 necesariamente porque ya hay responsables.",
+        "Nivel 5 porque se usan herramientas."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "La evidencia se centra en gestión por proyecto. No alcanza para afirmar estándar organizacional del nivel 3 ni control cuantitativo u optimización de niveles superiores.",
+        "La descripción sí demuestra gestión y seguimiento por proyecto.",
+        "El nivel definido requiere también un estándar organizacional institucionalizado.",
+        "Las herramientas no demuestran optimización causal ni mejoras evaluadas."
+      ],
+      "solution": "La evidencia se centra en gestión por proyecto. No alcanza para afirmar estándar organizacional del nivel 3 ni control cuantitativo u optimización de niveles superiores.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e138",
+      "level": 4,
+      "title": "Madurez: estándar adoptado",
+      "topic": "CMMI",
+      "kind": "choice",
+      "prompt": "Todos los equipos aplican un proceso organizacional común, adaptan mediante criterios documentados y reciben capacitación. Aún no usan modelos o rangos cuantitativos para controlar procesos. ¿Qué nivel del curso es más defendible?",
+      "choices": [
+        "Nivel 1 porque se permiten adaptaciones.",
+        "Nivel 4 solo por documentar el proceso.",
+        "Nivel 5 solo por capacitar al equipo.",
+        "Nivel 3, Definido."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Adaptar con criterios documentados no equivale a improvisar sin proceso.",
+        "La documentación no demuestra control cuantitativo con datos y modelos.",
+        "Capacitar es importante, pero no prueba optimización mediante mejoras evaluadas.",
+        "Un proceso común institucionalizado y adaptación definida son evidencias de nivel 3. El caso declara ausente el control cuantitativo necesario para sostener nivel 4."
+      ],
+      "solution": "Un proceso común institucionalizado y adaptación definida son evidencias de nivel 3. El caso declara ausente el control cuantitativo necesario para sostener nivel 4.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e139",
+      "level": 4,
+      "title": "Madurez: control cuantitativo",
+      "topic": "CMMI",
+      "kind": "choice",
+      "prompt": "La organización usa procesos comunes, históricos confiables, modelos de desempeño y rangos esperados para anticipar y gestionar variaciones. ¿Qué nivel del curso refleja esa evidencia?",
+      "choices": [
+        "Nivel 1 porque existen variaciones.",
+        "Nivel 2 por el solo hecho de guardar un historial.",
+        "Nivel 5 automáticamente por tener muchos datos.",
+        "Nivel 4, Cuantitativamente gestionado."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "El punto es que las variaciones se analizan y gestionan, no que desaparezcan.",
+        "La descripción incluye modelos y control cuantitativo, más que gestión básica por proyecto.",
+        "Los datos y modelos no bastan para demostrar optimización sistemática mediante mejoras causales evaluadas.",
+        "Nivel 4 implica gestión cuantitativa del desempeño y de su variación. Contar datos o producir reportes aislados no basta; aquí se describen modelos y control."
+      ],
+      "solution": "Nivel 4 implica gestión cuantitativa del desempeño y de su variación. Contar datos o producir reportes aislados no basta; aquí se describen modelos y control.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e140",
+      "level": 4,
+      "title": "Madurez: evaluar e institucionalizar mejoras",
+      "topic": "CMMI",
+      "kind": "choice",
+      "prompt": "Además del control cuantitativo, una empresa analiza causas, prueba mejoras en pilotos, compara resultados y extiende los cambios que demuestran beneficio. ¿Qué nivel del curso representa mejor esa práctica?",
+      "choices": [
+        "Nivel 5, En optimización.",
+        "Nivel 1 porque los pilotos introducen cambios.",
+        "Nivel 2 porque se nombró un responsable.",
+        "Nivel 6 de mejora continua."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "La optimización se apoya en datos, análisis causal y evaluación de mejoras. El objetivo no es cambiar por cambiar, sino demostrar e institucionalizar resultados útiles.",
+        "Probar mejoras de forma evaluada es diferente de improvisar sin proceso.",
+        "La evidencia supera gestión por proyecto y describe optimización organizacional.",
+        "El esquema de cinco niveles utilizado en el curso no tiene un nivel 6."
+      ],
+      "solution": "La optimización se apoya en datos, análisis causal y evaluación de mejoras. El objetivo no es cambiar por cambiar, sino demostrar e institucionalizar resultados útiles.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e141",
+      "level": 4,
+      "title": "Quién verifica el cumplimiento",
+      "topic": "Procesos",
+      "kind": "choice",
+      "prompt": "¿Qué responsabilidad corresponde principalmente al grupo de aseguramiento de calidad (SQA) descrito en el resumen?",
+      "choices": [
+        "Reemplazar siempre al sponsor en la asignación de presupuesto.",
+        "Verificar y auditar que los procesos acordados se cumplan.",
+        "Crear todos los productos mediante Factory Method.",
+        "Contar commits y asumir que muchos equivalen a alta calidad."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "El sponsor aporta apoyo y recursos; esa no es la función principal de SQA.",
+        "SQA verifica cumplimiento y aporta evidencia mediante revisiones o auditorías. Puede colaborar con mejoras, pero no se reduce a contar actividad ni sustituye a todos los otros roles.",
+        "Esa es una decisión de diseño de software, no la responsabilidad organizacional pedida.",
+        "El volumen de commits por sí solo no acredita calidad ni cumplimiento del proceso."
+      ],
+      "solution": "SQA verifica cumplimiento y aporta evidencia mediante revisiones o auditorías. Puede colaborar con mejoras, pero no se reduce a contar actividad ni sustituye a todos los otros roles.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–27."
+    },
+    {
+      "id": "e142",
+      "level": 4,
+      "title": "AS-IS y TO-BE con evidencia",
+      "topic": "Procesos",
+      "kind": "choice",
+      "prompt": "Antes de automatizar la revisión de código, ¿qué secuencia concuerda mejor con el enfoque de mejora del resumen?",
+      "choices": [
+        "Comprar una herramienta y dar por resuelto el proceso.",
+        "Eliminar responsables y medir solo el precio de la licencia.",
+        "Definir un resultado exitoso sin recolectar datos del proceso.",
+        "Relevar el proceso actual, acordar objetivos, diseñar la mejora y evaluar sus resultados."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Sin diagnóstico y evaluación no se sabe qué problema se corrigió ni con qué resultado.",
+        "Personas, métodos y resultados forman parte del proyecto de mejora.",
+        "Sin evidencia no se puede contrastar el desempeño actual con el objetivo.",
+        "AS-IS releva cómo se trabaja; TO-BE describe el estado objetivo. La mejora necesita planificación, personas, métodos, herramientas y evaluación antes/después."
+      ],
+      "solution": "AS-IS releva cómo se trabaja; TO-BE describe el estado objetivo. La mejora necesita planificación, personas, métodos, herramientas y evaluación antes/después.",
+      "refs": [
+        32
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 22–25."
+    },
+    {
+      "id": "e143",
+      "level": 4,
+      "title": "De una medida a una métrica",
+      "topic": "Métricas",
+      "kind": "choice",
+      "prompt": "Una mesa de ayuda cerró 400 tickets y 12 reabrieron en el período definido. ¿Cuál es la métrica de reapertura calculada sobre esos cierres?",
+      "choices": [
+        "12 %, porque hubo 12 reaperturas.",
+        "3 % de tickets reabiertos.",
+        "33,33 %, porque 400 / 12 es el porcentaje.",
+        "400 %, porque se cuentan todos los cierres."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "12 es una cantidad; el porcentaje necesita dividir por los 400 cierres.",
+        "La métrica es 12/400×100=3 %. 12 y 400 son medidas en tickets; el indicador usa esa tasa frente a un umbral o tendencia acordados.",
+        "Ese cociente invierte la relación y no produce el porcentaje pedido.",
+        "Los cierres forman el denominador; no son por sí mismos la tasa de reapertura."
+      ],
+      "solution": "La métrica es 12/400×100=3 %. 12 y 400 son medidas en tickets; el indicador usa esa tasa frente a un umbral o tendencia acordados.",
+      "refs": [
+        32,
+        29
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 35–36."
+    },
+    {
+      "id": "e144",
+      "level": 4,
+      "title": "Densidad con unidades claras",
+      "topic": "Métricas",
+      "kind": "choice",
+      "prompt": "Una versión tiene 20 defectos registrados y 10 KLOC bajo una definición común. ¿Cuál es su densidad de defectos?",
+      "choices": [
+        "2 defectos/KLOC.",
+        "200 defectos/KLOC.",
+        "0,5 defectos/KLOC.",
+        "20 defectos, sin considerar tamaño."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "Densidad=20 defectos/10 KLOC=2 defectos/KLOC. Para comparar versiones hay que sostener definiciones, período y forma de contar defectos y tamaño.",
+        "Hay que dividir defectos por KLOC; no multiplicar 20 por 10.",
+        "10/20 invierte el cociente; expresa KLOC por defecto, no la unidad pedida.",
+        "20 es la medida absoluta; la densidad requiere normalizar por tamaño."
+      ],
+      "solution": "Densidad=20 defectos/10 KLOC=2 defectos/KLOC. Para comparar versiones hay que sostener definiciones, período y forma de contar defectos y tamaño.",
+      "refs": [
+        32,
+        26
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 35–36."
+    },
+    {
+      "id": "e145",
+      "level": 4,
+      "title": "Antes de integrar en main",
+      "topic": "Git",
+      "kind": "choice",
+      "prompt": "Tu trabajo ya está registrado en develop y main tiene una política de integración mediante revisión. ¿Qué decisión respeta mejor un workflow controlado?",
+      "choices": [
+        "Forzar el push para sobrescribir cualquier cambio remoto.",
+        "Omitir pruebas porque git commit ya validó el programa.",
+        "Actualizar referencias, verificar e integrar mediante la política acordada antes de publicar main.",
+        "Borrar main y renombrar una carpeta para simular la integración."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Un push forzado puede reemplazar trabajo ajeno y no es la integración controlada pedida.",
+        "Un commit registra contenido; no demuestra automáticamente que el software funcione.",
+        "Hay que revisar el estado local/remoto, resolver integraciones y comprobar el resultado respetando la política de ramas. Un commit o push no equivale a una validación de calidad.",
+        "Eso no conserva el workflow ni el historial de las ramas."
+      ],
+      "solution": "Hay que revisar el estado local/remoto, resolver integraciones y comprobar el resultado respetando la política de ramas. Un commit o push no equivale a una validación de calidad.",
+      "refs": [
+        32,
+        29,
+        9
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 32–33."
+    },
+    {
+      "id": "e146",
+      "level": 5,
+      "title": "Muebles Express: el cálculo variable",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "En Muebles Express, el sistema aplica la configuración y el cálculo de presupuesto adecuados a las elecciones del cliente. Si se separan cálculos intercambiables con un mismo contrato, ¿qué patrón responde a esa necesidad?",
+      "choices": [
+        "Strategy.",
+        "Observer.",
+        "Singleton.",
+        "Composite."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "Strategy permite separar variantes de cálculo o configuración y delegar en la asociada. Es una necesidad distinta de la creación del mueble o de los avisos del pedido.",
+        "Observer responde a suscripción y aviso de eventos, no al cálculo intercambiable planteado.",
+        "La necesidad no es tener una única instancia global del calculador.",
+        "La descripción no plantea aquí un árbol de hojas y compuestos con operación común."
+      ],
+      "solution": "Strategy permite separar variantes de cálculo o configuración y delegar en la asociada. Es una necesidad distinta de la creación del mueble o de los avisos del pedido.",
+      "refs": [
+        32,
+        30
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 16–18."
+    },
+    {
+      "id": "e147",
+      "level": 5,
+      "title": "Muebles Express: producción por tipo",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "Cada tipo de mueble tiene un creador que devuelve un producto del contrato Mueble y participa en una operación de producción común. No se pide una familia completa de productos compatibles. ¿Qué patrón encaja directamente?",
+      "choices": [
+        "Abstract Factory necesariamente.",
+        "Factory Method.",
+        "Observer.",
+        "Adapter."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "La consigna describe creación de un producto mediante creadores concretos, no una fábrica de varios tipos de producto de una familia.",
+        "Factory Method permite que creadores concretos decidan el producto del contrato común. Abstract Factory se justifica cuando se requieren familias de productos relacionados; esa necesidad no está planteada aquí.",
+        "Notificar cambios del pedido no decide qué producto crear.",
+        "Aquí no se describe un contrato existente incompatible que deba traducirse."
+      ],
+      "solution": "Factory Method permite que creadores concretos decidan el producto del contrato común. Abstract Factory se justifica cuando se requieren familias de productos relacionados; esa necesidad no está planteada aquí.",
+      "refs": [
+        32,
+        30
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 4–7."
+    },
+    {
+      "id": "e148",
+      "level": 5,
+      "title": "Muebles Express: agregar otro canal",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "Los clientes pueden suscribirse a cambios de su pedido y se quiere agregar un nuevo canal de aviso sin cambiar el emisor para cada receptor concreto. ¿Qué diseño responde a esa necesidad?",
+      "choices": [
+        "Observer con un contrato compartido de receptor y suscripciones.",
+        "Strategy para calcular todos los presupuestos.",
+        "Singleton en cada mensaje para eliminar todos los receptores.",
+        "Factory Method como único mecanismo de notificación."
+      ],
+      "answer": 0,
+      "choiceExplanations": [
+        "Observer desacopla el publicador de las clases receptoras mediante un contrato. Un nuevo canal implementa ese contrato y se suscribe; deben definirse además fallos, reintentos y bajas según el sistema.",
+        "Ese diseño trata el algoritmo de cálculo, no la distribución de eventos del pedido.",
+        "La unicidad de mensajes no reemplaza el mecanismo de suscripción.",
+        "Crear un objeto no constituye por sí mismo un protocolo de avisos a suscriptores."
+      ],
+      "solution": "Observer desacopla el publicador de las clases receptoras mediante un contrato. Un nuevo canal implementa ese contrato y se suscribe; deben definirse además fallos, reintentos y bajas según el sistema.",
+      "refs": [
+        32,
+        30
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 15–16."
+    },
+    {
+      "id": "e149",
+      "level": 5,
+      "title": "SoftMetrics: qué evidencia falta",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "SoftMetrics utiliza Git y Jira, aplica su proceso con rigor desigual y no mide cuantitativamente desempeño ni cumplimiento. ¿Qué conclusión se sostiene con esos datos sin inventar evidencia?",
+      "choices": [
+        "Git y Jira demuestran por sí solos nivel 5.",
+        "No hay evidencia suficiente para afirmar gestión cuantitativa de nivel 4.",
+        "La falta de datos prueba que ningún proyecto tiene plan o responsables.",
+        "Un proceso escrito prueba siempre institucionalización de nivel 3."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "Las herramientas no acreditan optimización causal ni mejora evaluada.",
+        "El caso no aporta control cuantitativo, por lo que no sustenta nivel 4. El nivel previo probable debe argumentarse con evidencia y supuestos; las herramientas o la documentación aisladas no resuelven esa ambigüedad.",
+        "La ausencia de medición cuantitativa no demuestra que toda gestión básica sea inexistente.",
+        "La aplicación desigual exige verificar adopción y criterios comunes; escribirlo no basta."
+      ],
+      "solution": "El caso no aporta control cuantitativo, por lo que no sustenta nivel 4. El nivel previo probable debe argumentarse con evidencia y supuestos; las herramientas o la documentación aisladas no resuelven esa ambigüedad.",
+      "refs": [
+        32,
+        29
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 25–28."
+    },
+    {
+      "id": "e150",
+      "level": 5,
+      "title": "SoftMetrics: dos necesidades distintas",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "SoftMetrics pide creación flexible de familias de objetos e integración de módulos con interfaces incompatibles. ¿Qué asociación de patrones responde, respectivamente, a esas dos necesidades?",
+      "choices": [
+        "Singleton y Observer.",
+        "Composite y Strategy.",
+        "Abstract Factory y Adapter.",
+        "Facade y Singleton."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Unicidad y notificación no expresan creación de familias ni traducción de interfaces.",
+        "Árboles de componentes y algoritmos intercambiables responden a otras necesidades.",
+        "Abstract Factory crea familias relacionadas mediante contratos de producto. Adapter traduce un contrato incompatible para que el cliente lo utilice. Los participantes concretos requieren datos del dominio, no deben inventarse como si fueran parte de la hoja.",
+        "Simplificar acceso y controlar una instancia no expresa las dos intenciones pedidas."
+      ],
+      "solution": "Abstract Factory crea familias relacionadas mediante contratos de producto. Adapter traduce un contrato incompatible para que el cliente lo utilice. Los participantes concretos requieren datos del dominio, no deben inventarse como si fueran parte de la hoja.",
+      "refs": [
+        32,
+        29
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 5–7, 10–11."
+    },
+    {
+      "id": "e151",
+      "level": 5,
+      "title": "SoftMetrics: una mejora progresiva con IA",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "¿Qué propuesta aborda mejor el avance de SoftMetrics hacia optimización, dados procesos aplicados de forma desigual y ausencia de medición?",
+      "choices": [
+        "Comprar IA y declarar inmediatamente nivel 5.",
+        "Institucionalizar el proceso, establecer datos y baselines, y evaluar pilotos de mejora con IA y revisión humana.",
+        "Eliminar revisiones y juzgar calidad solo por líneas generadas.",
+        "Copiar el proceso de otra empresa sin verificar requisitos ni resultados."
+      ],
+      "answer": 1,
+      "choiceExplanations": [
+        "La compra no demuestra adopción de procesos, control cuantitativo ni mejora evaluada.",
+        "El avance necesita procesos adoptados, medidas definidas y análisis de resultados. La IA puede apoyar un piloto, pero su utilidad debe verificarse con criterios de calidad y controles humanos adecuados.",
+        "La cantidad de código no demuestra calidad y omitir controles puede agregar riesgos.",
+        "Una mejora requiere adaptar al contexto y evaluar sus efectos, no una adopción ciega."
+      ],
+      "solution": "El avance necesita procesos adoptados, medidas definidas y análisis de resultados. La IA puede apoyar un piloto, pero su utilidad debe verificarse con criterios de calidad y controles humanos adecuados.",
+      "refs": [
+        32,
+        29
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 22–28."
+    },
+    {
+      "id": "e152",
+      "level": 5,
+      "title": "Farmacia: seguridad y emisión de lotes",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "La farmacia necesita un GestorUsuarios único dentro del proceso y, tras imprimir un lote, avisar al farmacéutico y registrar el suceso mediante receptores extensibles. ¿Qué combinación describe esas intenciones?",
+      "choices": [
+        "Observer para la instancia única y Singleton para todos los avisos.",
+        "Strategy para ambos requisitos sin otro mecanismo.",
+        "Abstract Factory para toda la seguridad sin control de usuarios.",
+        "Singleton para GestorUsuarios y Observer para los eventos de impresión."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "Los roles están invertidos: suscripción no exige unicidad y la instancia única no distribuye eventos a receptores.",
+        "Intercambiar un algoritmo no resuelve por sí mismo unicidad ni suscripciones.",
+        "Crear familias de productos no expresa los requisitos de acceso y emisión de eventos dados.",
+        "La unicidad corresponde al alcance explícito de Singleton; los avisos a receptores corresponden a Observer. Seguridad real, persistencia del registro y manejo de fallos necesitan reglas adicionales."
+      ],
+      "solution": "La unicidad corresponde al alcance explícito de Singleton; los avisos a receptores corresponden a Observer. Seguridad real, persistencia del registro y manejo de fallos necesitan reglas adicionales.",
+      "refs": [
+        32,
+        17,
+        28
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 7–9, 15–16."
+    },
+    {
+      "id": "e153",
+      "level": 5,
+      "title": "Sensores: el criterio propio del grupo",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "Según la política declarada, un grupo conectado promedia dos hijos conectados que miden 10 y 40. Su umbral es 30 y dispara solo si la media lo supera. ¿Se activa la alarma por el criterio de este grupo?",
+      "choices": [
+        "Sí: alcanza con que el hijo de valor 40 supere 30.",
+        "Sí: se compara la suma 50 con el umbral del grupo.",
+        "No: la media correcta de los dos hijos es 50.",
+        "No: su media es 25 y no supera 30."
+      ],
+      "answer": 3,
+      "choiceExplanations": [
+        "El criterio preguntado es la media del grupo, no el valor individual de un hijo.",
+        "La política declara media, no suma.",
+        "50 es la suma; al dividir por dos se obtiene 25.",
+        "La media de este grupo es (10+40)/2=25. No dispara por su propio criterio. Esto no afirma nada sobre otras alarmas individuales que pueda evaluar el sistema; los desconectados y grupos vacíos requieren una política explícita."
+      ],
+      "solution": "La media de este grupo es (10+40)/2=25. No dispara por su propio criterio. Esto no afirma nada sobre otras alarmas individuales que pueda evaluar el sistema; los desconectados y grupos vacíos requieren una política explícita.",
+      "refs": [
+        32,
+        17,
+        28
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 11–12."
+    },
+    {
+      "id": "e154",
+      "level": 5,
+      "title": "Singleton: reconocer la estructura del parcial",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "¿Qué estructura básica corresponde al Singleton solicitado en el parcial, antes de analizar detalles de concurrencia y alcance?",
+      "choices": [
+        "Constructor público sin ninguna restricción y una instancia nueva en cada llamada.",
+        "Un publicador que siempre mantiene muchos suscriptores.",
+        "Constructor privado, referencia de instancia controlada y acceso público estático para obtenerla.",
+        "Una carpeta que contiene archivos y otras carpetas."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "Eso permite instancias arbitrarias y no cumple la intención de unicidad.",
+        "Esa estructura describe notificación, no control de instancia.",
+        "La estructura restringe construcción y ofrece acceso controlado a la instancia. Un diseño completo debe tratar también copia, inicialización concurrente y alcance de la unicidad; el diagrama básico no garantiza todo eso por sí solo.",
+        "Ese diseño representa un árbol de componentes, no Singleton."
+      ],
+      "solution": "La estructura restringe construcción y ofrece acceso controlado a la instancia. Un diseño completo debe tratar también copia, inicialización concurrente y alcance de la unicidad; el diagrama básico no garantiza todo eso por sí solo.",
+      "refs": [
+        32,
+        17,
+        28
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 7–9."
+    },
+    {
+      "id": "e155",
+      "level": 5,
+      "title": "Workflow: registrar y publicar no son lo mismo",
+      "topic": "Casos de parciales",
+      "kind": "choice",
+      "prompt": "Estás en develop, origin existe y ambas ramas se integrarán respetando la política del equipo. ¿Qué afirmación sobre add, commit y push es correcta para explicar el workflow del parcial?",
+      "choices": [
+        "add ya actualiza ambas ramas remotas.",
+        "commit implica que main remoto ya contiene develop.",
+        "add prepara contenido, commit registra una versión local y push publica commits en el remoto.",
+        "push sustituye la necesidad de registrar cambios con commit."
+      ],
+      "answer": 2,
+      "choiceExplanations": [
+        "add modifica el índice local, no las referencias de origin.",
+        "Un commit local no integra ni publica automáticamente otra rama.",
+        "Se distinguen directorio de trabajo, índice, repositorio local y remoto. Actualizar develop y main implica además integrar y verificar resultados; ninguna de estas tres operaciones por sí sola garantiza ambas ramas al día.",
+        "push envía commits; los cambios no registrados no se convierten automáticamente en commits."
+      ],
+      "solution": "Se distinguen directorio de trabajo, índice, repositorio local y remoto. Actualizar develop y main implica además integrar y verificar resultados; ninguna de estas tres operaciones por sí sola garantiza ambas ramas al día.",
+      "refs": [
+        32,
+        29,
+        9
+      ],
+      "hints": [
+        "Buscá la necesidad concreta que describe la consigna antes de elegir la opción."
+      ],
+      "rubric": [],
+      "provenance": "Pregunta de entrenamiento de opción múltiple; no modifica las consignas originales de los parciales. Resumen: páginas 32–33."
+    }
+  ]
+}

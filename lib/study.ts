@@ -2,6 +2,7 @@ import content from "./study-data.json";
 import visualContent from "./study-visuals.json";
 import examContent from "./study-exams.json";
 import paperContent from "./study-papers.json";
+import choiceContent from "./study-choice.json";
 import { paperQuestions, type StudyPaperDoc } from "./study-paper";
 import { z } from "zod";
 import type { Diagram } from "./diagrams";
@@ -10,7 +11,7 @@ export type StudyVisual = { id: string; title: string; type: Diagram["type"]; so
 export type Section = { title: string; text?: string; items?: string[]; table?: string[][]; code?: string; visuals?: StudyVisual[]; patterns?: string[] };
 export type Lesson = { id: string; title: string; lead: string; refs: number[]; sections: Section[] };
 export type Pattern = { id: string; name: string; family: string; purpose: string; signal: string; roles: string; example: string; benefit: string; cost: string; error: string; refs: number[]; uml: string; visuals: StudyVisual[]; check: { question: string; answer: string } };
-export type Exercise = { id: string; level: number; title: string; topic: string; scenario?: string; prompt: string; code?: string; provenance?: string; solution: string; refs: number[]; kind: string; choices?: string[]; answer?: number; expected?: number; hints: string[]; uml?: string | null; diagramType?: Diagram["type"]; starter?: string; rubric: string[] };
+export type Exercise = { id: string; level: number; title: string; topic: string; scenario?: string; prompt: string; code?: string; provenance?: string; solution: string; refs: number[]; kind: string; choices?: string[]; choiceExplanations?: string[]; answer?: number; expected?: number; hints: string[]; uml?: string | null; diagramType?: Diagram["type"]; starter?: string; rubric: string[] };
 export type StudySource = { id: number; name: string; pages: number; url: string; format?: "image" };
 export type ExamSet = { id: string; title: string; minutes: number; exerciseTitles: string[]; paperId?: string };
 export const PAPERS = paperContent as StudyPaperDoc[];
@@ -24,17 +25,18 @@ const exams = examContent as {
   sources: StudySource[]; overrides: Record<string, Partial<Exercise>>;
   exercises: Exercise[]; examSets: ExamSet[]; examOverrides: Record<string, Partial<ExamSet>>;
 };
+const choiceBank = choiceContent as { source: StudySource; exercises: Exercise[] };
 export const STUDY = {
   ...content,
-  sources: [...content.sources, additions.source, ...exams.sources],
-  sourceCount: content.sourceCount + 1 + exams.sources.length,
-  pdfPages: content.pdfPages + additions.source.pages,
+  sources: [...content.sources, additions.source, ...exams.sources, choiceBank.source],
+  sourceCount: content.sourceCount + 2 + exams.sources.length,
+  pdfPages: content.pdfPages + additions.source.pages + choiceBank.source.pages,
   lessons: content.lessons.map(lesson => ({ ...lesson, refs: additions.lessons[lesson.id] ? [...lesson.refs, additions.source.id] : lesson.refs, sections: [...lesson.sections, ...(additions.lessons[lesson.id] || [])] })),
   patterns: content.patterns.map(pattern => {
     const extra = additions.patterns[pattern.id];
     return { ...pattern, refs: [...pattern.refs, additions.source.id], visuals: [{ ...extra.structure, type: "class", source: pattern.uml }, extra.sequence], check: extra.check };
   }),
-  exercises: [...content.exercises.map(exercise => ({ ...exercise, ...exams.overrides[exercise.id], id: exercise.id })), ...additions.exercises, ...exams.exercises],
+  exercises: [...content.exercises.map(exercise => ({ ...exercise, ...exams.overrides[exercise.id], id: exercise.id })), ...additions.exercises, ...exams.exercises, ...choiceBank.exercises],
   examSets: [...content.examSets.map(exam => ({ ...exam, ...exams.examOverrides[exam.id], id: exam.id })), ...exams.examSets],
 } as Omit<typeof content, "lessons" | "patterns" | "exercises" | "sources" | "examSets"> & { lessons: Lesson[]; patterns: Pattern[]; exercises: Exercise[]; sources: StudySource[]; examSets: ExamSet[] };
 export const ENTRY_SCHEMA = z.object({
@@ -59,21 +61,7 @@ export function parseProgress(value: unknown): Progress {
   return { ...p, read: [...new Set(p.read)].filter(id => STUDY.lessons.some(l => l.id === id)),
     entries: Object.fromEntries(Object.entries(p.entries).filter(([id]) => ids.has(id))) };
 }
-export function numericValue(value: string): number | null {
-  // One decimal separator; grouping separators are deliberately rejected.
-  const clean = value.trim().replace(/\s*%$/, "");
-  if (!/^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(clean)) return null;
-  const n = Number(clean.replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-export function correctAnswer(exercise: Exercise, answer: string): boolean {
-  if (exercise.kind === "choice") return answer !== "" && Number(answer) === exercise.answer;
-  if (exercise.kind === "numeric") {
-    const n = numericValue(answer);
-    return n !== null && exercise.expected !== undefined && Math.abs(n - exercise.expected) <= .015;
-  }
-  return false;
-}
+export { numericValue, correctAnswer } from "./study-grading";
 export function completion(p: Progress) {
   const done = STUDY.exercises.filter(e => p.entries[e.id]?.done).length;
   return { done, total: STUDY.exercises.length, xp: done * 25, percent: Math.round(done / STUDY.exercises.length * 100) };
