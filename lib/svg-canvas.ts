@@ -1,4 +1,4 @@
-import type { CanvasSettings, Point } from "./canvas";
+import type { CanvasSettings, CanvasStroke, Point } from "./canvas";
 import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint } from "./edge-routing";
 
 export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string };
@@ -135,16 +135,81 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     terminal(terminals, edge.startLabelRight || "", geometry.start, "startToward" in geometry ? geometry.startToward as Point : geometry.end, settings.labelSize * .85, dark, true, edge.id);
     terminal(terminals, edge.endLabelLeft || "", geometry.end, "endToward" in geometry ? geometry.endToward as Point : geometry.start, settings.labelSize * .85, dark, false, edge.id);
   }
+  renderStrokes(root, settings.strokes);
   return Object.fromEntries(nodes.map(n => [n.name, { x: n.x, y: n.y }]));
+}
+
+export function strokePath(points: Point[]): string {
+  if (!points.length) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y} L ${points[0].x + .1} ${points[0].y + .1}`;
+  if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const midX = (points[i].x + points[i + 1].x) / 2;
+    const midY = (points[i].y + points[i + 1].y) / 2;
+    d += ` Q ${points[i].x} ${points[i].y}, ${midX} ${midY}`;
+  }
+  const last = points[points.length - 1];
+  return d + ` L ${last.x} ${last.y}`;
+}
+
+export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [], activeStroke?: CanvasStroke | null) {
+  root.querySelector(".studio-drawings")?.remove();
+  const list = activeStroke ? [...strokes, activeStroke] : strokes;
+  if (!list.length) return;
+  const group = document.createElementNS(SVG_NS, "g");
+  group.setAttribute("class", "studio-drawings");
+  for (let i = 0; i < list.length; i++) {
+    const stroke = list[i];
+    const d = strokePath(stroke.points);
+    if (!d) continue;
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", stroke.color || "#1a647b");
+    path.setAttribute("stroke-width", String(stroke.width || 2.5));
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("class", "studio-stroke-line");
+    path.setAttribute("data-stroke-index", String(i));
+    group.appendChild(path);
+  }
+  (root.querySelector("g.root") || root).appendChild(group);
+}
+
+export function renderPlacementMarker(root: SVGSVGElement, point: Point | null, zoom = 1) {
+  root.querySelector(".studio-placement-marker")?.remove();
+  if (!point) return;
+  const marker = document.createElementNS(SVG_NS, "g");
+  marker.setAttribute("class", "studio-placement-marker");
+  marker.setAttribute("transform", `translate(${point.x},${point.y}) scale(${1 / Math.max(.1, zoom)})`);
+  marker.style.pointerEvents = "none";
+  const ring = document.createElementNS(SVG_NS, "circle");
+  ring.setAttribute("r", "9");
+  ring.setAttribute("class", "studio-placement-ring");
+  const cross = document.createElementNS(SVG_NS, "path");
+  cross.setAttribute("d", "M -13 0 L -4 0 M 4 0 L 13 0 M 0 -13 L 0 -4 M 0 4 L 0 13");
+  cross.setAttribute("class", "studio-placement-cross");
+  const dot = document.createElementNS(SVG_NS, "circle");
+  dot.setAttribute("r", "2.5");
+  dot.setAttribute("class", "studio-placement-dot");
+  marker.appendChild(ring);
+  marker.appendChild(cross);
+  marker.appendChild(dot);
+  (root.querySelector("g.root") || root).appendChild(marker);
 }
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-placement-marker,.studio-stroke-hit").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });
+  const tempMarker = root.querySelector(".studio-placement-marker");
+  const parent = tempMarker?.parentNode;
+  if (tempMarker) tempMarker.remove();
   const box = root.getBBox();
+  if (tempMarker && parent) parent.appendChild(tempMarker);
   const width = Math.max(1, box.width + 70), height = Math.max(1, box.height + 70);
   clone.setAttribute("viewBox", `${box.x - 35} ${box.y - 35} ${width} ${height}`);
   clone.setAttribute("width", String(width)); clone.setAttribute("height", String(height));

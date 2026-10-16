@@ -35,3 +35,18 @@ test("every quick relationship preserves positions and styling", () => {
     assert.ok(cleanSource(saved).endsWith(`Equipo ${relation.value} Jugador`));
   }
 });
+
+test("freehand pencil strokes round-trip in canvas metadata", () => {
+  const settings = {
+    ...DEFAULT_CANVAS,
+    positions: { Equipo: { x: 100, y: 150 } },
+    strokes: [
+      { points: [{ x: 10, y: 20 }, { x: 40, y: 60 }, { x: 80, y: 90 }], color: "#1a647b", width: 3 },
+    ],
+  };
+  const saved = writeCanvas(source, settings);
+  assert.deepEqual(readCanvas(saved), settings);
+  const cleared = writeCanvas(saved, { ...settings, strokes: [] });
+  assert.equal(readCanvas(cleared).strokes, undefined);
+});
+

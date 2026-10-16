@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, ReactNode } from "react";
 import Link from "next/link";
 import ThemePicker from "./theme-picker";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole } from "lucide-react";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2 } from "lucide-react";
 import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
@@ -57,6 +57,7 @@ export default function Studio() {
   const [modal, setModal] = useState<ModalKind>(null);
   const [sideOpen, setSideOpen] = useState(true);
   const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const [canvasFocused, setCanvasFocused] = useState(false);
   const [inspectedClass, setInspectedClass] = useState("");
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<string[]>([]);
@@ -175,17 +176,19 @@ export default function Studio() {
     finally { setWorking(false); }
   }
   function beginClass(name = "") {
+    if (!name && view !== "code") {
+      setInsertRequest({ serial: Date.now(), kind: "class" });
+      return;
+    }
     const block = blocks.find(b => b.name === name);
     setEditingClass(block?.name || ""); setClassName(block?.name || "NuevaClase");
     setClassBody(block?.body || "+String nombre\n+ejecutar() void"); openModal("class");
   }
   function saveClass() {
-    if (!current || !/^[A-Za-z_]\w*$/.test(className)) { setFormError("Usa un nombre sin espacios: letras, números y guion bajo."); return; }
+    if (!current || !/^[A-Za-z_][\w-]*$/.test(className)) { setFormError("Usa un nombre sin espacios: letras, números y guion bajo."); return; }
     if (/[{}]/.test(classBody)) { setFormError("Los miembros no pueden contener llaves."); return; }
     if (!editingClass && blocks.some(b => b.name === className)) { setFormError("Ya existe una clase con ese nombre."); return; }
-    const snippet = `class ${className} {\n${classBody.split("\n").filter(l => l.trim()).map(l => "  " + l.trim()).join("\n")}\n}`;
-    const block = blocks.find(b => b.name === editingClass);
-    edit({ source: block ? current.source.slice(0, block.start) + snippet + current.source.slice(block.end) : current.source + "\n" + snippet });
+    edit({ source: setClassMembers(current.source, className, classBody) });
     setModal(null);
   }
   function beginRelation() {
@@ -283,9 +286,9 @@ export default function Studio() {
   const selectedBlock = blocks.find(block => block.name === inspectedClass);
   const openNotes = () => { if (current) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
   const goStudy = async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } };
-  const selectForInspection = (name: string) => { setInspectedClass(name); if (current?.type === "class" && name && window.innerWidth > 800) setPropertiesOpen(true); };
+  const selectForInspection = (name: string) => { setInspectedClass(name); };
 
-  return <main className={"studio " + (!sideOpen ? "sidebar-hidden " : "") + (!propertiesOpen ? "properties-hidden" : "")}>
+  return <main className={"studio " + (!sideOpen ? "sidebar-hidden " : "") + (!propertiesOpen ? "properties-hidden " : "") + (canvasFocused ? "canvas-focused-mode" : "")}>
     <header className="app-header">
       <Link className="brand" href="/" aria-label="UML Studio, inicio"><GitBranch size={24} /><span>UML<span className="brand-light"> Studio</span></span></Link>
       <div className="header-meta"><span className="workspace-label">Espacio de trabajo</span></div>
@@ -363,6 +366,7 @@ export default function Studio() {
             <button className={view === "code" ? "active" : ""} aria-pressed={view === "code"} onClick={() => setView("code")}><Code2 size={15} /><span>Código</span></button>
           </div><span className="toolbar-divider" /><IconButton title="Deshacer" onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
           <div className="toolbar-right">
+            <IconButton title={canvasFocused ? "Salir de pantalla casi completa" : "Enfocar pantalla de dibujo (pantalla casi completa)"} active={canvasFocused} onClick={() => { if (view === "code") setView("diagram"); setCanvasFocused(f => !f); }}>{canvasFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</IconButton>
             <IconButton title="Notas y proyecto" active={!!current.notes} onClick={openNotes}><StickyNote size={16} /></IconButton>
             <IconButton title="Duplicar diagrama" onClick={() => void create({ ...current, name: current.name + " (copia)" })}><Copy size={16} /></IconButton>
             <IconButton title="Eliminar diagrama" onClick={() => openModal("delete")}><Trash2 size={16} /></IconButton>
@@ -379,6 +383,7 @@ export default function Studio() {
           <section className="canvas-pane"><div className="pane-header canvas-pane-heading"><span><Shapes size={15} />{TYPE_LABELS[current.type]}</span><span className="live-label"><Check size={12} />Sincronizado con Mermaid</span></div>
             <DiagramPreview insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
               selectedClass={selectedBlock?.name || ""} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
+              focused={canvasFocused} onFocusChange={setCanvasFocused}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
               onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}
               onGuide={kind => { setGuideKind(kind); openModal("guide"); }} />

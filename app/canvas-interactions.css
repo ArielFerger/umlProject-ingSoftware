@@ -97,8 +97,36 @@ input, textarea, .cm-content { caret-color: var(--accent); }
 .canvas-add { min-height: 32px; }
 .diagram-art [data-et="message"] { cursor: pointer; }
 .diagram-art [data-et="message"].edge-selected { stroke: var(--accent) !important; stroke-width: 4px !important; }
+.diagram-preview-shell { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; position: relative; background: var(--paper); }
+.diagram-preview-shell.is-focused { position: fixed; inset: 12px; z-index: 60; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-overlay); box-shadow: 0 0 0 100vmax #172c3b66, 0 16px 60px #20344040; overflow: hidden; }
+.canvas-stage { display: flex; flex: 1; min-height: 0; min-width: 0; position: relative; }
+.draw-side-toolbar { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px; background: var(--paper); border-right: 1px solid var(--line); z-index: 3; user-select: none; flex-shrink: 0; }
+.draw-side-toolbar .icon-btn { width: 34px; height: 34px; }
+.draw-toolbar-divider { width: 22px; height: 1px; background: var(--line); margin: 4px 0; flex-shrink: 0; }
+.draw-toolbar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.canvas-tools .canvas-focus-btn { min-height: 30px; padding: 0 10px; font-size: 13px; }
+.canvas-tools .canvas-focus-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.pencil-prompt { flex-wrap: wrap; gap: 10px; padding: 4px 12px; }
+.pencil-swatches { display: inline-flex; align-items: center; gap: 5px; }
+.pencil-swatch { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--line); padding: 0; transition: transform var(--motion-fast); }
+.pencil-swatch:hover { transform: scale(1.12); }
+.pencil-swatch.active { box-shadow: 0 0 0 2px var(--accent); transform: scale(1.15); }
+.pencil-size-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink); }
+.pencil-size-label select { width: auto; height: 26px; padding: 2px 20px 2px 6px; font-size: 12px; }
+.diagram-viewport.placing, .diagram-viewport.drawing { cursor: crosshair; }
+.diagram-viewport.erasing { cursor: cell; }
+.erasing .studio-stroke-hit { cursor: pointer; }
+.erasing .studio-stroke:hover .studio-stroke-line { opacity: .45; }
+.studio-placement-marker { pointer-events: none; }
+.studio-placement-ring { fill: var(--accent-soft); fill-opacity: .45; stroke: var(--accent); stroke-width: 1.75px; stroke-dasharray: 4 3; }
+.studio-placement-cross { stroke: var(--accent); stroke-width: 1.75px; stroke-linecap: round; }
+.studio-placement-dot { fill: var(--accent); }
 @media (max-width: 600px) {
   .canvas-tools { flex-wrap: wrap; }
-  .canvas-add span { display: none; }
+  .canvas-add span, .canvas-focus-btn span { display: none; }
   .canvas-tools .canvas-style { margin-left: auto; }
+  .diagram-preview-shell.is-focused { inset: 4px; }
+  .draw-side-toolbar { padding: 6px 4px; }
+  .draw-side-toolbar .icon-btn { width: 30px; height: 30px; }
 }
+

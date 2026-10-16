@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Move, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2 } from "lucide-react";
+import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Move, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Crosshair, Undo2 } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
-import { CanvasSettings, Point, RelationKind, RELATIONS, cleanSource, readCanvas, relationInfo, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
-import { CanvasModel, applyCanvas, measureClasses, exportCanvas, edgeControls } from "@/lib/svg-canvas";
+import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
+import { CanvasModel, applyCanvas, measureClasses, exportCanvas, edgeControls, renderStrokes, renderPlacementMarker } from "@/lib/svg-canvas";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
@@ -15,10 +15,57 @@ import { prepareVisualSource, measureVisualNodes, sequenceModel, reorderSequence
 
 let renderQueue: Promise<unknown> = Promise.resolve();
 
-export type SvgResult = { svg: string; width: number; height: number };
-type Drag = { kind: "node" | "pan" | "edge"; name?: string; x: number; y: number; start: Point; moved: boolean; edgeId?: string; handle?: string; next?: CanvasSettings };
+export type SvgResult = { svg: string; width: number; height: number; center?: Point };
+type ToolMode = "move" | "place" | "connect" | "draw" | "erase";
+type Drag = {
+  kind: "node" | "pan" | "edge" | "draw" | "erase";
+  name?: string;
+  x: number;
+  y: number;
+  start: Point;
+  moved: boolean;
+  edgeId?: string;
+  handle?: string;
+  next?: CanvasSettings;
+  points?: Point[];
+  strokes?: CanvasStroke[];
+  erased?: boolean;
+};
 
-export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable" }: {
+const PEN_COLORS = [
+  { value: "#1a647b", label: "Petróleo" },
+  { value: "#253b48", label: "Grafito" },
+  { value: "#a63d43", label: "Rojo" },
+  { value: "#276e62", label: "Verde" },
+  { value: "#97521e", label: "Naranja" },
+  { value: "#2a638a", label: "Azul" },
+] as const;
+
+function roundPoint(p: Point): Point {
+  return {
+    x: Math.max(-19000, Math.min(19000, Math.round(p.x * 10) / 10)),
+    y: Math.max(-19000, Math.min(19000, Math.round(p.y * 10) / 10)),
+  };
+}
+
+function distanceToSegment(p: Point, a: Point, b: Point) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+function pointNearStroke(pt: Point, stroke: CanvasStroke, radius: number) {
+  const limit = radius + (stroke.width || 2.5) / 2;
+  if (stroke.points.length === 1) return Math.hypot(pt.x - stroke.points[0].x, pt.y - stroke.points[0].y) <= limit;
+  for (let i = 1; i < stroke.points.length; i++) {
+    if (distanceToSegment(pt, stroke.points[i - 1], stroke.points[i]) <= limit) return true;
+  }
+  return false;
+}
+
+export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable", focused, onFocusChange }: {
   diagram: Diagram; onRendered: (result: SvgResult | null) => void; onClassClick: (name: string) => void;
   onSettingsChange: (settings: CanvasSettings) => void;
   onConnect: (from: string, to: string, kind: RelationKind, positions: Record<string, Point>) => void;
@@ -29,6 +76,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   inspectorOpen?: boolean;
   insertRequest?: { serial: number; kind: string };
   initialFit?: "readable" | "contain";
+  focused?: boolean;
+  onFocusChange?: (focused: boolean) => void;
 }) {
   const { isDark } = useAppTheme();
   const dark = diagram.theme === "dark" || (diagram.theme === "studio" && isDark);
@@ -45,7 +94,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const viewState = useRef({ zoom, pan });
   viewState.current = { zoom, pan };
-  const [mode, setMode] = useState<"move" | "connect">("move");
+  const [mode, setMode] = useState<ToolMode>("move");
+  const [penColor, setPenColor] = useState<string>("#1a647b");
+  const [penWidth, setPenWidth] = useState<number>(3);
+  const [localFocus, setLocalFocus] = useState(false);
+  const isFocused = focused ?? localFocus;
+  const [selectedPoint, setSelectedPoint] = useState<Point | null>(null);
   const [relationKind, setRelationKind] = useState<RelationKind>("-->");
   const [origin, setOrigin] = useState("");
   const [localSelection, setLocalSelection] = useState("");
@@ -58,9 +112,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const pointerNode = useRef("");
   const fittedId = useRef("");
   const renderedId = useRef("");
-  const [context, setContext] = useState<{ x: number; y: number; name: string } | null>(null);
+  const prevViewCenter = useRef<{ id: string; center: Point } | null>(null);
+  const hadSize = useRef(false);
+  const [context, setContext] = useState<{ x: number; y: number; name: string; point?: Point } | null>(null);
   const closeContext = useCallback(() => setContext(null), []);
-  const [classForm, setClassForm] = useState<{ name: string; body: string; editing: boolean } | null>(null);
+  const [classForm, setClassForm] = useState<{ name: string; body: string; editing: boolean; point?: Point } | null>(null);
   const [nodeForm, setNodeForm] = useState<(VisualNode & { editing: boolean; point?: Point }) | null>(null);
   const [connectionForm, setConnectionForm] = useState<{ from: string; to: string; kind: string; label: string } | null>(null);
   const [visualKind, setVisualKind] = useState("");
@@ -72,8 +128,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const content = useMemo(() => cleanSource(diagram.source), [diagram.source]);
   const settings = useMemo(() => readCanvas(diagram.source), [diagram.source]);
   const settingsRef = useRef(settings); settingsRef.current = settings;
-  const callbacks = useRef({ onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange });
-  callbacks.current = { onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange };
+  const callbacks = useRef({ onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange, onFocusChange });
+  callbacks.current = { onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange, onFocusChange };
   const isClass = diagram.type === "class";
   const isSequence = diagram.type === "sequence";
   const nodesInSource = useMemo(() => visualNodes(diagram.source, diagram.type), [diagram.source, diagram.type]);
@@ -81,15 +137,48 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const activeKind = isClass ? relationKind : visualKind || availableRelations[0]?.value || "-->";
   const selection = selectedNode;
   const root = () => art.current?.querySelector<SVGSVGElement>("svg") || null;
+
+  const toggleFocus = useCallback((next?: boolean) => {
+    const value = next ?? !isFocused;
+    setLocalFocus(value);
+    callbacks.current.onFocusChange?.(value);
+  }, [isFocused]);
+
+  function clientPoint(x: number, y: number): Point {
+    const matrix = root()?.getScreenCTM();
+    if (!matrix) return { x: 0, y: 0 };
+    const point = new DOMPoint(x, y).matrixTransform(matrix.inverse());
+    return { x: Math.max(-19000, Math.min(19000, point.x)), y: Math.max(-19000, Math.min(19000, point.y)) };
+  }
+
+  function viewportCenterPoint(): Point {
+    const el = viewport.current;
+    if (!el || !root()) return { x: 200, y: 180 };
+    const rect = el.getBoundingClientRect();
+    const base = clientPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    const existing = Object.values(positions.current);
+    let candidate = roundPoint(base);
+    let attempts = 0;
+    while (existing.some(p => Math.hypot(p.x - candidate.x, p.y - candidate.y) < 52) && attempts < 12) {
+      attempts++;
+      candidate = roundPoint({ x: base.x + ((attempts % 3) - 1) * 75 + 45, y: base.y + Math.floor(attempts / 3) * 65 });
+    }
+    return candidate;
+  }
+
   useEffect(() => {
-    if (!insertRequest || !onSourceChange || isClass) return;
+    if (!insertRequest || !onSourceChange) return;
     setFormError("");
+    if (isClass) {
+      if (insertRequest.kind === "class") openClass("", selectedPoint || undefined);
+      return;
+    }
     if (["message", "transition", "flow", "erlink"].includes(insertRequest.kind)) {
       if (!nodesInSource.length) { setFeedback("Primero agregá los elementos que querés conectar."); return; }
       setConnectionForm({ from: nodesInSource[0].id, to: nodesInSource[1]?.id || nodesInSource[0].id, kind: activeKind, label: "" });
     } else {
       const kind = ({ node: "activity", decisión: "decision" } as Record<string,string>)[insertRequest.kind] || insertRequest.kind;
-      setNodeForm({ id: "", label: "", kind, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false });
+      setNodeForm({ id: "", label: "", kind, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: selectedPoint || viewportCenterPoint() });
     }
     // A request is a gesture, not a persistent editing mode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,11 +187,18 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const fit = useCallback((readable = false) => {
     const el = viewport.current, svg = art.current?.querySelector<SVGSVGElement>("svg");
     if (!el || !svg) return;
-    const box = svg.getBBox(), view = svg.viewBox.baseVal;
+    const tempMarker = svg.querySelector(".studio-placement-marker");
+    const parent = tempMarker?.parentNode;
+    if (tempMarker) tempMarker.remove();
+    const box = svg.getBBox();
+    if (tempMarker && parent) parent.appendChild(tempMarker);
+    const view = svg.viewBox.baseVal;
     const fitted = Math.min(1.15, Math.max(.1, Math.min((el.clientWidth - 65) / (box.width + 50), (el.clientHeight - 85) / (box.height + 50))));
     const scale = readable ? Math.max(.8, fitted) : fitted;
+    const nextPan = { x: (view.x + view.width / 2 - box.x - box.width / 2) * scale, y: readable && scale > fitted ? (view.y + view.height / 2 - box.y) * scale - el.clientHeight / 2 + 48 : (view.y + view.height / 2 - box.y - box.height / 2) * scale };
+    viewState.current = { zoom: scale, pan: nextPan };
     setZoom(scale);
-    setPan({ x: (view.x + view.width / 2 - box.x - box.width / 2) * scale, y: readable && scale > fitted ? (view.y + view.height / 2 - box.y) * scale - el.clientHeight / 2 + 48 : (view.y + view.height / 2 - box.y - box.height / 2) * scale });
+    setPan(nextPan);
   }, []);
 
   useEffect(() => {
@@ -142,6 +238,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           const live = staging.querySelector<SVGSVGElement>("svg")!;
           const box = live.viewBox.baseVal;
           const width = box.width || 800, height = box.height || 600;
+          const center = { x: (box.x || 0) + width / 2, y: (box.y || 0) + height / 2 };
           live.setAttribute("width", String(width)); live.setAttribute("height", String(height));
           live.style.maxWidth = "none"; live.style.overflow = "visible";
           live.setAttribute("role", "img"); live.setAttribute("aria-label", diagram.name);
@@ -172,7 +269,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             used.add(relation.line); return [[edge.id, relation] as const];
           }));
           renderedId.current = diagram.id;
-          setResult({ svg: new XMLSerializer().serializeToString(live), width, height });
+          setResult({ svg: new XMLSerializer().serializeToString(live), width, height, center });
           setBusy(false);
         } catch (e) {
           if (!cancelled) { setError(e instanceof Error ? e.message : "Revisa la sintaxis del diagrama."); setBusy(false); }
@@ -190,9 +287,19 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       positions.current = Object.fromEntries(model.current.nodes.map(n => [n.name, { x: n.x, y: n.y }]));
       svg.querySelectorAll<SVGGElement>('[data-class]').forEach(node => { node.setAttribute("tabindex", "0"); node.setAttribute("role", "button"); node.setAttribute("aria-label", "Participante " + node.getAttribute("data-class")); });
       svg.querySelectorAll<SVGPathElement>(".edgePaths path,.messageLine0,.messageLine1").forEach(path => { path.style.strokeWidth = String(settings.lineWidth); });
+      renderStrokes(svg, settings.strokes);
     }
+    renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, viewState.current.zoom);
     callbacks.current.onRendered(exportCanvas(svg));
-    if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) { pendingNode.current = ""; fit(true); }
+    if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) {
+      const addedName = pendingNode.current;
+      pendingNode.current = "";
+      const nodeEl = Array.from(svg.querySelectorAll<SVGGElement>("[data-class]")).find(n => n.getAttribute("data-class") === addedName);
+      const outline = nodeEl?.querySelector("g.outer-path > path, rect, path");
+      if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 240, easing: "cubic-bezier(.16,1,.3,1)" });
+      }
+    }
     const link = pendingLink.current;
     if (link) {
       const edge = model.current.edges.findLast(edge => edge.start === link.from && edge.end === link.to);
@@ -208,11 +315,26 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         }
       }
     }
-    if (fittedId.current !== diagram.id) { fittedId.current = diagram.id; fit(initialFit === "readable"); }
-  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit]);
+    if (fittedId.current !== diagram.id) {
+      fittedId.current = diagram.id;
+      if (result?.center) prevViewCenter.current = { id: diagram.id, center: result.center };
+      fit(initialFit === "readable");
+    } else if (result?.center) {
+      if (prevViewCenter.current?.id === diagram.id) {
+        const dx = (result.center.x - prevViewCenter.current.center.x) * viewState.current.zoom;
+        const dy = (result.center.y - prevViewCenter.current.center.y) * viewState.current.zoom;
+        if (Math.hypot(dx, dy) > 0.5) {
+          const nextPan = { x: viewState.current.pan.x + dx, y: viewState.current.pan.y + dy };
+          viewState.current = { zoom: viewState.current.zoom, pan: nextPan };
+          setPan(nextPan);
+        }
+      }
+      prevViewCenter.current = { id: diagram.id, center: result.center };
+    }
+  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit, onSourceChange, selectedPoint]);
 
   useEffect(() => {
-    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = "";
+    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); setSelectedPoint(null); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
   }, [diagram.id]);
   useEffect(() => {
     const svg = root();
@@ -223,27 +345,51 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }, [origin, selection, result]);
   useEffect(() => {
     const svg = root();
-    if (svg && !busy && !error) edgeControls(svg, model.current, settings, selectedEdge, zoom, !!onSourceChange);
+    if (svg && !busy && !error) {
+      edgeControls(svg, model.current, settings, selectedEdge, zoom, !!onSourceChange);
+      renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, zoom);
+    }
     root()?.querySelectorAll<SVGElement>("[data-edge-id]").forEach(element => {
       const id = element.getAttribute("data-edge-id");
       element.classList.toggle("edge-selected", id === selectedEdge);
       element.classList.toggle("edge-hovered", id === hoveredEdge);
       if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", String(id === selectedEdge));
     });
-  }, [selectedEdge, hoveredEdge, result, settings, zoom, busy, error, onSourceChange]);
+  }, [selectedEdge, hoveredEdge, result, settings, zoom, busy, error, onSourceChange, selectedPoint, isSequence]);
   useEffect(() => { setSelectedEdge(""); setHoveredEdge(""); }, [content]);
   useEffect(() => {
     if (!viewport.current) return;
-    const observer = new ResizeObserver(() => { if (root()) fit(initialFit === "readable"); });
+    const observer = new ResizeObserver(() => {
+      const el = viewport.current;
+      if (!el) return;
+      const hasSize = el.clientWidth > 20 && el.clientHeight > 20;
+      if (hasSize && (!hadSize.current || !callbacks.current.onSourceChange)) {
+        hadSize.current = true;
+        if (root()) fit(initialFit === "readable");
+      } else if (!hasSize) {
+        hadSize.current = false;
+      }
+    });
     observer.observe(viewport.current); return () => observer.disconnect();
   }, [fit, initialFit]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mode === "move" && !selectedEdge && !classForm && !nodeForm && !connectionForm && !edgeForm && !edgeDelete && !deleteTarget && !context) {
+        toggleFocus(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFocused, mode, selectedEdge, classForm, nodeForm, connectionForm, edgeForm, edgeDelete, deleteTarget, context, toggleFocus]);
 
   useEffect(() => {
     const el = viewport.current;
     if (!el || busy || error) return;
     const wheel = (event: WheelEvent) => {
       if (!art.current?.querySelector("svg") || !event.deltaY) return;
-      if (event.target instanceof Element && event.target.closest("button,input,select,textarea,.zoom-toolbar,.error-panel")) return;
+      if (event.target instanceof Element && event.target.closest("button,input,select,textarea,.zoom-toolbar,.draw-side-toolbar,.error-panel")) return;
       event.preventDefault();
       if (drag.current) return;
       // Normalize mouse notches and trackpad deltas; preserve the point under
@@ -286,12 +432,6 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (!chosenEdge?.routeKey) return;
     const routes = { ...settingsRef.current.routes }; delete routes[chosenEdge.routeKey]; changeSettings({ routes });
   }
-  function clientPoint(x: number, y: number): Point {
-    const matrix = root()?.getScreenCTM();
-    if (!matrix) return { x: 0, y: 0 };
-    const point = new DOMPoint(x, y).matrixTransform(matrix.inverse());
-    return { x: Math.max(-19000, Math.min(19000, point.x)), y: Math.max(-19000, Math.min(19000, point.y)) };
-  }
   function moveEdgeHandle(edgeId: string, handle: string, point: Point, current = settingsRef.current): CanvasSettings {
     point = { x: Math.max(-19000, Math.min(19000, point.x)), y: Math.max(-19000, Math.min(19000, point.y)) };
     const edge = model.current.edges.find(edge => edge.id === edgeId);
@@ -313,6 +453,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     const svg = root(); if (!svg) return;
     positions.current = applyCanvas(svg, model.current, next, dark);
     edgeControls(svg, model.current, next, edgeId, zoom, !!callbacks.current.onSourceChange);
+    renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, zoom);
     svg.querySelectorAll<SVGElement>("[data-edge-id]").forEach(el => el.classList.toggle("edge-selected", el.getAttribute("data-edge-id") === edgeId));
   }
   function addBend() {
@@ -341,24 +482,53 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (isSequence) { const geometry = model.current.nodes.find(n => n.name === name); const el = geometry && svg.getElementById(geometry.domId); if (el) el.setAttribute("transform", `translate(${point.x - geometry.x},0) ${geometry.transform}`); return; }
     const next = { ...settingsRef.current, positions: { ...positions.current, [name]: point } };
     positions.current = applyCanvas(svg, model.current, next, dark);
+    renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, zoom);
   }
   function changeSettings(patch: Partial<CanvasSettings>) { callbacks.current.onSettingsChange({ ...settingsRef.current, ...patch }); }
   function changeZoom(delta: number) { setZoom(z => Math.min(4, Math.max(.1, Math.round((z + delta) * 100) / 100))); }
 
-  function openClass(name = "") {
+  function undoStroke() {
+    const current = settingsRef.current.strokes || [];
+    if (!current.length) return;
+    const next = current.slice(0, -1);
+    changeSettings({ strokes: next.length ? next : undefined });
+  }
+  function clearStrokes() {
+    if (!settingsRef.current.strokes?.length) return;
+    changeSettings({ strokes: undefined });
+    setFeedback("Se borraron los trazos del lápiz. Podés recuperarlos con Deshacer.");
+  }
+
+  function openClass(name = "", explicitPoint?: Point) {
     if (!callbacks.current.onSourceChange) { if (name) callbacks.current.onClassClick(name); return; }
     setFormError("");
-    if (!isClass) { const node = nodesInSource.find(n => n.id === name); setNodeForm(node ? { ...node, editing: true } : { id: "", label: "", kind: NODE_KINDS[diagram.type][0].value, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: context ? clientPoint(context.x, context.y) : undefined }); return; }
-    try { setClassForm({ name, body: name ? classMembers(diagram.source, name) : "+String nombre\n+ejecutar() void", editing: !!name }); }
+    const targetPoint = name ? undefined : roundPoint(explicitPoint || selectedPoint || viewportCenterPoint());
+    if (!isClass) {
+      const node = nodesInSource.find(n => n.id === name);
+      setNodeForm(node ? { ...node, editing: true } : { id: "", label: "", kind: NODE_KINDS[diagram.type][0].value, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: targetPoint });
+      return;
+    }
+    try { setClassForm({ name, body: name ? classMembers(diagram.source, name) : "+String nombre\n+ejecutar() void", editing: !!name, point: targetPoint }); }
     catch (e) { setFeedback((e as Error).message); }
   }
   function saveClass() {
     if (!classForm || !callbacks.current.onSourceChange) return;
     try {
       if (!classForm.editing && [...classNames(diagram.source), ...model.current.nodes.map(node => node.name)].includes(classForm.name)) throw new Error("Ya existe una clase con ese nombre.");
-      callbacks.current.onSourceChange(setClassMembers(diagram.source, classForm.name, classForm.body));
-      if (!classForm.editing) pendingNode.current = classForm.name;
-      setSelectedNode(classForm.name); setClassForm(null); setFeedback("Clase " + classForm.name + " guardada en el diagrama.");
+      let nextSource = setClassMembers(diagram.source, classForm.name, classForm.body);
+      if (!classForm.editing) {
+        const targetPoint = roundPoint(classForm.point || selectedPoint || viewportCenterPoint());
+        const nextPositions = {
+          ...positions.current,
+          ...settingsRef.current.positions,
+          [classForm.name]: targetPoint,
+        };
+        nextSource = writeCanvas(nextSource, { ...readCanvas(nextSource), positions: nextPositions });
+        positions.current = nextPositions;
+        pendingNode.current = classForm.name;
+      }
+      callbacks.current.onSourceChange(nextSource);
+      setSelectedNode(classForm.name); setClassForm(null); setFeedback("Clase " + classForm.name + " guardada en la posición seleccionada.");
     } catch (e) { setFormError((e as Error).message); }
   }
   function mutate(action: () => string) {
@@ -377,16 +547,38 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     const url = URL.createObjectURL(new Blob([text], { type: svg ? "image/svg+xml" : "text/plain;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = (diagram.name.replace(/[^\p{L}\p{N}_-]+/gu, "-") || "diagrama") + (svg ? ".svg" : ".mmd"); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function openContext(x: number, y: number, name = "") {
+  function openContext(x: number, y: number, name = "", point?: Point) {
     if (name) setSelectedNode(name);
-    setContext({ x, y, name });
+    if (point) setSelectedPoint(point);
+    setContext({ x, y, name, point });
   }
   function copyClass(name: string) {
-    if (!isClass) { const original = nodesInSource.find(n => n.id === name); if (!original) return; let id = name + "_copia", count = 2; while (nodesInSource.some(n => n.id === id)) id = name + "_copia" + count++; mutate(() => setVisualNode(diagram.source, diagram.type, { ...original, id }, true)); pendingNode.current = id; return; }
+    if (!isClass) {
+      const original = nodesInSource.find(n => n.id === name);
+      if (!original) return;
+      let id = name + "_copia", count = 2;
+      while (nodesInSource.some(n => n.id === id)) id = name + "_copia" + count++;
+      mutate(() => {
+        let next = setVisualNode(diagram.source, diagram.type, { ...original, id }, true);
+        const pos = positions.current[name];
+        if (pos && !isSequence) {
+          const nextPositions = { ...positions.current, ...settingsRef.current.positions, [id]: roundPoint({ x: pos.x + 80, y: pos.y + 80 }) };
+          next = writeCanvas(next, { ...readCanvas(next), positions: nextPositions });
+          positions.current = nextPositions;
+        }
+        return next;
+      });
+      pendingNode.current = id;
+      return;
+    }
     mutate(() => {
       const copy = duplicateClass(diagram.source, name, model.current.nodes.map(node => node.name));
       const position = positions.current[name];
-      const next = position ? writeCanvas(copy.source, { ...readCanvas(copy.source), positions: { ...positions.current, [copy.name]: { x: Math.min(19000, position.x + 80), y: Math.min(19000, position.y + 80) } } }) : copy.source;
+      const nextPositions = position
+        ? { ...positions.current, ...settingsRef.current.positions, [copy.name]: roundPoint({ x: position.x + 80, y: position.y + 80 }) }
+        : { ...positions.current, ...settingsRef.current.positions };
+      const next = writeCanvas(copy.source, { ...readCanvas(copy.source), positions: nextPositions });
+      positions.current = nextPositions;
       pendingNode.current = copy.name; setSelectedNode(copy.name);
       setFeedback("Se creó " + copy.name + ". Sus relaciones se agregan por separado.");
       return next;
@@ -408,11 +600,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     }
   } else {
     if (onSourceChange) {
-      actions.push({ label: isClass ? "Agregar clase" : "Agregar elemento", icon: <Plus size={16} />, run: () => openClass(), disabled: busy });
+      const targetPt = context?.point;
+      actions.push({ label: isClass ? "Agregar clase aquí" : "Agregar elemento aquí", icon: <Plus size={16} />, run: () => openClass("", targetPt), disabled: busy });
+      actions.push({ label: "Dibujar con lápiz", icon: <Pencil size={16} />, run: () => { setMode("draw"); setOrigin(""); }, disabled: busy || !!error });
       actions.push({ label: "Ordenar automáticamente", icon: <LayoutGrid size={16} />, run: arrange, disabled: busy || !!error || isSequence });
       if (!isClass) actions.push({ label: isSequence ? "Agregar mensaje" : "Agregar conexión", icon: <Link2 size={16} />, disabled: nodesInSource.length < 1 || busy || !!error, run: () => { setFormError(""); setConnectionForm({ from: nodesInSource[0]?.id || "", to: nodesInSource[1]?.id || nodesInSource[0]?.id || "", kind: activeKind, label: "" }); } });
     }
-    actions.push({ label: "Ajustar al lienzo", icon: <Scan size={16} />, run: () => fit(), disabled: !result || busy || !!error, separator: !!onSourceChange });
+    actions.push({ label: isFocused ? "Salir de modo foco" : "Enfocar pantalla de dibujo", icon: isFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />, run: () => toggleFocus(), separator: !!onSourceChange });
+    actions.push({ label: "Ajustar al lienzo", icon: <Scan size={16} />, run: () => fit(), disabled: !result || busy || !!error });
     actions.push({ label: "Ver al 100%", icon: <Scan size={16} />, run: () => { setZoom(1); setPan({ x: 0, y: 0 }); }, disabled: !result });
     actions.push({ label: "Copiar código Mermaid", icon: <Code2 size={16} />, run: () => void copySource(), separator: true });
     actions.push({ label: "Descargar Mermaid", icon: <Download size={16} />, run: () => downloadSource() });
@@ -420,13 +615,16 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (isClass) actions.push({ label: "Guía de relaciones UML", icon: <BookOpen size={16} />, run: () => callbacks.current.onGuide(relationKind), separator: true });
   }
 
-  return <>
+  return <div className={"diagram-preview-shell" + (isFocused ? " is-focused" : "")}>
     <div className="canvas-tools">
       {<>
-        {onSourceChange && <button className="btn canvas-add" aria-label={isClass ? "Agregar clase" : "Agregar elemento"} disabled={busy} onClick={() => openClass()}><Plus size={16} /><span>{isClass ? "Clase" : "Elemento"}</span></button>}
+        {onSourceChange && <button className="btn canvas-add" aria-label={isClass ? "Agregar clase" : "Agregar elemento"} title={selectedPoint ? "Agregar en la posición seleccionada del lienzo" : "Agregar en la vista actual"} disabled={busy} onClick={() => openClass("", selectedPoint || undefined)}><Plus size={16} /><span>{isClass ? "Clase" : "Elemento"}</span></button>}
         <div className="segmented canvas-mode">
-          <button className={"icon-btn " + (mode === "move" ? "active" : "")} title="Mover elementos" aria-label="Mover elementos" onClick={() => { setMode("move"); setOrigin(""); }}><Move size={16} /></button>
+          <button className={"icon-btn " + (mode === "move" ? "active" : "")} title="Mover y seleccionar elementos" aria-label="Mover elementos" onClick={() => { setMode("move"); setOrigin(""); }}><Move size={16} /></button>
+          {onSourceChange && !isSequence && <button className={"icon-btn " + (mode === "place" ? "active" : "")} title={isClass ? "Ubicar nueva clase haciendo clic en el lienzo" : "Ubicar nuevo elemento haciendo clic en el lienzo"} aria-label={isClass ? "Ubicar clase en el lienzo" : "Ubicar elemento en el lienzo"} disabled={busy || !!error} onClick={() => { setMode(m => m === "place" ? "move" : "place"); setOrigin(""); }}><Crosshair size={16} /></button>}
           <button className={"icon-btn " + (mode === "connect" ? "active" : "")} title="Conectar elementos" aria-label="Conectar elementos" disabled={!onSourceChange || busy || !!error} onClick={() => { setMode("connect"); setOrigin(""); }}><Link2 size={16} /></button>
+          {onSourceChange && <button className={"icon-btn " + (mode === "draw" ? "active" : "")} title="Lápiz de dibujo libre" aria-label="Lápiz de dibujo libre" disabled={busy || !!error} onClick={() => { setMode(m => m === "draw" ? "move" : "draw"); setOrigin(""); }}><Pencil size={16} /></button>}
+          {onSourceChange && <button className={"icon-btn " + (mode === "erase" ? "active" : "")} title="Borrador de trazos" aria-label="Borrador de trazos" disabled={busy || !!error || !settings.strokes?.length} onClick={() => { setMode(m => m === "erase" ? "move" : "erase"); setOrigin(""); }}><Eraser size={16} /></button>}
         </div>
         <select aria-label="Relación rápida" disabled={!onSourceChange || busy || !!error} value={activeKind} onChange={e => { if (isClass) setRelationKind(e.target.value as RelationKind); else setVisualKind(e.target.value); setMode("connect"); setOrigin(""); }}>
           {availableRelations.map(item => <option key={item.value} value={item.value}>{item.name}</option>)}
@@ -443,123 +641,243 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           {isClass && <label>Texto de relaciones <output>{settings.labelSize} px</output><input aria-label="Texto de relaciones" type="range" min="12" max="24" step="1" value={settings.labelSize} onChange={e => changeSettings({ labelSize: Number(e.target.value) })} /></label>}
         </div>
       </details>}
-      <button className="icon-btn canvas-options" aria-label="Opciones del lienzo" title="Opciones del lienzo (clic derecho)" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); openContext(box.right - 256, box.bottom + 8, model.current.nodes.some(node => node.name === selection) ? selection : ""); }}><MoreHorizontal size={19} /></button>
+      <button className={"btn canvas-focus-btn " + (isFocused ? "active" : "")} aria-label={isFocused ? "Salir de pantalla casi completa" : "Enfocar pantalla de dibujo"} aria-pressed={isFocused} title={isFocused ? "Salir de pantalla casi completa (Esc)" : "Enfocar pantalla de dibujo (pantalla casi completa)"} onClick={() => toggleFocus()}>
+        {isFocused ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        <span>{isFocused ? "Salir de foco" : "Foco"}</span>
+      </button>
+      <button className="icon-btn canvas-options" aria-label="Opciones del lienzo" title="Opciones del lienzo (clic derecho)" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); openContext(box.right - 256, box.bottom + 8, model.current.nodes.some(node => node.name === selection) ? selection : "", selectedPoint || undefined); }}><MoreHorizontal size={19} /></button>
     </div>
     {mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><span>{origin ? origin + " → elegí el destino" : "Elegí el origen y después el destino"}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
-      {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
-        <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
-        {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
-        <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
-        {onSourceChange && !isSequence && chosenEdge.routeKey && <div className="relation-routing">
-          <label>Trazo<select aria-label="Forma de la conexión" value={settings.routes[chosenEdge.routeKey]?.shape || "automatic"} onChange={e => e.target.value === "automatic" ? resetRoute() : changeRoute({ shape: e.target.value as EdgeRoute["shape"] })}>
-            <option value="automatic">Automático</option><option value="straight">Recta</option><option value="curved">Curva</option><option value="orthogonal">En ángulo</option>
-          </select></label>
-          <button className="btn" aria-label="Agregar punto de conexión" disabled={chosenRoute.points.length >= 20} onClick={addBend}><Plus size={14} />Punto</button>
-          <button className="icon-btn" aria-label="Quitar último punto de conexión" title="Quitar último punto" disabled={!chosenRoute.points.length} onClick={() => changeRoute({ points: chosenRoute.points.slice(0, -1) })}><Minus size={15} /></button>
-          <button className="icon-btn" aria-label="Restaurar recorrido automático" title="Restaurar recorrido automático" disabled={!settings.routes[chosenEdge.routeKey]} onClick={resetRoute}><RotateCcw size={15} /></button>
-          <details className="edge-anchors"><summary>Extremos</summary><div className="edge-anchor-fields">
-            {(["from", "to"] as const).map(end => <label key={end}>{end === "from" ? "Origen" : "Destino"}<select aria-label={`Lado de ${end === "from" ? "origen" : "destino"}`} value={chosenRoute[end]?.side || "automatic"} onChange={e => changeRoute({ [end]: e.target.value === "automatic" ? undefined : { side: e.target.value as EdgeAnchor["side"], offset: .5 } })}><option value="automatic">Automático</option><option value="top">Arriba</option><option value="right">Derecha</option><option value="bottom">Abajo</option><option value="left">Izquierda</option></select></label>)}
-          </div></details>
-          <span className="edge-route-hint">Arrastrá extremos y puntos. Supr quita un punto.</span>
-        </div>}
+    {mode === "place" && <div className="connection-prompt" role="status"><Crosshair size={14} /><span>{isClass ? "Hacé clic en el lugar del lienzo donde quieras añadir la nueva clase" : "Hacé clic en el lugar del lienzo donde quieras añadir el elemento"}</span><button className="btn" onClick={() => { setMode("move"); openClass("", selectedPoint || undefined); }}>Abrir formulario</button><button className="icon-btn" title="Cancelar ubicación" aria-label="Cancelar ubicación" onClick={() => setMode("move")}><X size={14} /></button></div>}
+    {(mode === "draw" || mode === "erase") && onSourceChange && <div className="connection-prompt pencil-prompt" role="toolbar" aria-label="Opciones del lápiz">
+      <Pencil size={14} />
+      <span>{mode === "draw" ? "Lápiz activo · dibujá sobre el lienzo" : "Borrador activo · tocá o arrastrá sobre un trazo"}</span>
+      <div className="pencil-swatches" role="group" aria-label="Color del lápiz">
+        {PEN_COLORS.map(c => <button key={c.value} type="button" className={"pencil-swatch" + (penColor === c.value && mode === "draw" ? " active" : "")} style={{ backgroundColor: c.value }} title={`Color ${c.label}`} aria-label={`Color ${c.label}`} aria-pressed={penColor === c.value} onClick={() => { setPenColor(c.value); setMode("draw"); }} />)}
+      </div>
+      <label className="pencil-size-label">Grosor
+        <select aria-label="Grosor del lápiz" value={penWidth} onChange={e => { setPenWidth(Number(e.target.value)); setMode("draw"); }}>
+          <option value={2}>Fino (2 px)</option>
+          <option value={3}>Medio (3 px)</option>
+          <option value={5}>Grueso (5 px)</option>
+          <option value={8}>Marcador (8 px)</option>
+        </select>
+      </label>
+      <button type="button" className={"icon-btn " + (mode === "erase" ? "active" : "")} title="Borrador de trazos" aria-label="Activar borrador" disabled={!settings.strokes?.length} onClick={() => setMode(m => m === "erase" ? "draw" : "erase")}><Eraser size={15} /></button>
+      <button type="button" className="icon-btn" title="Deshacer último trazo" aria-label="Deshacer último trazo" disabled={!settings.strokes?.length} onClick={undoStroke}><Undo2 size={15} /></button>
+      <button type="button" className="icon-btn" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos" disabled={!settings.strokes?.length} onClick={clearStrokes}><Trash2 size={15} /></button>
+      <button type="button" className="icon-btn" title="Salir del modo lápiz" aria-label="Salir del modo lápiz" onClick={() => setMode("move")}><X size={14} /></button>
+    </div>}
+    {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
+      <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
+      {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
+      <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
+      {onSourceChange && !isSequence && chosenEdge.routeKey && <div className="relation-routing">
+        <label>Trazo<select aria-label="Forma de la conexión" value={settings.routes[chosenEdge.routeKey]?.shape || "automatic"} onChange={e => e.target.value === "automatic" ? resetRoute() : changeRoute({ shape: e.target.value as EdgeRoute["shape"] })}>
+          <option value="automatic">Automático</option><option value="straight">Recta</option><option value="curved">Curva</option><option value="orthogonal">En ángulo</option>
+        </select></label>
+        <button className="btn" aria-label="Agregar punto de conexión" disabled={chosenRoute.points.length >= 20} onClick={addBend}><Plus size={14} />Punto</button>
+        <button className="icon-btn" aria-label="Quitar último punto de conexión" title="Quitar último punto" disabled={!chosenRoute.points.length} onClick={() => changeRoute({ points: chosenRoute.points.slice(0, -1) })}><Minus size={15} /></button>
+        <button className="icon-btn" aria-label="Restaurar recorrido automático" title="Restaurar recorrido automático" disabled={!settings.routes[chosenEdge.routeKey]} onClick={resetRoute}><RotateCcw size={15} /></button>
+        <details className="edge-anchors"><summary>Extremos</summary><div className="edge-anchor-fields">
+          {(["from", "to"] as const).map(end => <label key={end}>{end === "from" ? "Origen" : "Destino"}<select aria-label={`Lado de ${end === "from" ? "origen" : "destino"}`} value={chosenRoute[end]?.side || "automatic"} onChange={e => changeRoute({ [end]: e.target.value === "automatic" ? undefined : { side: e.target.value as EdgeAnchor["side"], offset: .5 } })}><option value="automatic">Automático</option><option value="top">Arriba</option><option value="right">Derecha</option><option value="bottom">Abajo</option><option value="left">Izquierda</option></select></label>)}
+        </div></details>
+        <span className="edge-route-hint">Arrastrá extremos y puntos. Supr quita un punto.</span>
       </div>}
-    <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
-      onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
-      onContextMenu={e => { e.preventDefault(); drag.current = null; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { selectEdge(edgeId); return; } const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); }}
-      onPointerDown={e => {
-        if (e.button !== 0) return;
-        pointerNode.current = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || "";
-        if ((e.target as Element).closest("button,.error-panel")) return;
-        const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
-        const handle = (e.target as Element).closest("[data-handle]");
-        if (edgeId && handle && onSourceChange && !busy && !error) {
-          e.preventDefault();
-          drag.current = { kind: "edge", edgeId, handle: handle.getAttribute("data-handle")!, x: e.clientX, y: e.clientY, start: clientPoint(e.clientX, e.clientY), moved: false };
-          e.currentTarget.setPointerCapture(e.pointerId); return;
-        }
-        if (edgeId) { e.preventDefault(); selectEdge(edgeId); Array.from(root()?.querySelectorAll<SVGElement>(".studio-edge-target") || []).find(el => el.getAttribute("data-edge-id") === edgeId)?.focus({ preventScroll: true }); return; }
-        const node = (e.target as Element).closest("[data-class]");
-        const name = node?.getAttribute("data-class");
-        if (name && onSourceChange && !busy && !error) {
-          setSelectedNode(name);
-          drag.current = { kind: "node", name, x: e.clientX, y: e.clientY, start: positions.current[name] || { x: 0, y: 0 }, moved: false };
-        } else drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: pan, moved: false };
-        e.currentTarget.setPointerCapture(e.pointerId);
-      }}
-      onPointerMove={e => {
-        if (!drag.current) { setHoveredEdge((e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id") || ""); return; }
-        const d = drag.current; if (!d) return;
-        const dx = e.clientX - d.x, dy = e.clientY - d.y;
-        if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
-        if (d.kind === "edge" && d.moved && d.edgeId && d.handle) {
-          d.next = moveEdgeHandle(d.edgeId, d.handle, clientPoint(e.clientX, e.clientY)); showSettings(d.next, d.edgeId);
-        }
-        else if (d.kind === "pan") setPan({ x: d.start.x + dx, y: d.start.y + dy });
-        else if (mode === "move" && d.moved && d.name) placeClass(d.name, { x: Math.max(-19000, Math.min(19000, d.start.x + dx / zoom)), y: Math.max(-19000, Math.min(19000, d.start.y + dy / zoom)) });
-      }}
-      onPointerUp={e => {
-        const d = drag.current; drag.current = null;
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-        if (!d) return;
-        if (d.kind === "edge") {
-          if (d.moved && d.next) { callbacks.current.onSettingsChange(d.next); const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg)); }
-          return;
-        }
-        if (!d.name) { if (!d.moved) { setSelectedNode(""); setSelectedEdge(""); } return; }
-        if (!d.moved) selectClass(d.name);
-        else if (mode === "move") {
-          if (isSequence) { const x = d.start.x + (e.clientX - d.x) / zoom; const before = model.current.nodes.filter(n => n.name !== d.name).sort((a,b) => a.x - b.x).find(n => n.x > x)?.name; mutate(() => reorderSequence(diagram.source, d.name!, before)); return; }
-          callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
-          const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg));
-          const node = Array.from(svg?.querySelectorAll<SVGGElement>("[data-class]") || []).find(node => node.getAttribute("data-class") === d.name);
-          const outline = node?.querySelector("g.outer-path > path");
-          if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 220, easing: "cubic-bezier(.16,1,.3,1)" });
-        }
-      }}
-      onPointerCancel={() => { drag.current = null; if (!isSequence) showSettings(settingsRef.current); }}
-      onPointerLeave={() => setHoveredEdge("")}
-      onDoubleClick={e => { if ((e.target as Element).closest("[data-handle]")) return; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || pointerNode.current; if (name && mode === "move" && !busy && !error && onSourceChange) openClass(name); }}
-      onKeyDown={e => {
-        const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
-        const handle = (e.target as Element).closest<SVGElement>("[data-handle]");
-        if (edgeId && handle && onSourceChange) {
-          const key = handle.getAttribute("data-handle")!, step = e.shiftKey ? 20 : 5;
-          const delta: Record<string, Point> = { ArrowLeft: { x: -step, y: 0 }, ArrowRight: { x: step, y: 0 }, ArrowUp: { x: 0, y: -step }, ArrowDown: { x: 0, y: step } };
-          if (delta[e.key]) {
-            e.preventDefault(); const x = Number(handle.dataset.x), y = Number(handle.dataset.y);
-            const next = moveEdgeHandle(edgeId, key, { x: x + delta[e.key].x, y: y + delta[e.key].y });
-            callbacks.current.onSettingsChange(next);
-            requestAnimationFrame(() => Array.from(root()?.querySelectorAll<SVGElement>("[data-handle]") || []).find(el => el.dataset.handle === (key === "new" ? "0" : key))?.focus({ preventScroll: true }));
+    </div>}
+    <div className="canvas-stage">
+      {onSourceChange && <aside className="draw-side-toolbar" role="toolbar" aria-label="Herramientas del lienzo">
+        <button type="button" className={"icon-btn " + (mode === "move" ? "active" : "")} title="Seleccionar y mover" aria-label="Seleccionar y mover" aria-pressed={mode === "move"} onClick={() => { setMode("move"); setOrigin(""); }}><MousePointer2 size={17} /></button>
+        {!isSequence && <button type="button" className={"icon-btn " + (mode === "place" ? "active" : "")} title={isClass ? "Seleccionar punto en el lienzo para nueva clase" : "Seleccionar punto en el lienzo para nuevo elemento"} aria-label={isClass ? "Seleccionar punto para nueva clase" : "Seleccionar punto para nuevo elemento"} aria-pressed={mode === "place"} disabled={busy || !!error} onClick={() => { setMode(m => m === "place" ? "move" : "place"); setOrigin(""); }}><Crosshair size={17} /></button>}
+        <button type="button" className="icon-btn" title={isClass ? (selectedPoint ? "Agregar clase en el punto seleccionado" : "Agregar clase") : "Agregar elemento"} aria-label={isClass ? "Agregar clase rápida" : "Agregar elemento rápido"} disabled={busy} onClick={() => openClass("", selectedPoint || undefined)}><Plus size={18} /></button>
+        <button type="button" className={"icon-btn " + (mode === "connect" ? "active" : "")} title="Conectar elementos" aria-label="Conectar desde barra lateral" aria-pressed={mode === "connect"} disabled={busy || !!error} onClick={() => { setMode(m => m === "connect" ? "move" : "connect"); setOrigin(""); }}><Link2 size={17} /></button>
+        <span className="draw-toolbar-divider" />
+        <button type="button" className={"icon-btn " + (mode === "draw" ? "active" : "")} title="Lápiz (dibujar a mano alzada)" aria-label="Lápiz" aria-pressed={mode === "draw"} disabled={busy || !!error} onClick={() => { setMode(m => m === "draw" ? "move" : "draw"); setOrigin(""); }}><Pencil size={17} /></button>
+        <button type="button" className={"icon-btn " + (mode === "erase" ? "active" : "")} title="Borrador de trazos del lápiz" aria-label="Borrador" aria-pressed={mode === "erase"} disabled={busy || !!error || !settings.strokes?.length} onClick={() => { setMode(m => m === "erase" ? "move" : "erase"); setOrigin(""); }}><Eraser size={17} /></button>
+        {!!settings.strokes?.length && <button type="button" className="icon-btn" title="Limpiar todos los trazos del lápiz" aria-label="Limpiar dibujos" onClick={clearStrokes}><Trash2 size={16} /></button>}
+        <span className="draw-toolbar-divider" />
+        <button type="button" className="icon-btn" title="Ordenar automáticamente" aria-label="Ordenar desde barra lateral" disabled={busy || !!error || isSequence} onClick={arrange}><LayoutGrid size={17} /></button>
+        <button type="button" className="icon-btn" title="Ajustar diagrama al lienzo" aria-label="Ajustar vista" disabled={!result || busy || !!error} onClick={() => fit()}><Scan size={17} /></button>
+        <div className="draw-toolbar-bottom">
+          <button type="button" className={"icon-btn " + (isFocused ? "active" : "")} title={isFocused ? "Salir de pantalla casi completa (Esc)" : "Modo foco: pantalla casi completa"} aria-label={isFocused ? "Restaurar tamaño del lienzo" : "Pantalla casi completa"} aria-pressed={isFocused} onClick={() => toggleFocus()}>
+            {isFocused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+          </button>
+        </div>
+      </aside>}
+      <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting " : "") + (mode === "place" ? "placing " : "") + (mode === "draw" ? "drawing " : "") + (mode === "erase" ? "erasing" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
+        onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
+        onContextMenu={e => { e.preventDefault(); drag.current = null; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { selectEdge(edgeId); return; } const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); const pt = roundPoint(clientPoint(e.clientX || box.x + box.width / 2, e.clientY || box.y + box.height / 2)); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || "", pt); }}
+        onPointerDown={e => {
+          if (e.button !== 0) return;
+          pointerNode.current = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || "";
+          if ((e.target as Element).closest("button,.error-panel,.zoom-toolbar,.draw-side-toolbar")) return;
+          if (mode === "draw" && onSourceChange && !busy && !error) {
+            e.preventDefault();
+            const pt = roundPoint(clientPoint(e.clientX, e.clientY));
+            drag.current = { kind: "draw", x: e.clientX, y: e.clientY, start: pt, moved: false, points: [pt] };
+            const svg = root();
+            if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: [pt], color: penColor, width: penWidth });
+            e.currentTarget.setPointerCapture(e.pointerId);
             return;
           }
-          if ((e.key === "Delete" || e.key === "Backspace") && /^\d+$/.test(key)) { e.preventDefault(); changeRoute({ points: chosenRoute.points.filter((_, i) => i !== Number(key)) }); return; }
-          if (key === "new" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); addBend(); return; }
-        }
-        if (edgeId && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectEdge(edgeId); return; }
-        if (edgeId && e.key === "F2") { e.preventDefault(); editEdge(edgeId); return; }
-        if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || ""); return; }
-        if (e.key === "Escape") { setOrigin(""); setMode("move"); setSelectedNode(""); setSelectedEdge(""); return; }
-        const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (!name || busy || error) return;
-        if (e.key === "Enter") { e.preventDefault(); if (mode === "connect") selectClass(name); else openClass(name); }
-        const vectors: Record<string, Point> = { ArrowLeft: { x: -10, y: 0 }, ArrowRight: { x: 10, y: 0 }, ArrowUp: { x: 0, y: -10 }, ArrowDown: { x: 0, y: 10 } };
-        const delta = vectors[e.key]; if (delta && onSourceChange && !isSequence && positions.current[name]) {
-          e.preventDefault(); const point = positions.current[name]; placeClass(name, { x: Math.max(-19000, Math.min(19000, point.x + delta.x)), y: Math.max(-19000, Math.min(19000, point.y + delta.y)) });
-          callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
-        }
-      }}
-      >
-      {result && <div ref={art} className={"diagram-art " + (error ? "invalid-art" : "")}
-        style={{ width: result.width, height: result.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, "--edge-emphasis-width": `${settings.lineWidth + 1.5}px` } as React.CSSProperties}
-        dangerouslySetInnerHTML={markup} />}
-      {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
-      {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-      {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">{!onSourceChange ? "Referencia · seleccioná elementos · ruedita para acercar o alejar" : isSequence ? "Ruedita para zoom · arrastrá participantes · conectá origen y destino" : "Ruedita para zoom · arrastrá elementos · doble clic para editar"}</span></span>}
-      {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
-      <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
-        <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button className="icon-btn" aria-label="Acercar" title="Acercar" onClick={() => changeZoom(.1)}><Plus size={16} /></button>
-        <i /><button className="icon-btn" aria-label="Ajustar al lienzo" title="Ajustar al lienzo" onClick={() => fit()}><Scan size={17} /></button>
+          if (mode === "erase" && onSourceChange && !busy && !error) {
+            e.preventDefault();
+            const pt = clientPoint(e.clientX, e.clientY);
+            const currentStrokes = settingsRef.current.strokes || [];
+            const filtered = currentStrokes.filter(s => !pointNearStroke(pt, s, 14 / Math.max(.2, zoom)));
+            const erased = filtered.length !== currentStrokes.length;
+            drag.current = { kind: "erase", x: e.clientX, y: e.clientY, start: pt, moved: false, strokes: filtered, erased };
+            if (erased) { const svg = root(); if (svg) renderStrokes(svg, filtered); }
+            e.currentTarget.setPointerCapture(e.pointerId);
+            return;
+          }
+          const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
+          const handle = (e.target as Element).closest("[data-handle]");
+          if (edgeId && handle && onSourceChange && !busy && !error) {
+            e.preventDefault();
+            drag.current = { kind: "edge", edgeId, handle: handle.getAttribute("data-handle")!, x: e.clientX, y: e.clientY, start: clientPoint(e.clientX, e.clientY), moved: false };
+            e.currentTarget.setPointerCapture(e.pointerId); return;
+          }
+          if (edgeId && mode !== "place") { e.preventDefault(); selectEdge(edgeId); Array.from(root()?.querySelectorAll<SVGElement>(".studio-edge-target") || []).find(el => el.getAttribute("data-edge-id") === edgeId)?.focus({ preventScroll: true }); return; }
+          const node = (e.target as Element).closest("[data-class]");
+          const name = node?.getAttribute("data-class");
+          if (name && mode !== "place" && onSourceChange && !busy && !error) {
+            setSelectedNode(name);
+            drag.current = { kind: "node", name, x: e.clientX, y: e.clientY, start: positions.current[name] || { x: 0, y: 0 }, moved: false };
+          } else drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: pan, moved: false };
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={e => {
+          if (!drag.current) { setHoveredEdge((e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id") || ""); return; }
+          const d = drag.current; if (!d) return;
+          const dx = e.clientX - d.x, dy = e.clientY - d.y;
+          if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
+          if (d.kind === "draw" && d.points) {
+            const pt = roundPoint(clientPoint(e.clientX, e.clientY));
+            const last = d.points[d.points.length - 1];
+            if (Math.hypot(pt.x - last.x, pt.y - last.y) >= 1.5 / Math.max(.2, zoom) && d.points.length < 1500) {
+              d.points.push(pt);
+              const svg = root();
+              if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: d.points, color: penColor, width: penWidth });
+            }
+            return;
+          }
+          if (d.kind === "erase") {
+            const pt = clientPoint(e.clientX, e.clientY);
+            const currentStrokes = d.strokes || settingsRef.current.strokes || [];
+            const filtered = currentStrokes.filter(s => !pointNearStroke(pt, s, 14 / Math.max(.2, zoom)));
+            if (filtered.length !== currentStrokes.length) {
+              d.strokes = filtered;
+              d.erased = true;
+              const svg = root();
+              if (svg) renderStrokes(svg, filtered);
+            }
+            return;
+          }
+          if (d.kind === "edge" && d.moved && d.edgeId && d.handle) {
+            d.next = moveEdgeHandle(d.edgeId, d.handle, clientPoint(e.clientX, e.clientY)); showSettings(d.next, d.edgeId);
+          }
+          else if (d.kind === "pan") {
+            const nextPan = { x: d.start.x + dx, y: d.start.y + dy };
+            viewState.current = { zoom: viewState.current.zoom, pan: nextPan };
+            setPan(nextPan);
+          }
+          else if (mode === "move" && d.moved && d.name) placeClass(d.name, { x: Math.max(-19000, Math.min(19000, d.start.x + dx / zoom)), y: Math.max(-19000, Math.min(19000, d.start.y + dy / zoom)) });
+        }}
+        onPointerUp={e => {
+          const d = drag.current; drag.current = null;
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+          if (!d) return;
+          if (d.kind === "draw" && d.points?.length) {
+            const stroke: CanvasStroke = { points: d.points, color: penColor, width: penWidth };
+            const nextStrokes = [...(settingsRef.current.strokes || []).slice(-299), stroke];
+            changeSettings({ strokes: nextStrokes });
+            const svg = root();
+            if (svg) { renderStrokes(svg, nextStrokes); callbacks.current.onRendered(exportCanvas(svg)); }
+            return;
+          }
+          if (d.kind === "erase") {
+            if (d.erased && d.strokes) {
+              changeSettings({ strokes: d.strokes.length ? d.strokes : undefined });
+              const svg = root();
+              if (svg) callbacks.current.onRendered(exportCanvas(svg));
+            }
+            return;
+          }
+          if (d.kind === "edge") {
+            if (d.moved && d.next) { callbacks.current.onSettingsChange(d.next); const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg)); }
+            return;
+          }
+          if (!d.name) {
+            if (!d.moved) {
+              const clickedPoint = roundPoint(clientPoint(e.clientX, e.clientY));
+              setSelectedPoint(clickedPoint);
+              if (mode === "place" && onSourceChange && !busy && !error) {
+                setMode("move");
+                openClass("", clickedPoint);
+                return;
+              }
+              setSelectedNode("");
+              setSelectedEdge("");
+            }
+            return;
+          }
+          if (!d.moved) selectClass(d.name);
+          else if (mode === "move") {
+            if (isSequence) { const x = d.start.x + (e.clientX - d.x) / zoom; const before = model.current.nodes.filter(n => n.name !== d.name).sort((a,b) => a.x - b.x).find(n => n.x > x)?.name; mutate(() => reorderSequence(diagram.source, d.name!, before)); return; }
+            callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
+            const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg));
+            const node = Array.from(svg?.querySelectorAll<SVGGElement>("[data-class]") || []).find(node => node.getAttribute("data-class") === d.name);
+            const outline = node?.querySelector("g.outer-path > path");
+            if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 220, easing: "cubic-bezier(.16,1,.3,1)" });
+          }
+        }}
+        onPointerCancel={() => { drag.current = null; if (!isSequence) showSettings(settingsRef.current); }}
+        onPointerLeave={() => setHoveredEdge("")}
+        onDoubleClick={e => { if ((e.target as Element).closest("[data-handle]")) return; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || pointerNode.current; if (name && mode === "move" && !busy && !error && onSourceChange) openClass(name); }}
+        onKeyDown={e => {
+          const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
+          const handle = (e.target as Element).closest<SVGElement>("[data-handle]");
+          if (edgeId && handle && onSourceChange) {
+            const key = handle.getAttribute("data-handle")!, step = e.shiftKey ? 20 : 5;
+            const delta: Record<string, Point> = { ArrowLeft: { x: -step, y: 0 }, ArrowRight: { x: step, y: 0 }, ArrowUp: { x: 0, y: -step }, ArrowDown: { x: 0, y: step } };
+            if (delta[e.key]) {
+              e.preventDefault(); const x = Number(handle.dataset.x), y = Number(handle.dataset.y);
+              const next = moveEdgeHandle(edgeId, key, { x: x + delta[e.key].x, y: y + delta[e.key].y });
+              callbacks.current.onSettingsChange(next);
+              requestAnimationFrame(() => Array.from(root()?.querySelectorAll<SVGElement>("[data-handle]") || []).find(el => el.dataset.handle === (key === "new" ? "0" : key))?.focus({ preventScroll: true }));
+              return;
+            }
+            if ((e.key === "Delete" || e.key === "Backspace") && /^\d+$/.test(key)) { e.preventDefault(); changeRoute({ points: chosenRoute.points.filter((_, i) => i !== Number(key)) }); return; }
+            if (key === "new" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); addBend(); return; }
+          }
+          if (edgeId && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectEdge(edgeId); return; }
+          if (edgeId && e.key === "F2") { e.preventDefault(); editEdge(edgeId); return; }
+          if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || "", selectedPoint || undefined); return; }
+          if (e.key === "Escape") { setOrigin(""); setMode("move"); setSelectedNode(""); setSelectedEdge(""); return; }
+          const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (!name || busy || error) return;
+          if (e.key === "Enter") { e.preventDefault(); if (mode === "connect") selectClass(name); else openClass(name); }
+          const vectors: Record<string, Point> = { ArrowLeft: { x: -10, y: 0 }, ArrowRight: { x: 10, y: 0 }, ArrowUp: { x: 0, y: -10 }, ArrowDown: { x: 0, y: 10 } };
+          const delta = vectors[e.key]; if (delta && onSourceChange && !isSequence && positions.current[name]) {
+            e.preventDefault(); const point = positions.current[name]; placeClass(name, { x: Math.max(-19000, Math.min(19000, point.x + delta.x)), y: Math.max(-19000, Math.min(19000, point.y + delta.y)) });
+            callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
+          }
+        }}
+        >
+        {result && <div ref={art} className={"diagram-art " + (error ? "invalid-art" : "")}
+          style={{ width: result.width, height: result.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, "--edge-emphasis-width": `${settings.lineWidth + 1.5}px` } as React.CSSProperties}
+          dangerouslySetInnerHTML={markup} />}
+        {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
+        {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
+        {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">{!onSourceChange ? "Referencia · seleccioná elementos · ruedita para acercar o alejar" : isSequence ? "Ruedita para zoom · arrastrá participantes · conectá origen y destino" : selectedPoint ? `Punto seleccionado (${Math.round(selectedPoint.x)}, ${Math.round(selectedPoint.y)}) · + Clase lo ubica aquí` : "Clic en el lienzo para elegir posición · arrastrá elementos · doble clic para editar"}</span></span>}
+        {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
+        <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
+          <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
+          <span>{Math.round(zoom * 100)}%</span>
+          <button className="icon-btn" aria-label="Acercar" title="Acercar" onClick={() => changeZoom(.1)}><Plus size={16} /></button>
+          <i /><button className="icon-btn" aria-label="Ajustar al lienzo" title="Ajustar al lienzo" onClick={() => fit()}><Scan size={17} /></button>
+          <i /><button className={"icon-btn " + (isFocused ? "active" : "")} aria-label={isFocused ? "Salir de modo foco" : "Pantalla casi completa"} title={isFocused ? "Salir de pantalla casi completa (Esc)" : "Pantalla casi completa"} onClick={() => toggleFocus()}>{isFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
+        </div>
       </div>
     </div>
     {context && <CanvasMenu x={context.x} y={context.y} title={context.name || "Opciones del lienzo"} actions={actions} onClose={closeContext} dark={dark} container={viewport.current?.closest("dialog") || undefined} />}
@@ -574,8 +892,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {edgeDelete && <Modal title="Eliminar relación" onClose={() => setEdgeDelete(null)}><div className="modal-body"><p>Se quitará la relación entre <strong>{edgeDelete.from}</strong> y <strong>{edgeDelete.to}</strong>. Los elementos se conservan.</p><p>Podés recuperarla con Deshacer.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setEdgeDelete(null)}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(isClass ? removeRelation(diagram.source, edgeDelete) : removeVisualRelation(diagram.source, diagram.type, edgeDelete)); setEdgeDelete(null); setSelectedEdge(""); setFeedback("Relación eliminada. Podés recuperarla con Deshacer."); } catch (error) { setFormError((error as Error).message); } }}><Trash2 size={16} />Eliminar relación</button></div></Modal>}
     {nodeForm && <Modal title={nodeForm.editing ? "Editar elemento" : "Agregar elemento"} onClose={() => setNodeForm(null)}><form onSubmit={e => { e.preventDefault(); try {
       let source = setVisualNode(diagram.source, diagram.type, nodeForm, !nodeForm.editing);
-      if (!nodeForm.editing && nodeForm.point && !isSequence) source = writeCanvas(source, { ...readCanvas(source), positions: { ...settings.positions, [nodeForm.id]: nodeForm.point } });
-      callbacks.current.onSourceChange?.(source); pendingNode.current = nodeForm.id; setSelectedNode(nodeForm.id); setNodeForm(null); setFeedback("Elemento guardado. Podés recuperar el cambio con Deshacer.");
+      if (!nodeForm.editing && !isSequence) {
+        const targetPt = roundPoint(nodeForm.point || selectedPoint || viewportCenterPoint());
+        const nextPositions = { ...positions.current, ...settingsRef.current.positions, [nodeForm.id]: targetPt };
+        source = writeCanvas(source, { ...readCanvas(source), positions: nextPositions });
+        positions.current = nextPositions;
+      }
+      callbacks.current.onSourceChange?.(source); pendingNode.current = nodeForm.id; setSelectedNode(nodeForm.id); setNodeForm(null); setFeedback("Elemento guardado en la posición seleccionada. Podés recuperar el cambio con Deshacer.");
     } catch (error) { setFormError((error as Error).message); } }}><div className="modal-body">
       <label>Tipo de elemento<select aria-label="Tipo de elemento" value={nodeForm.kind} onChange={e => setNodeForm({ ...nodeForm, kind: e.target.value })}>{NODE_KINDS[diagram.type]?.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}</select></label>
       <label>Identificador<input required autoFocus disabled={nodeForm.editing} maxLength={100} value={nodeForm.id} placeholder="Por ejemplo: Usuario" onChange={e => setNodeForm({ ...nodeForm, id: e.target.value })} /></label>
@@ -597,8 +920,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <label>Nombre<input required autoFocus maxLength={120} disabled={classForm.editing} value={classForm.name} placeholder="Por ejemplo: Cliente" onChange={e => setClassForm({ ...classForm, name: e.target.value })} /></label>
       <label>Atributos y métodos<textarea rows={8} className="mono" value={classForm.body} onChange={e => setClassForm({ ...classForm, body: e.target.value })} /></label>
       <div className="visibility-key"><code>+</code> Público <code>-</code> Privado <code>#</code> Protegido</div>
+      {!classForm.editing && classForm.point && <p className="form-hint">Se añadirá en la posición seleccionada ({Math.round(classForm.point.x)}, {Math.round(classForm.point.y)}) sin mover la vista del lienzo.</p>}
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setClassForm(null)}>Cancelar</button><button className="btn primary"><Check size={16} />{classForm.editing ? "Aplicar cambios" : "Agregar clase"}</button></div></form></Modal>}
     {deleteTarget && <Modal title={isClass ? "Eliminar clase" : "Eliminar elemento"} onClose={() => setDeleteTarget("")}><div className="modal-body"><p>Se quitará <strong>{deleteTarget}</strong> y sus relaciones del diagrama.</p><p>Podés recuperar este cambio con Deshacer en el editor.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setDeleteTarget("")}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(isClass ? removeClass(diagram.source, deleteTarget) : removeVisualNode(diagram.source, diagram.type, deleteTarget)); setDeleteTarget(""); setSelectedNode(""); setFeedback((isClass ? "Clase eliminada." : "Elemento eliminado.") + " Podés recuperar el cambio con Deshacer."); } catch(e) { setFormError((e as Error).message); } }}><Trash2 size={16} />{isClass ? "Eliminar clase" : "Eliminar elemento"}</button></div></Modal>}
-  </>;
+  </div>;
 }

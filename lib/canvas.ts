@@ -8,14 +8,21 @@ export const edgeRouteSettings = z.object({
   from: anchor.optional(), to: anchor.optional(),
   points: z.array(point).max(20).default([]),
 });
+export const strokeSettings = z.object({
+  points: z.array(point).min(1).max(1500),
+  color: z.string().regex(/^#[0-9a-fA-F]{3,8}$/).default("#1a647b"),
+  width: z.number().min(1).max(16).default(2.5),
+});
 export type EdgeRoute = z.infer<typeof edgeRouteSettings>;
 export type EdgeAnchor = z.infer<typeof anchor>;
+export type CanvasStroke = z.infer<typeof strokeSettings>;
 export const canvasSettings = z.object({
   positions: z.record(point).default({}),
   lineWidth: z.number().min(1).max(6).default(2),
   arrowScale: z.number().min(1).max(3).default(1.4),
   labelSize: z.number().min(12).max(24).default(14),
   routes: z.record(edgeRouteSettings).default({}),
+  strokes: z.array(strokeSettings).max(300).optional(),
 });
 export type CanvasSettings = z.infer<typeof canvasSettings>;
 export type Point = z.infer<typeof point>;
@@ -26,14 +33,18 @@ export function readCanvas(source: string): CanvasSettings {
   if (!line) return { ...DEFAULT_CANVAS, positions: {} };
   try {
     const parsed = canvasSettings.safeParse(JSON.parse(line.trimStart().slice(PREFIX.length)));
-    return parsed.success ? parsed.data : { ...DEFAULT_CANVAS, positions: {} };
+    if (!parsed.success) return { ...DEFAULT_CANVAS, positions: {} };
+    if (!parsed.data.strokes?.length) delete parsed.data.strokes;
+    return parsed.data;
   } catch { return { ...DEFAULT_CANVAS, positions: {} }; }
 }
 export function cleanSource(source: string) {
   return source.split(/\r?\n/).filter(line => !line.trimStart().startsWith(PREFIX)).join("\n").trimEnd();
 }
 export function writeCanvas(source: string, settings: CanvasSettings) {
-  return cleanSource(source) + "\n" + PREFIX + JSON.stringify(canvasSettings.parse(settings)) + "\n";
+  const parsed = canvasSettings.parse(settings);
+  if (!parsed.strokes?.length) delete parsed.strokes;
+  return cleanSource(source) + "\n" + PREFIX + JSON.stringify(parsed) + "\n";
 }
 
 export const RELATIONS = [
