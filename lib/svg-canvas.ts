@@ -177,39 +177,13 @@ export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [],
   (root.querySelector("g.root") || root).appendChild(group);
 }
 
-export function renderPlacementMarker(root: SVGSVGElement, point: Point | null, zoom = 1) {
-  root.querySelector(".studio-placement-marker")?.remove();
-  if (!point) return;
-  const marker = document.createElementNS(SVG_NS, "g");
-  marker.setAttribute("class", "studio-placement-marker");
-  marker.setAttribute("transform", `translate(${point.x},${point.y}) scale(${1 / Math.max(.1, zoom)})`);
-  marker.style.pointerEvents = "none";
-  const ring = document.createElementNS(SVG_NS, "circle");
-  ring.setAttribute("r", "9");
-  ring.setAttribute("class", "studio-placement-ring");
-  const cross = document.createElementNS(SVG_NS, "path");
-  cross.setAttribute("d", "M -13 0 L -4 0 M 4 0 L 13 0 M 0 -13 L 0 -4 M 0 4 L 0 13");
-  cross.setAttribute("class", "studio-placement-cross");
-  const dot = document.createElementNS(SVG_NS, "circle");
-  dot.setAttribute("r", "2.5");
-  dot.setAttribute("class", "studio-placement-dot");
-  marker.appendChild(ring);
-  marker.appendChild(cross);
-  marker.appendChild(dot);
-  (root.querySelector("g.root") || root).appendChild(marker);
-}
-
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-placement-marker,.studio-stroke-hit").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });
-  const tempMarker = root.querySelector(".studio-placement-marker");
-  const parent = tempMarker?.parentNode;
-  if (tempMarker) tempMarker.remove();
   const box = root.getBBox();
-  if (tempMarker && parent) parent.appendChild(tempMarker);
   const width = Math.max(1, box.width + 70), height = Math.max(1, box.height + 70);
   clone.setAttribute("viewBox", `${box.x - 35} ${box.y - 35} ${width} ${height}`);
   clone.setAttribute("width", String(width)); clone.setAttribute("height", String(height));

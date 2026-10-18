@@ -117,10 +117,6 @@ input, textarea, .cm-content { caret-color: var(--accent); }
 .diagram-viewport.erasing { cursor: cell; }
 .erasing .studio-stroke-hit { cursor: pointer; }
 .erasing .studio-stroke:hover .studio-stroke-line { opacity: .45; }
-.studio-placement-marker { pointer-events: none; }
-.studio-placement-ring { fill: var(--accent-soft); fill-opacity: .45; stroke: var(--accent); stroke-width: 1.75px; stroke-dasharray: 4 3; }
-.studio-placement-cross { stroke: var(--accent); stroke-width: 1.75px; stroke-linecap: round; }
-.studio-placement-dot { fill: var(--accent); }
 @media (max-width: 600px) {
   .canvas-tools { flex-wrap: wrap; }
   .canvas-add span, .canvas-focus-btn span { display: none; }
@@ -130,3 +126,104 @@ input, textarea, .cm-content { caret-color: var(--accent); }
   .draw-side-toolbar .icon-btn { width: 30px; height: 30px; }
 }
 
+
+/* A single floating tool rail leaves the board itself available for drawing. */
+.board-shell { container-type: inline-size; --board-shadow: 0 4px 18px #20344012, 0 1px 3px #2034400a; }
+.board-shell.is-focused { inset: 0; border: 0; border-radius: 0; }
+.board-shell .canvas-stage { isolation: isolate; }
+.board-shell .diagram-viewport { cursor: default; background-color: var(--canvas); }
+.board-shell .diagram-viewport.hand-tool, .board-shell .hand-tool .diagram-art * { cursor: grab !important; }
+.board-shell .diagram-viewport.is-panning, .board-shell .is-panning .diagram-art * { cursor: grabbing !important; }
+.board-shell .diagram-viewport.placing, .board-shell .diagram-viewport.drawing, .board-shell .drawing .diagram-art * { cursor: crosshair; }
+.board-shell .diagram-viewport.erasing, .board-shell .erasing .diagram-art * { cursor: cell; }
+.board-heading { position: absolute; top: 20px; left: 20px; z-index: 2; display: flex; gap: 10px; align-items: center; pointer-events: none; max-width: calc(100% - 300px); color: var(--ink); }
+.board-heading > svg { color: var(--accent); }
+.board-heading > div { min-width: 0; }
+.board-heading strong { display: block; font-size: 15px; line-height: 1.3; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-heading span { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
+.board-shell .canvas-tools { position: absolute; top: 14px; right: 16px; padding: 5px; gap: 3px; min-height: 42px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--board-shadow); }
+.board-control-divider { height: 20px; width: 1px; background: var(--line); margin: 0 4px; flex-shrink: 0; }
+.board-shell .draw-side-toolbar { position: absolute; top: 80px; left: 16px; z-index: 4; padding: 6px; gap: 3px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--board-shadow); }
+.board-shell .draw-side-toolbar .icon-btn { width: 40px; height: 40px; border-radius: 9px; }
+.board-shell .draw-side-toolbar .icon-btn.active { background: var(--accent); color: white; box-shadow: 0 2px 4px #20344016; }
+.board-shell .draw-toolbar-divider { width: 26px; margin: 3px 0; }
+.board-tool { position: relative; }
+.board-tool::after { content: attr(data-tooltip); position: absolute; left: calc(100% + 16px); top: 50%; transform: translateY(-50%); padding: 7px 11px; border-radius: 7px; background: var(--ink); color: var(--paper); font-size: 12px; font-weight: 500; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 100ms ease-out; box-shadow: var(--board-shadow); }
+.board-tool:hover:not(:disabled)::after, .board-tool:focus-visible::after { opacity: 1; }
+.board-shell .connection-prompt, .board-shell .relation-selection, .board-shell .node-selection { position: absolute; z-index: 3; top: 76px; left: 84px; right: 16px; width: fit-content; max-width: calc(100% - 100px); padding: 8px 10px; gap: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); box-shadow: var(--board-shadow); }
+.board-shell .connection-prompt { flex-wrap: wrap; }
+.board-shell .connection-prompt > span { white-space: normal; min-width: 120px; font-size: 12px; }
+.board-shell .connection-prompt > svg { color: var(--accent); }
+.board-shell .connection-prompt select { width: auto; max-width: 170px; }
+.board-shell .pencil-prompt { gap: 12px; }
+.board-shell .pencil-prompt > span { flex-basis: 100%; order: 2; color: var(--muted); }
+.board-shell .pencil-swatches { gap: 9px; }
+.board-shell .pencil-swatch { width: 23px; height: 23px; }
+.board-shell .pencil-size-label { gap: 8px; }
+.board-shell .node-selection { display: flex; align-items: center; flex-wrap: wrap; }
+.node-selection strong { font-size: 13px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 5px; }
+.board-delete:hover:not(:disabled) { color: var(--danger); background: var(--error-soft); }
+.board-shell .relation-selection { max-height: calc(100% - 140px); overflow-y: auto; }
+.board-shell .relation-selection > div:first-of-type { flex: 1; }
+.board-shell .relation-selection > .relation-routing { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; }
+.board-shell .zoom-toolbar { left: auto; right: 16px; bottom: 16px; transform: none; height: 44px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--board-shadow); z-index: 2; }
+.zoom-value { min-width: 52px; height: 32px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.zoom-value:hover { background: var(--accent-soft); color: var(--accent); }
+.board-shell .canvas-caption { top: auto; bottom: 18px; left: 20px; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 225px); padding: 5px 0; font-size: 11px; color: var(--muted); }
+.board-mode-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 100%; flex-shrink: 0; }
+.board-shell .canvas-context-hint { font-size: 11px; color: var(--muted); padding-left: 8px; border-left: 1px solid var(--line); }
+.board-shell .canvas-loading { top: auto; bottom: 74px; right: 16px; z-index: 2; box-shadow: var(--board-shadow); }
+.board-shell .canvas-feedback { z-index: 5; bottom: 74px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); box-shadow: var(--board-shadow); }
+.board-shell .error-panel { left: 84px; right: 16px; top: 76px; z-index: 3; }
+.board-shortcuts { position: absolute; top: 64px; right: 16px; width: 290px; max-width: calc(100% - 32px); max-height: calc(100% - 80px); overflow-y: auto; padding: 16px; z-index: 8; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px #20344026; }
+.board-shortcuts header { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 15px; }
+.board-shortcuts p { margin: 5px 0 12px; font-size: 12px; color: var(--muted); }
+.board-shortcuts dl { margin: 0; }
+.board-shortcuts dl > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; font-size: 12px; }
+.board-shortcuts dd { margin: 0; }
+.board-shortcuts kbd { font-family: var(--font-ui); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 6px; background: var(--surface); }
+.board-shortcuts footer { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 12px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.board-dark { --board-shadow: 0 4px 18px #0003; --paper: #243b47; --ink: #e4edf1; --muted: #b9cbd4; --line: #405968; --accent-soft: #304e5e; --canvas: #1d2c36; }
+.board-dark .diagram-viewport { background-image: radial-gradient(#49606f .8px, transparent .8px); }
+.canvas-pane-heading { display: none; }
+@container (max-width: 650px) {
+  .board-heading { left: 16px; top: 18px; max-width: calc(100% - 262px); }
+  .board-heading > svg, .board-heading span, .board-shell .canvas-context-hint { display: none; }
+  .board-heading strong { font-size: 12px; }
+  .board-shell .canvas-tools { top: 10px; right: 10px; gap: 0; }
+  .board-shell .draw-side-toolbar { left: 10px; top: 66px; padding: 4px; gap: 2px; }
+  .board-shell .draw-side-toolbar .icon-btn { width: 34px; height: 34px; }
+  .board-shell .connection-prompt, .board-shell .relation-selection, .board-shell .node-selection { top: 66px; left: 62px; right: 10px; max-width: calc(100% - 72px); gap: 4px; padding: 6px; }
+  .board-shell .node-selection strong { max-width: 110px; }
+  .board-shell .error-panel { left: 62px; }
+  .board-shell .canvas-caption { left: 12px; }
+  .board-shell .zoom-toolbar { right: 10px; }
+  .board-shell .pencil-prompt > span { display: none; }
+}
+@container (max-width: 390px) {
+  .board-heading { display: none; }
+  .board-shell .canvas-tools { left: 10px; right: auto; }
+  .board-shell .canvas-caption { display: none; }
+  .board-shell .pencil-swatches { gap: 7px; }
+  .board-shell .pencil-size-label { width: 100%; }
+}
+@media (max-height: 680px) {
+  .board-shell .draw-side-toolbar { gap: 1px; top: 66px; }
+  .board-shell .draw-side-toolbar .icon-btn { height: 30px; width: 34px; }
+  .board-shell .draw-toolbar-divider { margin: 1px 0; }
+}
+@media (max-height: 470px) {
+  .board-shell .draw-side-toolbar { flex-direction: row; top: auto; bottom: 68px; max-width: calc(100% - 32px); overflow-x: auto; }
+  .board-shell .draw-toolbar-divider { width: 1px; height: 20px; margin: 0 3px; }
+  .board-tool::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .board-tool::after { transition: none; } }
+@media print {
+  .board-shell .canvas-tools, .board-heading, .draw-side-toolbar, .node-selection, .board-shortcuts, .board-shell .connection-prompt, .board-shell .relation-selection, .board-shell .zoom-toolbar, .board-shell .canvas-caption { display: none !important; }
+  .board-shell.is-focused { position: relative; inset: auto; box-shadow: none; }
+}
+.board-history { position: absolute; bottom: 16px; left: 16px; z-index: 2; display: flex; align-items: center; gap: 3px; height: 44px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); box-shadow: var(--board-shadow); }
+.board-shell:has(.board-history) .canvas-caption { left: 112px; max-width: calc(100% - 330px); }
+.board-shell .draw-side-toolbar { max-height: calc(100% - 152px); }
+@container (max-width: 650px) { .board-shell:has(.board-history) .canvas-caption { display: none; } }
+@media print { .board-history { display: none !important; } }

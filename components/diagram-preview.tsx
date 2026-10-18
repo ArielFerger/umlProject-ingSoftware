@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Move, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Crosshair, Undo2 } from "lucide-react";
+import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
-import { CanvasModel, applyCanvas, measureClasses, exportCanvas, edgeControls, renderStrokes, renderPlacementMarker } from "@/lib/svg-canvas";
+import { CanvasModel, applyCanvas, measureClasses, exportCanvas, edgeControls, renderStrokes } from "@/lib/svg-canvas";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
@@ -12,11 +12,12 @@ import { useAppTheme } from "./theme-picker";
 import { sourceRelations, updateRelation, removeRelation, type SourceRelation } from "@/lib/relation-actions";
 import { NODE_KINDS, VISUAL_RELATIONS, visualNodes, visualRelations, setVisualNode, addVisualRelation, removeVisualNode, updateVisualRelation, removeVisualRelation, type VisualNode } from "@/lib/visual-diagrams";
 import { prepareVisualSource, measureVisualNodes, sequenceModel, reorderSequence } from "@/lib/visual-svg";
+import { zoomAt, snapPoint, gridSpacing } from "@/lib/canvas-navigation";
 
 let renderQueue: Promise<unknown> = Promise.resolve();
 
 export type SvgResult = { svg: string; width: number; height: number; center?: Point };
-type ToolMode = "move" | "place" | "connect" | "draw" | "erase";
+type ToolMode = "move" | "hand" | "place" | "connect" | "draw" | "erase";
 type Drag = {
   kind: "node" | "pan" | "edge" | "draw" | "erase";
   name?: string;
@@ -30,6 +31,7 @@ type Drag = {
   points?: Point[];
   strokes?: CanvasStroke[];
   erased?: boolean;
+  navigationOnly?: boolean;
 };
 
 const PEN_COLORS = [
@@ -65,7 +67,7 @@ function pointNearStroke(pt: Point, stroke: CanvasStroke, radius: number) {
   return false;
 }
 
-export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable", focused, onFocusChange }: {
+export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable", focused, onFocusChange, onUndo, onRedo, canUndo = true, canRedo = true }: {
   diagram: Diagram; onRendered: (result: SvgResult | null) => void; onClassClick: (name: string) => void;
   onSettingsChange: (settings: CanvasSettings) => void;
   onConnect: (from: string, to: string, kind: RelationKind, positions: Record<string, Point>) => void;
@@ -78,6 +80,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   initialFit?: "readable" | "contain";
   focused?: boolean;
   onFocusChange?: (focused: boolean) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }) {
   const { isDark } = useAppTheme();
   const dark = diagram.theme === "dark" || (diagram.theme === "studio" && isDark);
@@ -95,11 +101,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const viewState = useRef({ zoom, pan });
   viewState.current = { zoom, pan };
   const [mode, setMode] = useState<ToolMode>("move");
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [panning, setPanning] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [penColor, setPenColor] = useState<string>("#1a647b");
   const [penWidth, setPenWidth] = useState<number>(3);
   const [localFocus, setLocalFocus] = useState(false);
   const isFocused = focused ?? localFocus;
-  const [selectedPoint, setSelectedPoint] = useState<Point | null>(null);
   const [relationKind, setRelationKind] = useState<RelationKind>("-->");
   const [origin, setOrigin] = useState("");
   const [localSelection, setLocalSelection] = useState("");
@@ -112,6 +122,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const pointerNode = useRef("");
   const fittedId = useRef("");
   const renderedId = useRef("");
+  const renderedContent = useRef("");
   const prevViewCenter = useRef<{ id: string; center: Point } | null>(null);
   const hadSize = useRef(false);
   const [context, setContext] = useState<{ x: number; y: number; name: string; point?: Point } | null>(null);
@@ -132,11 +143,25 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   callbacks.current = { onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange, onFocusChange };
   const isClass = diagram.type === "class";
   const isSequence = diagram.type === "sequence";
+  const editable = !!onSourceChange;
   const nodesInSource = useMemo(() => visualNodes(diagram.source, diagram.type), [diagram.source, diagram.type]);
   const availableRelations = isClass ? RELATIONS : VISUAL_RELATIONS[diagram.type] || [];
   const activeKind = isClass ? relationKind : visualKind || availableRelations[0]?.value || "-->";
-  const selection = selectedNode;
+  const selection = model.current.nodes.some(node => node.name === selectedNode) ? selectedNode : "";
   const root = () => art.current?.querySelector<SVGSVGElement>("svg") || null;
+
+  function activateTool(tool: ToolMode) {
+    setMode(tool); setOrigin(""); setContext(null); setShowShortcuts(false);
+    viewport.current?.focus({ preventScroll: true });
+  }
+
+  useEffect(() => {
+    const release = () => setSpaceHeld(false);
+    const keyup = (event: KeyboardEvent) => { if (event.code === "Space") release(); };
+    window.addEventListener("keyup", keyup);
+    window.addEventListener("blur", release);
+    return () => { window.removeEventListener("keyup", keyup); window.removeEventListener("blur", release); };
+  }, []);
 
   const toggleFocus = useCallback((next?: boolean) => {
     const value = next ?? !isFocused;
@@ -170,7 +195,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (!insertRequest || !onSourceChange) return;
     setFormError("");
     if (isClass) {
-      if (insertRequest.kind === "class") openClass("", selectedPoint || undefined);
+      if (insertRequest.kind === "class") openClass("", undefined);
       return;
     }
     if (["message", "transition", "flow", "erlink"].includes(insertRequest.kind)) {
@@ -178,7 +203,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       setConnectionForm({ from: nodesInSource[0].id, to: nodesInSource[1]?.id || nodesInSource[0].id, kind: activeKind, label: "" });
     } else {
       const kind = ({ node: "activity", decisión: "decision" } as Record<string,string>)[insertRequest.kind] || insertRequest.kind;
-      setNodeForm({ id: "", label: "", kind, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: selectedPoint || viewportCenterPoint() });
+      setNodeForm({ id: "", label: "", kind, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: viewportCenterPoint() });
     }
     // A request is a gesture, not a persistent editing mode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,15 +212,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const fit = useCallback((readable = false) => {
     const el = viewport.current, svg = art.current?.querySelector<SVGSVGElement>("svg");
     if (!el || !svg) return;
-    const tempMarker = svg.querySelector(".studio-placement-marker");
-    const parent = tempMarker?.parentNode;
-    if (tempMarker) tempMarker.remove();
     const box = svg.getBBox();
-    if (tempMarker && parent) parent.appendChild(tempMarker);
     const view = svg.viewBox.baseVal;
-    const fitted = Math.min(1.15, Math.max(.1, Math.min((el.clientWidth - 65) / (box.width + 50), (el.clientHeight - 85) / (box.height + 50))));
+    const fitted = Math.min(1.15, Math.max(.1, Math.min(Math.max(100, el.clientWidth - 140) / (box.width + 40), Math.max(100, el.clientHeight - 180) / (box.height + 40))));
     const scale = readable ? Math.max(.8, fitted) : fitted;
-    const nextPan = { x: (view.x + view.width / 2 - box.x - box.width / 2) * scale, y: readable && scale > fitted ? (view.y + view.height / 2 - box.y) * scale - el.clientHeight / 2 + 48 : (view.y + view.height / 2 - box.y - box.height / 2) * scale };
+    const nextPan = { x: (view.x + view.width / 2 - box.x - box.width / 2) * scale + 30, y: readable && scale > fitted ? (view.y + view.height / 2 - box.y) * scale - el.clientHeight / 2 + 100 : (view.y + view.height / 2 - box.y - box.height / 2) * scale + 15 };
     viewState.current = { zoom: scale, pan: nextPan };
     setZoom(scale);
     setPan(nextPan);
@@ -269,6 +290,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             used.add(relation.line); return [[edge.id, relation] as const];
           }));
           renderedId.current = diagram.id;
+          renderedContent.current = content;
           setResult({ svg: new XMLSerializer().serializeToString(live), width, height, center });
           setBusy(false);
         } catch (e) {
@@ -289,7 +311,6 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       svg.querySelectorAll<SVGPathElement>(".edgePaths path,.messageLine0,.messageLine1").forEach(path => { path.style.strokeWidth = String(settings.lineWidth); });
       renderStrokes(svg, settings.strokes);
     }
-    renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, viewState.current.zoom);
     callbacks.current.onRendered(exportCanvas(svg));
     if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) {
       const addedName = pendingNode.current;
@@ -331,10 +352,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       }
       prevViewCenter.current = { id: diagram.id, center: result.center };
     }
-  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit, onSourceChange, selectedPoint]);
+  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit]);
 
   useEffect(() => {
-    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); setSelectedPoint(null); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
+    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
   }, [diagram.id]);
   useEffect(() => {
     const svg = root();
@@ -346,8 +367,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => {
     const svg = root();
     if (svg && !busy && !error) {
-      edgeControls(svg, model.current, settings, selectedEdge, zoom, !!onSourceChange);
-      renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, zoom);
+      edgeControls(svg, model.current, settings, selectedEdge, zoom, editable);
     }
     root()?.querySelectorAll<SVGElement>("[data-edge-id]").forEach(element => {
       const id = element.getAttribute("data-edge-id");
@@ -355,8 +375,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       element.classList.toggle("edge-hovered", id === hoveredEdge);
       if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", String(id === selectedEdge));
     });
-  }, [selectedEdge, hoveredEdge, result, settings, zoom, busy, error, onSourceChange, selectedPoint, isSequence]);
+  }, [selectedEdge, hoveredEdge, result, settings, zoom, busy, error, editable]);
   useEffect(() => { setSelectedEdge(""); setHoveredEdge(""); }, [content]);
+  useEffect(() => {
+    if (!busy && renderedId.current === diagram.id && renderedContent.current === content && selectedNode && !model.current.nodes.some(node => node.name === selectedNode)) {
+      setSelectedNode(""); setFeedback("");
+    }
+  }, [result, busy, diagram.id, content, selectedNode]);
   useEffect(() => {
     if (!viewport.current) return;
     const observer = new ResizeObserver(() => {
@@ -374,21 +399,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }, [fit, initialFit]);
 
   useEffect(() => {
-    if (!isFocused) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && mode === "move" && !selectedEdge && !classForm && !nodeForm && !connectionForm && !edgeForm && !edgeDelete && !deleteTarget && !context) {
-        toggleFocus(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isFocused, mode, selectedEdge, classForm, nodeForm, connectionForm, edgeForm, edgeDelete, deleteTarget, context, toggleFocus]);
-
-  useEffect(() => {
     const el = viewport.current;
     if (!el || busy || error) return;
     const wheel = (event: WheelEvent) => {
-      if (!art.current?.querySelector("svg") || !event.deltaY) return;
+      if (!art.current?.querySelector("svg") || (!event.deltaY && !event.deltaX)) return;
       if (event.target instanceof Element && event.target.closest("button,input,select,textarea,.zoom-toolbar,.draw-side-toolbar,.error-panel")) return;
       event.preventDefault();
       if (drag.current) return;
@@ -396,14 +410,16 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       // the cursor rather than zooming around the middle of the canvas.
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? el.clientHeight : 1);
       const current = viewState.current;
-      const nextZoom = Math.min(4, Math.max(.1, current.zoom * Math.exp(-Math.max(-100, Math.min(100, delta)) * .0025)));
-      const ratio = nextZoom / current.zoom;
+      if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
+        const nextPan = { x: current.pan.x - (event.deltaX || delta), y: current.pan.y };
+        viewState.current = { ...current, pan: nextPan }; setPan(nextPan); return;
+      }
       const box = el.getBoundingClientRect();
       const x = event.clientX - box.left - el.clientWidth / 2;
       const y = event.clientY - box.top - el.clientHeight / 2;
-      const nextPan = { x: x - (x - current.pan.x) * ratio, y: y - (y - current.pan.y) * ratio };
-      viewState.current = { zoom: nextZoom, pan: nextPan };
-      setZoom(nextZoom); setPan(nextPan);
+      const next = zoomAt(current, current.zoom * Math.exp(-Math.max(-100, Math.min(100, delta)) * .0025), { x, y });
+      viewState.current = next;
+      setZoom(next.zoom); setPan(next.pan);
     };
     // React's delegated wheel listener is passive, so use a local listener to
     // stop page/browser scrolling only while the gesture belongs to the canvas.
@@ -453,7 +469,6 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     const svg = root(); if (!svg) return;
     positions.current = applyCanvas(svg, model.current, next, dark);
     edgeControls(svg, model.current, next, edgeId, zoom, !!callbacks.current.onSourceChange);
-    renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, zoom);
     svg.querySelectorAll<SVGElement>("[data-edge-id]").forEach(el => el.classList.toggle("edge-selected", el.getAttribute("data-edge-id") === edgeId));
   }
   function addBend() {
@@ -482,10 +497,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (isSequence) { const geometry = model.current.nodes.find(n => n.name === name); const el = geometry && svg.getElementById(geometry.domId); if (el) el.setAttribute("transform", `translate(${point.x - geometry.x},0) ${geometry.transform}`); return; }
     const next = { ...settingsRef.current, positions: { ...positions.current, [name]: point } };
     positions.current = applyCanvas(svg, model.current, next, dark);
-    renderPlacementMarker(svg, onSourceChange && !isSequence ? selectedPoint : null, zoom);
   }
-  function changeSettings(patch: Partial<CanvasSettings>) { callbacks.current.onSettingsChange({ ...settingsRef.current, ...patch }); }
-  function changeZoom(delta: number) { setZoom(z => Math.min(4, Math.max(.1, Math.round((z + delta) * 100) / 100))); }
+  function changeSettings(patch: Partial<CanvasSettings>) { if (callbacks.current.onSourceChange) callbacks.current.onSettingsChange({ ...settingsRef.current, ...patch }); }
+  function setViewZoom(value: number) {
+    const next = zoomAt(viewState.current, value);
+    viewState.current = next; setZoom(next.zoom); setPan(next.pan);
+  }
+  function changeZoom(delta: number) { setViewZoom(Math.round((viewState.current.zoom + delta) * 100) / 100); }
 
   function undoStroke() {
     const current = settingsRef.current.strokes || [];
@@ -502,7 +520,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   function openClass(name = "", explicitPoint?: Point) {
     if (!callbacks.current.onSourceChange) { if (name) callbacks.current.onClassClick(name); return; }
     setFormError("");
-    const targetPoint = name ? undefined : roundPoint(explicitPoint || selectedPoint || viewportCenterPoint());
+    const targetPoint = name ? undefined : snapPoint(roundPoint(explicitPoint || viewportCenterPoint()), snapToGrid);
     if (!isClass) {
       const node = nodesInSource.find(n => n.id === name);
       setNodeForm(node ? { ...node, editing: true } : { id: "", label: "", kind: NODE_KINDS[diagram.type][0].value, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: targetPoint });
@@ -517,7 +535,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       if (!classForm.editing && [...classNames(diagram.source), ...model.current.nodes.map(node => node.name)].includes(classForm.name)) throw new Error("Ya existe una clase con ese nombre.");
       let nextSource = setClassMembers(diagram.source, classForm.name, classForm.body);
       if (!classForm.editing) {
-        const targetPoint = roundPoint(classForm.point || selectedPoint || viewportCenterPoint());
+        const targetPoint = roundPoint(classForm.point || viewportCenterPoint());
         const nextPositions = {
           ...positions.current,
           ...settingsRef.current.positions,
@@ -528,7 +546,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         pendingNode.current = classForm.name;
       }
       callbacks.current.onSourceChange(nextSource);
-      setSelectedNode(classForm.name); setClassForm(null); setFeedback("Clase " + classForm.name + " guardada en la posición seleccionada.");
+      setSelectedNode(classForm.name); setClassForm(null); setFeedback("Clase " + classForm.name + " guardada.");
     } catch (e) { setFormError((e as Error).message); }
   }
   function mutate(action: () => string) {
@@ -549,7 +567,6 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }
   function openContext(x: number, y: number, name = "", point?: Point) {
     if (name) setSelectedNode(name);
-    if (point) setSelectedPoint(point);
     setContext({ x, y, name, point });
   }
   function copyClass(name: string) {
@@ -608,32 +625,62 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     }
     actions.push({ label: isFocused ? "Salir de modo foco" : "Enfocar pantalla de dibujo", icon: isFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />, run: () => toggleFocus(), separator: !!onSourceChange });
     actions.push({ label: "Ajustar al lienzo", icon: <Scan size={16} />, run: () => fit(), disabled: !result || busy || !!error });
-    actions.push({ label: "Ver al 100%", icon: <Scan size={16} />, run: () => { setZoom(1); setPan({ x: 0, y: 0 }); }, disabled: !result });
+    actions.push({ label: "Ver al 100%", icon: <Scan size={16} />, run: () => setViewZoom(1), disabled: !result });
     actions.push({ label: "Copiar código Mermaid", icon: <Code2 size={16} />, run: () => void copySource(), separator: true });
     actions.push({ label: "Descargar Mermaid", icon: <Download size={16} />, run: () => downloadSource() });
     actions.push({ label: "Descargar SVG", icon: <Download size={16} />, run: () => downloadSource(true), disabled: !result || busy || !!error });
     if (isClass) actions.push({ label: "Guía de relaciones UML", icon: <BookOpen size={16} />, run: () => callbacks.current.onGuide(relationKind), separator: true });
   }
 
-  return <div className={"diagram-preview-shell" + (isFocused ? " is-focused" : "")}>
-    <div className="canvas-tools">
-      {<>
-        {onSourceChange && <button className="btn canvas-add" aria-label={isClass ? "Agregar clase" : "Agregar elemento"} title={selectedPoint ? "Agregar en la posición seleccionada del lienzo" : "Agregar en la vista actual"} disabled={busy} onClick={() => openClass("", selectedPoint || undefined)}><Plus size={16} /><span>{isClass ? "Clase" : "Elemento"}</span></button>}
-        <div className="segmented canvas-mode">
-          <button className={"icon-btn " + (mode === "move" ? "active" : "")} title="Mover y seleccionar elementos" aria-label="Mover elementos" onClick={() => { setMode("move"); setOrigin(""); }}><Move size={16} /></button>
-          {onSourceChange && !isSequence && <button className={"icon-btn " + (mode === "place" ? "active" : "")} title={isClass ? "Ubicar nueva clase haciendo clic en el lienzo" : "Ubicar nuevo elemento haciendo clic en el lienzo"} aria-label={isClass ? "Ubicar clase en el lienzo" : "Ubicar elemento en el lienzo"} disabled={busy || !!error} onClick={() => { setMode(m => m === "place" ? "move" : "place"); setOrigin(""); }}><Crosshair size={16} /></button>}
-          <button className={"icon-btn " + (mode === "connect" ? "active" : "")} title="Conectar elementos" aria-label="Conectar elementos" disabled={!onSourceChange || busy || !!error} onClick={() => { setMode("connect"); setOrigin(""); }}><Link2 size={16} /></button>
-          {onSourceChange && <button className={"icon-btn " + (mode === "draw" ? "active" : "")} title="Lápiz de dibujo libre" aria-label="Lápiz de dibujo libre" disabled={busy || !!error} onClick={() => { setMode(m => m === "draw" ? "move" : "draw"); setOrigin(""); }}><Pencil size={16} /></button>}
-          {onSourceChange && <button className={"icon-btn " + (mode === "erase" ? "active" : "")} title="Borrador de trazos" aria-label="Borrador de trazos" disabled={busy || !!error || !settings.strokes?.length} onClick={() => { setMode(m => m === "erase" ? "move" : "erase"); setOrigin(""); }}><Eraser size={16} /></button>}
-        </div>
-        <select aria-label="Relación rápida" disabled={!onSourceChange || busy || !!error} value={activeKind} onChange={e => { if (isClass) setRelationKind(e.target.value as RelationKind); else setVisualKind(e.target.value); setMode("connect"); setOrigin(""); }}>
-          {availableRelations.map(item => <option key={item.value} value={item.value}>{item.name}</option>)}
-        </select>
-        {isClass && <button className="icon-btn canvas-help" title="Guía de relaciones UML" aria-label="Guía de relaciones UML" onClick={() => callbacks.current.onGuide(relationKind)}><BookOpen size={17} /></button>}
-        <span className="canvas-tool-spacer" />
-        <button className="icon-btn canvas-arrange" title="Ordenar automáticamente" aria-label="Ordenar automáticamente" disabled={busy || !!error || isSequence || !onSourceChange} onClick={arrange}><LayoutGrid size={17} /></button>
-      </>}
-      {!inspectorOpen && <details className="canvas-style">
+  function canvasShortcut(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.defaultPrevented || (e.target as Element).closest("input,textarea,select,[contenteditable=true],dialog,[role=menu]")) return;
+    if (classForm || nodeForm || connectionForm || edgeForm || edgeDelete || deleteTarget || context || drag.current) return;
+    const key = e.key.toLowerCase();
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (showShortcuts) setShowShortcuts(false);
+      else if (mode !== "move" || selection || selectedEdge) {
+        activateTool("move"); setSelectedNode(""); setSelectedEdge("");
+      } else if (isFocused) toggleFocus(false);
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      if (onSourceChange && ((key === "z" && onUndo) || (key === "y" && onRedo))) {
+        e.preventDefault();
+        if (key === "y" || e.shiftKey) { if (canRedo) onRedo?.(); }
+        else if (canUndo) onUndo?.();
+      }
+      return;
+    }
+    if (e.altKey) return;
+    // Space on buttons keeps its native activation; on the board it holds the hand.
+    if (e.code === "Space" && !(e.target as Element).closest("button,summary")) { e.preventDefault(); setSpaceHeld(true); return; }
+    if (key === "v" || key === "h") { e.preventDefault(); activateTool(key === "v" ? "move" : "hand"); return; }
+    if (key === "?" || key === "f1") { e.preventDefault(); setShowShortcuts(v => !v); return; }
+    if (key === "g") { e.preventDefault(); setShowGrid(v => !v); return; }
+    if (key === "f") { e.preventDefault(); toggleFocus(); return; }
+    if (!result || busy || error) return;
+    if (key === "1") { e.preventDefault(); fit(); return; }
+    if (key === "0") { e.preventDefault(); setViewZoom(1); return; }
+    if (key === "+" || key === "=" || key === "-") { e.preventDefault(); changeZoom(key === "-" ? -.1 : .1); return; }
+    if (!onSourceChange) return;
+    const tools: Record<string, ToolMode> = { c: "connect", p: "draw", e: "erase" };
+    if (tools[key]) { e.preventDefault(); activateTool(tools[key]); return; }
+    if (key === "n") { e.preventDefault(); if (isSequence) openClass(); else activateTool("place"); return; }
+    if (key === "s" && !isSequence) { e.preventDefault(); setSnapToGrid(v => !v); return; }
+    if (selection && (key === "delete" || key === "backspace")) { e.preventDefault(); setFormError(""); setDeleteTarget(selection); }
+  }
+
+  const modeLabel = { move: "Seleccionar", hand: "Mover lienzo", place: isClass ? "Nueva clase" : "Nuevo elemento", connect: "Conectar", draw: "Lápiz", erase: "Borrador" }[spaceHeld ? "hand" : mode];
+  const cellSize = gridSpacing(zoom);
+
+  return <div className={"diagram-preview-shell board-shell" + (dark ? " board-dark" : "") + (isFocused ? " is-focused" : "")} onKeyDown={canvasShortcut}
+    onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget)) setSpaceHeld(false); }}>
+    <div className="board-heading"><Shapes size={18} /><div><strong>{diagram.name}</strong><span>{onSourceChange ? "Tablero UML" : "Solo lectura"} · {modeLabel}</span></div></div>
+    <div className="canvas-tools" role="toolbar" aria-label="Vista del tablero">
+      <button className={"icon-btn " + (showGrid ? "active" : "")} title="Mostrar cuadrícula (G)" aria-label="Mostrar cuadrícula" aria-pressed={showGrid} onClick={() => setShowGrid(v => !v)}><Grid2X2 size={17} /></button>
+      {onSourceChange && !isSequence && <button className={"icon-btn " + (snapToGrid ? "active" : "")} title="Ajustar a cuadrícula de 20 px (S)" aria-label="Ajustar a cuadrícula" aria-pressed={snapToGrid} onClick={() => setSnapToGrid(v => !v)}><Magnet size={17} /></button>}
+      {onSourceChange && !inspectorOpen && <details className="canvas-style">
         <summary aria-label="Ajustar flechas y etiquetas" title="Ajustar flechas y etiquetas"><SlidersHorizontal size={17} /></summary>
         <div className="style-popover">
           <label>Grosor de línea <output>{settings.lineWidth} px</output><input aria-label="Grosor de línea" type="range" min="1" max="6" step=".5" value={settings.lineWidth} onChange={e => changeSettings({ lineWidth: Number(e.target.value) })} /></label>
@@ -641,14 +688,18 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           {isClass && <label>Texto de relaciones <output>{settings.labelSize} px</output><input aria-label="Texto de relaciones" type="range" min="12" max="24" step="1" value={settings.labelSize} onChange={e => changeSettings({ labelSize: Number(e.target.value) })} /></label>}
         </div>
       </details>}
-      <button className={"btn canvas-focus-btn " + (isFocused ? "active" : "")} aria-label={isFocused ? "Salir de pantalla casi completa" : "Enfocar pantalla de dibujo"} aria-pressed={isFocused} title={isFocused ? "Salir de pantalla casi completa (Esc)" : "Enfocar pantalla de dibujo (pantalla casi completa)"} onClick={() => toggleFocus()}>
-        {isFocused ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-        <span>{isFocused ? "Salir de foco" : "Foco"}</span>
-      </button>
-      <button className="icon-btn canvas-options" aria-label="Opciones del lienzo" title="Opciones del lienzo (clic derecho)" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); openContext(box.right - 256, box.bottom + 8, model.current.nodes.some(node => node.name === selection) ? selection : "", selectedPoint || undefined); }}><MoreHorizontal size={19} /></button>
+      <button className={"icon-btn " + (showShortcuts ? "active" : "")} aria-label="Atajos del lienzo" title="Atajos del lienzo (?)" aria-expanded={showShortcuts} onClick={() => setShowShortcuts(v => !v)}><Keyboard size={18} /></button>
+      <span className="board-control-divider" />
+      <button className={"icon-btn " + (isFocused ? "active" : "")} aria-label={isFocused ? "Salir de modo foco" : "Enfocar pantalla de dibujo"} aria-pressed={isFocused} title="Modo foco (F)" onClick={() => toggleFocus()}>{isFocused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}</button>
+      <button className="icon-btn" aria-label="Opciones del lienzo" title="Opciones del lienzo" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); openContext(box.right - 256, box.bottom + 8, "", undefined); }}><MoreHorizontal size={19} /></button>
     </div>
-    {mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><span>{origin ? origin + " → elegí el destino" : "Elegí el origen y después el destino"}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
-    {mode === "place" && <div className="connection-prompt" role="status"><Crosshair size={14} /><span>{isClass ? "Hacé clic en el lugar del lienzo donde quieras añadir la nueva clase" : "Hacé clic en el lugar del lienzo donde quieras añadir el elemento"}</span><button className="btn" onClick={() => { setMode("move"); openClass("", selectedPoint || undefined); }}>Abrir formulario</button><button className="icon-btn" title="Cancelar ubicación" aria-label="Cancelar ubicación" onClick={() => setMode("move")}><X size={14} /></button></div>}
+    {showShortcuts && <section className="board-shortcuts" aria-label="Atajos de teclado">
+      <header><strong>Tu lienzo, a mano</strong><button className="icon-btn" aria-label="Cerrar atajos" onClick={() => setShowShortcuts(false)}><X size={16} /></button></header>
+      <p>Usá los atajos con el foco en el tablero.</p>
+      <dl>{[["Seleccionar", "V"], ["Mano", "H"], ["Mano temporal", "Espacio"], ...(onSourceChange ? [["Añadir elemento", "N"], ["Conectar", "C"], ["Lápiz / borrador", "P / E"]] : []), ["Ajustar / 100%", "1 / 0"], ["Cuadrícula", "G"], ["Modo foco", "F"], ...(onUndo ? [["Deshacer / rehacer", "Ctrl/⌘ Z / ⇧ Z"]] : [])].map(([label, key]) => <div key={label}><dt>{label}</dt><dd><kbd>{key}</kbd></dd></div>)}</dl>
+      <footer>Rueda para zoom · Mayús + rueda para desplazar · Esc para cancelar</footer>
+    </section>}
+    {mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><select aria-label="Relación rápida" value={activeKind} onChange={e => { if (isClass) setRelationKind(e.target.value as RelationKind); else setVisualKind(e.target.value); setOrigin(""); }}>{availableRelations.map(item => <option key={item.value} value={item.value}>{item.name}</option>)}</select>{isClass && <button className="icon-btn" title="Guía de relaciones UML" aria-label="Guía de relaciones UML" onClick={() => callbacks.current.onGuide(relationKind)}><BookOpen size={16} /></button>}<span>{origin ? origin + " → elegí el destino" : "Elegí el origen y después el destino"}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
     {(mode === "draw" || mode === "erase") && onSourceChange && <div className="connection-prompt pencil-prompt" role="toolbar" aria-label="Opciones del lápiz">
       <Pencil size={14} />
       <span>{mode === "draw" ? "Lápiz activo · dibujá sobre el lienzo" : "Borrador activo · tocá o arrastrá sobre un trazo"}</span>
@@ -686,31 +737,47 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       </div>}
     </div>}
     <div className="canvas-stage">
-      {onSourceChange && <aside className="draw-side-toolbar" role="toolbar" aria-label="Herramientas del lienzo">
-        <button type="button" className={"icon-btn " + (mode === "move" ? "active" : "")} title="Seleccionar y mover" aria-label="Seleccionar y mover" aria-pressed={mode === "move"} onClick={() => { setMode("move"); setOrigin(""); }}><MousePointer2 size={17} /></button>
-        {!isSequence && <button type="button" className={"icon-btn " + (mode === "place" ? "active" : "")} title={isClass ? "Seleccionar punto en el lienzo para nueva clase" : "Seleccionar punto en el lienzo para nuevo elemento"} aria-label={isClass ? "Seleccionar punto para nueva clase" : "Seleccionar punto para nuevo elemento"} aria-pressed={mode === "place"} disabled={busy || !!error} onClick={() => { setMode(m => m === "place" ? "move" : "place"); setOrigin(""); }}><Crosshair size={17} /></button>}
-        <button type="button" className="icon-btn" title={isClass ? (selectedPoint ? "Agregar clase en el punto seleccionado" : "Agregar clase") : "Agregar elemento"} aria-label={isClass ? "Agregar clase rápida" : "Agregar elemento rápido"} disabled={busy} onClick={() => openClass("", selectedPoint || undefined)}><Plus size={18} /></button>
-        <button type="button" className={"icon-btn " + (mode === "connect" ? "active" : "")} title="Conectar elementos" aria-label="Conectar desde barra lateral" aria-pressed={mode === "connect"} disabled={busy || !!error} onClick={() => { setMode(m => m === "connect" ? "move" : "connect"); setOrigin(""); }}><Link2 size={17} /></button>
-        <span className="draw-toolbar-divider" />
-        <button type="button" className={"icon-btn " + (mode === "draw" ? "active" : "")} title="Lápiz (dibujar a mano alzada)" aria-label="Lápiz" aria-pressed={mode === "draw"} disabled={busy || !!error} onClick={() => { setMode(m => m === "draw" ? "move" : "draw"); setOrigin(""); }}><Pencil size={17} /></button>
-        <button type="button" className={"icon-btn " + (mode === "erase" ? "active" : "")} title="Borrador de trazos del lápiz" aria-label="Borrador" aria-pressed={mode === "erase"} disabled={busy || !!error || !settings.strokes?.length} onClick={() => { setMode(m => m === "erase" ? "move" : "erase"); setOrigin(""); }}><Eraser size={17} /></button>
-        {!!settings.strokes?.length && <button type="button" className="icon-btn" title="Limpiar todos los trazos del lápiz" aria-label="Limpiar dibujos" onClick={clearStrokes}><Trash2 size={16} /></button>}
-        <span className="draw-toolbar-divider" />
-        <button type="button" className="icon-btn" title="Ordenar automáticamente" aria-label="Ordenar desde barra lateral" disabled={busy || !!error || isSequence} onClick={arrange}><LayoutGrid size={17} /></button>
-        <button type="button" className="icon-btn" title="Ajustar diagrama al lienzo" aria-label="Ajustar vista" disabled={!result || busy || !!error} onClick={() => fit()}><Scan size={17} /></button>
-        <div className="draw-toolbar-bottom">
-          <button type="button" className={"icon-btn " + (isFocused ? "active" : "")} title={isFocused ? "Salir de pantalla casi completa (Esc)" : "Modo foco: pantalla casi completa"} aria-label={isFocused ? "Restaurar tamaño del lienzo" : "Pantalla casi completa"} aria-pressed={isFocused} onClick={() => toggleFocus()}>
-            {isFocused ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-          </button>
-        </div>
-      </aside>}
-      <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting " : "") + (mode === "place" ? "placing " : "") + (mode === "draw" ? "drawing " : "") + (mode === "erase" ? "erasing" : "")} ref={viewport} tabIndex={0} aria-label={"Lienzo de " + diagram.name}
+      <aside className="draw-side-toolbar" role="toolbar" aria-label="Herramientas del lienzo" aria-orientation="vertical">
+        <button className={"icon-btn board-tool " + (mode === "move" && !spaceHeld ? "active" : "")} data-tooltip="Seleccionar · V" title="Seleccionar y mover (V)" aria-label="Seleccionar y mover" aria-pressed={mode === "move"} onClick={() => activateTool("move")}><MousePointer2 size={20} /></button>
+        <button className={"icon-btn board-tool " + (mode === "hand" || spaceHeld ? "active" : "")} data-tooltip="Mano · H / Espacio" title="Mover lienzo (H o mantener Espacio)" aria-label="Mover lienzo" aria-pressed={mode === "hand" || spaceHeld} onClick={() => activateTool("hand")}><Hand size={20} /></button>
+        {onSourceChange && <>
+          <span className="draw-toolbar-divider" />
+          <button className={"icon-btn board-tool " + (mode === "place" ? "active" : "")} data-tooltip={isClass ? "Nueva clase · N" : "Nuevo elemento · N"} title={isClass ? "Agregar clase en el lienzo (N)" : "Agregar elemento (N)"} aria-label={isClass ? "Agregar clase" : "Agregar elemento"} aria-pressed={mode === "place"} disabled={busy || !!error} onClick={() => { if (isSequence) openClass(); else activateTool(mode === "place" ? "move" : "place"); }}><Plus size={23} /></button>
+          <button className={"icon-btn board-tool " + (mode === "connect" ? "active" : "")} data-tooltip="Conectar · C" title="Conectar elementos (C)" aria-label="Conectar elementos" aria-pressed={mode === "connect"} disabled={busy || !!error} onClick={() => activateTool(mode === "connect" ? "move" : "connect")}><Link2 size={20} /></button>
+          <span className="draw-toolbar-divider" />
+          <button className={"icon-btn board-tool " + (mode === "draw" ? "active" : "")} data-tooltip="Lápiz · P" title="Lápiz (P)" aria-label="Lápiz" aria-pressed={mode === "draw"} disabled={busy || !!error} onClick={() => activateTool(mode === "draw" ? "move" : "draw")}><Pencil size={20} /></button>
+          <button className={"icon-btn board-tool " + (mode === "erase" ? "active" : "")} data-tooltip="Borrador · E" title="Borrador (E)" aria-label="Borrador" aria-pressed={mode === "erase"} disabled={busy || !!error} onClick={() => activateTool(mode === "erase" ? "move" : "erase")}><Eraser size={20} /></button>
+          <span className="draw-toolbar-divider" />
+          <button className="icon-btn board-tool" data-tooltip="Ordenar elementos" title="Ordenar automáticamente" aria-label="Ordenar automáticamente" disabled={busy || !!error || isSequence} onClick={arrange}><LayoutGrid size={20} /></button>
+
+        </>}
+      </aside>
+      {onSourceChange && onUndo && onRedo && <div className="board-history" role="toolbar" aria-label="Historial del lienzo">
+        <button className="icon-btn" title="Deshacer (Ctrl/⌘ Z)" aria-label="Deshacer en el lienzo" disabled={!canUndo || busy} onClick={onUndo}><Undo2 size={18} /></button>
+        <button className="icon-btn" title="Rehacer (Ctrl/⌘ Mayús Z)" aria-label="Rehacer en el lienzo" disabled={!canRedo || busy} onClick={onRedo}><Redo2 size={18} /></button>
+      </div>}
+      {selection && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label={"Acciones de " + selection}>
+        <strong>{selection}</strong><span className="board-control-divider" />
+        <button className="icon-btn" title="Editar elemento" aria-label="Editar elemento seleccionado" onClick={() => openClass(selection)}><Pencil size={16} /></button>
+        <button className="icon-btn" title="Duplicar elemento" aria-label="Duplicar elemento seleccionado" onClick={() => copyClass(selection)}><Copy size={16} /></button>
+        <button className="icon-btn" title="Conectar desde aquí" aria-label="Conectar elemento seleccionado" onClick={() => { activateTool("connect"); setOrigin(selection); }}><Link2 size={16} /></button>
+        <button className="icon-btn board-delete" title="Eliminar elemento" aria-label="Eliminar elemento seleccionado" onClick={() => { setFormError(""); setDeleteTarget(selection); }}><Trash2 size={16} /></button>
+        <button className="icon-btn" title="Deseleccionar" aria-label="Deseleccionar elemento" onClick={() => setSelectedNode("")}><X size={15} /></button>
+      </div>}
+      <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting " : "") + (mode === "place" ? "placing " : "") + (mode === "draw" ? "drawing " : "") + (mode === "erase" ? "erasing " : "") + (mode === "hand" || spaceHeld ? "hand-tool " : "") + (panning ? "is-panning" : "")} ref={viewport} tabIndex={0}
+        style={{ backgroundImage: showGrid ? undefined : "none", backgroundSize: `${cellSize}px ${cellSize}px`, backgroundPosition: `calc(50% + ${pan.x - (result?.center?.x || 0) * zoom}px) calc(50% + ${pan.y - (result?.center?.y || 0) * zoom}px)` }} aria-label={"Lienzo de " + diagram.name}
         onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
         onContextMenu={e => { e.preventDefault(); drag.current = null; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { selectEdge(edgeId); return; } const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); const pt = roundPoint(clientPoint(e.clientX || box.x + box.width / 2, e.clientY || box.y + box.height / 2)); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || "", pt); }}
         onPointerDown={e => {
-          if (e.button !== 0) return;
+          if (e.button !== 0 && e.button !== 1) return;
           pointerNode.current = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || "";
           if ((e.target as Element).closest("button,.error-panel,.zoom-toolbar,.draw-side-toolbar")) return;
+          if (e.button === 1 || mode === "hand" || spaceHeld) {
+            e.preventDefault(); e.currentTarget.focus({ preventScroll: true });
+            drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: viewState.current.pan, moved: false, navigationOnly: true };
+            setPanning(true); e.currentTarget.setPointerCapture(e.pointerId); return;
+          }
+          if (!(e.target as Element).closest("[data-class],[data-edge-id]")) e.currentTarget.focus({ preventScroll: true });
           if (mode === "draw" && onSourceChange && !busy && !error) {
             e.preventDefault();
             const pt = roundPoint(clientPoint(e.clientX, e.clientY));
@@ -744,7 +811,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (name && mode !== "place" && onSourceChange && !busy && !error) {
             setSelectedNode(name);
             drag.current = { kind: "node", name, x: e.clientX, y: e.clientY, start: positions.current[name] || { x: 0, y: 0 }, moved: false };
-          } else drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: pan, moved: false };
+          } else { drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: viewState.current.pan, moved: false }; setPanning(true); }
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
         onPointerMove={e => {
@@ -782,12 +849,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             viewState.current = { zoom: viewState.current.zoom, pan: nextPan };
             setPan(nextPan);
           }
-          else if (mode === "move" && d.moved && d.name) placeClass(d.name, { x: Math.max(-19000, Math.min(19000, d.start.x + dx / zoom)), y: Math.max(-19000, Math.min(19000, d.start.y + dy / zoom)) });
+          else if (mode === "move" && d.moved && d.name) placeClass(d.name, snapPoint({ x: d.start.x + dx / zoom, y: d.start.y + dy / zoom }, snapToGrid && !e.altKey && !isSequence));
         }}
         onPointerUp={e => {
-          const d = drag.current; drag.current = null;
+          const d = drag.current; drag.current = null; setPanning(false);
           if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-          if (!d) return;
+          if (!d || d.navigationOnly) return;
           if (d.kind === "draw" && d.points?.length) {
             const stroke: CanvasStroke = { points: d.points, color: penColor, width: penWidth };
             const nextStrokes = [...(settingsRef.current.strokes || []).slice(-299), stroke];
@@ -810,8 +877,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           }
           if (!d.name) {
             if (!d.moved) {
-              const clickedPoint = roundPoint(clientPoint(e.clientX, e.clientY));
-              setSelectedPoint(clickedPoint);
+              const clickedPoint = snapPoint(roundPoint(clientPoint(e.clientX, e.clientY)), snapToGrid && !e.altKey);
               if (mode === "place" && onSourceChange && !busy && !error) {
                 setMode("move");
                 openClass("", clickedPoint);
@@ -832,9 +898,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 220, easing: "cubic-bezier(.16,1,.3,1)" });
           }
         }}
-        onPointerCancel={() => { drag.current = null; if (!isSequence) showSettings(settingsRef.current); }}
+        onPointerCancel={() => {
+          const cancelled = drag.current; drag.current = null; setPanning(false);
+          if (!isSequence) showSettings(settingsRef.current);
+          else if (cancelled?.kind === "node" && cancelled.name) placeClass(cancelled.name, cancelled.start);
+          else { const svg = root(); if (svg) renderStrokes(svg, settingsRef.current.strokes); }
+        }}
         onPointerLeave={() => setHoveredEdge("")}
-        onDoubleClick={e => { if ((e.target as Element).closest("[data-handle]")) return; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || pointerNode.current; if (name && mode === "move" && !busy && !error && onSourceChange) openClass(name); }}
+        onDoubleClick={e => { if (mode !== "move" || spaceHeld || busy || error || (e.target as Element).closest("button,[data-handle]")) return; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || pointerNode.current; if (name && mode === "move" && !busy && !error && onSourceChange) openClass(name); }}
         onKeyDown={e => {
           const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
           const handle = (e.target as Element).closest<SVGElement>("[data-handle]");
@@ -853,8 +924,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           }
           if (edgeId && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectEdge(edgeId); return; }
           if (edgeId && e.key === "F2") { e.preventDefault(); editEdge(edgeId); return; }
-          if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || "", selectedPoint || undefined); return; }
-          if (e.key === "Escape") { setOrigin(""); setMode("move"); setSelectedNode(""); setSelectedEdge(""); return; }
+          if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); openContext(box.x + Math.min(box.width / 2, 180), box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || "", undefined); return; }
           const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (!name || busy || error) return;
           if (e.key === "Enter") { e.preventDefault(); if (mode === "connect") selectClass(name); else openClass(name); }
           const vectors: Record<string, Point> = { ArrowLeft: { x: -10, y: 0 }, ArrowRight: { x: 10, y: 0 }, ArrowUp: { x: 0, y: -10 }, ArrowDown: { x: 0, y: 10 } };
@@ -869,14 +939,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           dangerouslySetInnerHTML={markup} />}
         {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
         {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-        {!chosenEdge && !busy && !error && <span className="canvas-caption">{diagram.name}<span className="canvas-context-hint">{!onSourceChange ? "Referencia · seleccioná elementos · ruedita para acercar o alejar" : isSequence ? "Ruedita para zoom · arrastrá participantes · conectá origen y destino" : selectedPoint ? `Punto seleccionado (${Math.round(selectedPoint.x)}, ${Math.round(selectedPoint.y)}) · + Clase lo ubica aquí` : "Clic en el lienzo para elegir posición · arrastrá elementos · doble clic para editar"}</span></span>}
+        {!busy && !error && <span className="canvas-caption"><span className="board-mode-dot" />{modeLabel}<span className="canvas-context-hint">{snapToGrid && onSourceChange && !isSequence ? "Ajuste a 20 px · Alt para mover libremente" : mode === "hand" || spaceHeld ? "Arrastrá para recorrer el tablero" : "Espacio + arrastrar para navegar · doble clic para editar"}</span></span>}
         {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
         <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
           <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
-          <span>{Math.round(zoom * 100)}%</span>
+          <button className="zoom-value" aria-label="Restablecer zoom al 100%" title="Restablecer zoom al 100% (0)" onClick={() => setViewZoom(1)}>{Math.round(zoom * 100)}%</button>
           <button className="icon-btn" aria-label="Acercar" title="Acercar" onClick={() => changeZoom(.1)}><Plus size={16} /></button>
           <i /><button className="icon-btn" aria-label="Ajustar al lienzo" title="Ajustar al lienzo" onClick={() => fit()}><Scan size={17} /></button>
-          <i /><button className={"icon-btn " + (isFocused ? "active" : "")} aria-label={isFocused ? "Salir de modo foco" : "Pantalla casi completa"} title={isFocused ? "Salir de pantalla casi completa (Esc)" : "Pantalla casi completa"} onClick={() => toggleFocus()}>{isFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
         </div>
       </div>
     </div>
@@ -893,12 +962,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {nodeForm && <Modal title={nodeForm.editing ? "Editar elemento" : "Agregar elemento"} onClose={() => setNodeForm(null)}><form onSubmit={e => { e.preventDefault(); try {
       let source = setVisualNode(diagram.source, diagram.type, nodeForm, !nodeForm.editing);
       if (!nodeForm.editing && !isSequence) {
-        const targetPt = roundPoint(nodeForm.point || selectedPoint || viewportCenterPoint());
+        const targetPt = roundPoint(nodeForm.point || viewportCenterPoint());
         const nextPositions = { ...positions.current, ...settingsRef.current.positions, [nodeForm.id]: targetPt };
         source = writeCanvas(source, { ...readCanvas(source), positions: nextPositions });
         positions.current = nextPositions;
       }
-      callbacks.current.onSourceChange?.(source); pendingNode.current = nodeForm.id; setSelectedNode(nodeForm.id); setNodeForm(null); setFeedback("Elemento guardado en la posición seleccionada. Podés recuperar el cambio con Deshacer.");
+      callbacks.current.onSourceChange?.(source); pendingNode.current = nodeForm.id; setSelectedNode(nodeForm.id); setNodeForm(null); setFeedback("Elemento guardado. Podés recuperar el cambio con Deshacer.");
     } catch (error) { setFormError((error as Error).message); } }}><div className="modal-body">
       <label>Tipo de elemento<select aria-label="Tipo de elemento" value={nodeForm.kind} onChange={e => setNodeForm({ ...nodeForm, kind: e.target.value })}>{NODE_KINDS[diagram.type]?.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}</select></label>
       <label>Identificador<input required autoFocus disabled={nodeForm.editing} maxLength={100} value={nodeForm.id} placeholder="Por ejemplo: Usuario" onChange={e => setNodeForm({ ...nodeForm, id: e.target.value })} /></label>
@@ -920,7 +989,6 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <label>Nombre<input required autoFocus maxLength={120} disabled={classForm.editing} value={classForm.name} placeholder="Por ejemplo: Cliente" onChange={e => setClassForm({ ...classForm, name: e.target.value })} /></label>
       <label>Atributos y métodos<textarea rows={8} className="mono" value={classForm.body} onChange={e => setClassForm({ ...classForm, body: e.target.value })} /></label>
       <div className="visibility-key"><code>+</code> Público <code>-</code> Privado <code>#</code> Protegido</div>
-      {!classForm.editing && classForm.point && <p className="form-hint">Se añadirá en la posición seleccionada ({Math.round(classForm.point.x)}, {Math.round(classForm.point.y)}) sin mover la vista del lienzo.</p>}
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setClassForm(null)}>Cancelar</button><button className="btn primary"><Check size={16} />{classForm.editing ? "Aplicar cambios" : "Agregar clase"}</button></div></form></Modal>}
     {deleteTarget && <Modal title={isClass ? "Eliminar clase" : "Eliminar elemento"} onClose={() => setDeleteTarget("")}><div className="modal-body"><p>Se quitará <strong>{deleteTarget}</strong> y sus relaciones del diagrama.</p><p>Podés recuperar este cambio con Deshacer en el editor.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setDeleteTarget("")}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(isClass ? removeClass(diagram.source, deleteTarget) : removeVisualNode(diagram.source, diagram.type, deleteTarget)); setDeleteTarget(""); setSelectedNode(""); setFeedback((isClass ? "Clase eliminada." : "Elemento eliminado.") + " Podés recuperar el cambio con Deshacer."); } catch(e) { setFormError((e as Error).message); } }}><Trash2 size={16} />{isClass ? "Eliminar clase" : "Eliminar elemento"}</button></div></Modal>}

@@ -56,7 +56,8 @@ export default function Studio() {
   const saveLock = useRef<Promise<boolean> | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
   const [sideOpen, setSideOpen] = useState(true);
-  const [propertiesOpen, setPropertiesOpen] = useState(true);
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
+  const [editorHistory, setEditorHistory] = useState({ undo: false, redo: false });
   const [canvasFocused, setCanvasFocused] = useState(false);
   const [inspectedClass, setInspectedClass] = useState("");
   const [search, setSearch] = useState("");
@@ -364,7 +365,7 @@ export default function Studio() {
             <button className={view === "diagram" ? "active" : ""} aria-pressed={view === "diagram"} onClick={() => setView("diagram")}><Shapes size={15} /><span>Lienzo</span></button>
             <button className={view === "split" ? "active" : ""} aria-pressed={view === "split"} onClick={() => setView("split")}><Columns2 size={15} /><span>Dividir</span></button>
             <button className={view === "code" ? "active" : ""} aria-pressed={view === "code"} onClick={() => setView("code")}><Code2 size={15} /><span>Código</span></button>
-          </div><span className="toolbar-divider" /><IconButton title="Deshacer" onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
+          </div><span className="toolbar-divider" /><IconButton title="Deshacer" disabled={!editorHistory.undo} onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" disabled={!editorHistory.redo} onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
           <div className="toolbar-right">
             <IconButton title={canvasFocused ? "Salir de pantalla casi completa" : "Enfocar pantalla de dibujo (pantalla casi completa)"} active={canvasFocused} onClick={() => { if (view === "code") setView("diagram"); setCanvasFocused(f => !f); }}>{canvasFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</IconButton>
             <IconButton title="Notas y proyecto" active={!!current.notes} onClick={openNotes}><StickyNote size={16} /></IconButton>
@@ -377,12 +378,13 @@ export default function Studio() {
         <div className={"editor-workspace view-" + view}>
           <section className="code-pane">
             <div className="pane-header"><span><Braces size={15} />Código</span><small>Mermaid</small></div>
-            <CodeEditor ref={editor} key={current.id} value={current.source} onChange={source => edit({ source })} />
+            <CodeEditor ref={editor} key={current.id} value={current.source} onChange={source => edit({ source })} onHistoryChange={setEditorHistory} />
             <div className="code-footer"><span>{current.source.split("\n").length} líneas</span><span>UTF-8</span></div>
           </section>
           <section className="canvas-pane"><div className="pane-header canvas-pane-heading"><span><Shapes size={15} />{TYPE_LABELS[current.type]}</span><span className="live-label"><Check size={12} />Sincronizado con Mermaid</span></div>
-            <DiagramPreview insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
-              selectedClass={selectedBlock?.name || ""} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
+            <DiagramPreview initialFit="contain" insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
+              selectedClass={inspectedClass} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
+              onUndo={() => editor.current?.undo()} onRedo={() => editor.current?.redo()} canUndo={editorHistory.undo} canRedo={editorHistory.redo}
               focused={canvasFocused} onFocusChange={setCanvasFocused}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
               onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}

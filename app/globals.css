@@ -373,7 +373,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
   @page { size: landscape; margin: 15mm; }
   html, body { height: auto; overflow: visible; }
   .studio { display: block; height: auto; overflow: visible; }
-  .app-header, .app-rail, .sidebar, .properties-panel, .document-header, .workspace-toolbar, .statusbar, .code-pane, .pane-header, .zoom-toolbar, .canvas-caption, .canvas-loading, .notice, .modal, .canvas-tools, .connection-prompt, .draw-side-toolbar, .studio-placement-marker { display: none !important; }
+  .app-header, .app-rail, .sidebar, .properties-panel, .document-header, .workspace-toolbar, .statusbar, .code-pane, .pane-header, .zoom-toolbar, .canvas-caption, .canvas-loading, .notice, .modal, .canvas-tools, .connection-prompt, .draw-side-toolbar { display: none !important; }
   .main-workspace, .editor-workspace, .canvas-pane, .diagram-preview-shell, .canvas-stage { display: block; position: static !important; box-shadow: none !important; border: 0 !important; overflow: visible; }
   .diagram-viewport { display: block; background: white; height: auto; overflow: visible; }
   .diagram-art { position: static; transform: none !important; width: 100% !important; height: auto !important; }

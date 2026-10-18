@@ -4,15 +4,17 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { basicSetup } from "codemirror";
-import { undo, redo, indentWithTab, isolateHistory } from "@codemirror/commands";
+import { undo, redo, undoDepth, redoDepth, indentWithTab, isolateHistory } from "@codemirror/commands";
 
 export type EditorHandle = { undo: () => void; redo: () => void; insert: (text: string) => void };
 
-const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: string) => void }>(function CodeEditor({ value, onChange }, ref) {
+const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: string) => void; onHistoryChange?: (history: { undo: boolean; redo: boolean }) => void }>(function CodeEditor({ value, onChange, onHistoryChange }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const callback = useRef(onChange);
   callback.current = onChange;
+  const historyCallback = useRef(onHistoryChange);
+  historyCallback.current = onHistoryChange;
   const initial = useRef(value);
   useImperativeHandle(ref, () => ({
     undo() { if (view.current) undo(view.current); },
@@ -29,7 +31,12 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
       state: EditorState.create({ doc: initial.current, extensions: [
         basicSetup, keymap.of([indentWithTab]), EditorView.lineWrapping,
         EditorView.contentAttributes.of({ "aria-label": "Código Mermaid del diagrama", spellcheck: "false" }),
-        EditorView.updateListener.of(update => { if (update.docChanged) callback.current(update.state.doc.toString()); }),
+        EditorView.updateListener.of(update => {
+          if (update.docChanged) {
+            callback.current(update.state.doc.toString());
+            historyCallback.current?.({ undo: undoDepth(update.state) > 0, redo: redoDepth(update.state) > 0 });
+          }
+        }),
         EditorView.theme({
           "&": { height: "100%", fontSize: "13px", color: "var(--code-ink)", backgroundColor: "var(--code-surface)" },
           ".cm-scroller": { fontFamily: "'IBM Plex Mono', monospace", lineHeight: "1.85" },
@@ -44,6 +51,7 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
       ] }),
     });
     view.current = instance;
+    historyCallback.current?.({ undo: false, redo: false });
     return () => { instance.destroy(); view.current = null; };
   }, []);
   useEffect(() => {
