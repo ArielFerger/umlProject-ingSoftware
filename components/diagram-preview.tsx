@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
-import { CanvasModel, applyCanvas, measureClasses, exportCanvas, edgeControls, renderStrokes } from "@/lib/svg-canvas";
+import { CanvasModel, applyCanvas, measureClasses, exportCanvas, lazyExportCanvas, edgeControls, scaleEdgeControls, renderStrokes } from "@/lib/svg-canvas";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
@@ -115,7 +115,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [localSelection, setLocalSelection] = useState("");
   const selectedNode = selectedClass ?? localSelection;
   const [selectedEdge, setSelectedEdge] = useState("");
-  const [hoveredEdge, setHoveredEdge] = useState("");
+  const hoveredEdgeRef = useRef("");
+  const prevSelectedEdgeRef = useRef("");
+  const viewRaf = useRef<number>(0);
   const [edgeForm, setEdgeForm] = useState<(SourceRelation & { edgeId: string }) | null>(null);
   const [edgeDelete, setEdgeDelete] = useState<SourceRelation | null>(null);
   const drag = useRef<Drag | null>(null);
@@ -144,11 +146,48 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const isClass = diagram.type === "class";
   const isSequence = diagram.type === "sequence";
   const editable = !!onSourceChange;
-  const nodesInSource = useMemo(() => visualNodes(diagram.source, diagram.type), [diagram.source, diagram.type]);
+  const nodesInSource = useMemo(() => visualNodes(content, diagram.type), [content, diagram.type]);
   const availableRelations = isClass ? RELATIONS : VISUAL_RELATIONS[diagram.type] || [];
   const activeKind = isClass ? relationKind : visualKind || availableRelations[0]?.value || "-->";
   const selection = model.current.nodes.some(node => node.name === selectedNode) ? selectedNode : "";
   const root = () => art.current?.querySelector<SVGSVGElement>("svg") || null;
+
+  function updateHoveredEdge(nextId: string) {
+    if (hoveredEdgeRef.current === nextId) return;
+    const svg = root();
+    if (svg) {
+      if (hoveredEdgeRef.current) {
+        svg.querySelectorAll<SVGElement>(`[data-edge-id="${CSS.escape(hoveredEdgeRef.current)}"]`).forEach(el => el.classList.remove("edge-hovered"));
+      }
+      if (nextId) {
+        svg.querySelectorAll<SVGElement>(`[data-edge-id="${CSS.escape(nextId)}"]`).forEach(el => el.classList.add("edge-hovered"));
+      }
+    }
+    hoveredEdgeRef.current = nextId;
+  }
+
+  function syncViewDom(nextZoom: number, nextPan: Point) {
+    viewState.current = { zoom: nextZoom, pan: nextPan };
+    if (art.current) {
+      art.current.style.transform = `translate(-50%, -50%) translate(${nextPan.x}px, ${nextPan.y}px) scale(${nextZoom})`;
+    }
+    if (viewport.current) {
+      const spacing = gridSpacing(nextZoom);
+      const cx = result?.center?.x || 0;
+      const cy = result?.center?.y || 0;
+      viewport.current.style.backgroundSize = `${spacing}px ${spacing}px`;
+      viewport.current.style.backgroundPosition = `calc(50% + ${nextPan.x - cx * nextZoom}px) calc(50% + ${nextPan.y - cy * nextZoom}px)`;
+    }
+    if (!viewRaf.current) {
+      viewRaf.current = requestAnimationFrame(() => {
+        viewRaf.current = 0;
+        setZoom(viewState.current.zoom);
+        setPan(viewState.current.pan);
+      });
+    }
+  }
+
+  useEffect(() => () => { if (viewRaf.current) cancelAnimationFrame(viewRaf.current); }, []);
 
   function activateTool(tool: ToolMode) {
     setMode(tool); setOrigin(""); setContext(null); setShowShortcuts(false);
@@ -269,25 +308,48 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           const nodes = isClass ? measureClasses(live) : measureVisualNodes(live, data?.nodes || [], content, diagram.type);
           let edges: CanvasModel["edges"] = [];
           if (nodes.length) {
-            edges = isSequence ? sequenceModel(live, content) : (data?.edges || []).map(edge => {
-              if (diagram.type === "er") { edge.start = edge.start?.match(/^entity-(.*)-\d+$/)?.[1] || edge.start; edge.end = edge.end?.match(/^entity-(.*)-\d+$/)?.[1] || edge.end; }
-              const path = Array.from(live.querySelectorAll<SVGPathElement>(".edgePaths path")).find(el => el.dataset.id === edge.id);
-              const label = Array.from(live.querySelectorAll<SVGGElement>(".edgeLabel")).find(el => el.querySelector("[data-id]")?.getAttribute("data-id") === edge.id);
-              const matrix = label?.transform.baseVal.consolidate()?.matrix;
-              let points: Point[] | undefined;
-              try { points = JSON.parse(atob(path?.getAttribute("data-points") || "")); } catch { /* Some Mermaid edges have no layout points. */ }
-              return { ...edge, points, labelPosition: matrix ? { x: matrix.e, y: matrix.f } : undefined };
-            });
+            if (isSequence) {
+              edges = sequenceModel(live, content);
+            } else {
+              const pathsById = new Map<string, SVGPathElement>();
+              for (const el of live.querySelectorAll<SVGPathElement>(".edgePaths path")) {
+                if (el.dataset.id) pathsById.set(el.dataset.id, el);
+              }
+              const labelsById = new Map<string, SVGGElement>();
+              for (const el of live.querySelectorAll<SVGGElement>(".edgeLabel")) {
+                const id = el.querySelector("[data-id]")?.getAttribute("data-id");
+                if (id) labelsById.set(id, el);
+              }
+              edges = (data?.edges || []).map(edge => {
+                if (diagram.type === "er") { edge.start = edge.start?.match(/^entity-(.*)-\d+$/)?.[1] || edge.start; edge.end = edge.end?.match(/^entity-(.*)-\d+$/)?.[1] || edge.end; }
+                const path = pathsById.get(edge.id);
+                const label = labelsById.get(edge.id);
+                const matrix = label?.transform.baseVal.consolidate()?.matrix;
+                let points: Point[] | undefined;
+                try { points = JSON.parse(atob(path?.getAttribute("data-points") || "")); } catch { /* Some Mermaid edges have no layout points. */ }
+                return { ...edge, points, labelPosition: matrix ? { x: matrix.e, y: matrix.f } : undefined };
+              });
+            }
           }
           model.current = { nodes, edges };
-          const relations: SourceRelation[] = isClass ? sourceRelations(content) : visualRelations(content, diagram.type).map(r => ({ ...r, raw: content.split("\n")[r.line], fromCard: "", toCard: "", indent: "", comment: "" }));
-          const used = new Set<number>(), counts = new Map<string, number>();
+          const sourceLines = isClass ? null : content.split("\n");
+          const relations: SourceRelation[] = isClass ? sourceRelations(content) : visualRelations(content, diagram.type).map(r => ({ ...r, raw: sourceLines![r.line], fromCard: "", toCard: "", indent: "", comment: "" }));
+          const relationsByPair = new Map<string, SourceRelation[]>();
+          for (const r of relations) {
+            const key = `${r.from}\0${r.to}`;
+            const list = relationsByPair.get(key) || [];
+            list.push(r);
+            relationsByPair.set(key, list);
+          }
+          const pairIndex = new Map<string, number>();
           relationSources.current = new Map(edges.flatMap(edge => {
-            const relation = relations.find(r => !used.has(r.line) && r.from === edge.start && r.to === edge.end);
+            const key = `${edge.start}\0${edge.end}`;
+            const idx = pairIndex.get(key) || 0;
+            const relation = relationsByPair.get(key)?.[idx];
             if (!relation) return [];
-            const pair = JSON.stringify([relation.from, relation.to]), occurrence = counts.get(pair) || 0;
-            counts.set(pair, occurrence + 1); edge.routeKey = relationRouteKey(relation.from, relation.to, occurrence);
-            used.add(relation.line); return [[edge.id, relation] as const];
+            pairIndex.set(key, idx + 1);
+            edge.routeKey = relationRouteKey(relation.from, relation.to, idx);
+            return [[edge.id, relation] as const];
           }));
           renderedId.current = diagram.id;
           renderedContent.current = content;
@@ -311,7 +373,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       svg.querySelectorAll<SVGPathElement>(".edgePaths path,.messageLine0,.messageLine1").forEach(path => { path.style.strokeWidth = String(settings.lineWidth); });
       renderStrokes(svg, settings.strokes);
     }
-    callbacks.current.onRendered(exportCanvas(svg));
+    callbacks.current.onRendered(lazyExportCanvas(svg));
     if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) {
       const addedName = pendingNode.current;
       pendingNode.current = "";
@@ -355,7 +417,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit]);
 
   useEffect(() => {
-    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); setHoveredEdge(""); setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
+    setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
   }, [diagram.id]);
   useEffect(() => {
     const svg = root();
@@ -367,16 +429,29 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => {
     const svg = root();
     if (svg && !busy && !error) {
-      edgeControls(svg, model.current, settings, selectedEdge, zoom, editable);
+      edgeControls(svg, model.current, settings, selectedEdge, viewState.current.zoom, editable);
     }
-    root()?.querySelectorAll<SVGElement>("[data-edge-id]").forEach(element => {
-      const id = element.getAttribute("data-edge-id");
-      element.classList.toggle("edge-selected", id === selectedEdge);
-      element.classList.toggle("edge-hovered", id === hoveredEdge);
-      if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", String(id === selectedEdge));
-    });
-  }, [selectedEdge, hoveredEdge, result, settings, zoom, busy, error, editable]);
-  useEffect(() => { setSelectedEdge(""); setHoveredEdge(""); }, [content]);
+    const prev = prevSelectedEdgeRef.current;
+    if (prev && prev !== selectedEdge) {
+      svg?.querySelectorAll<SVGElement>(`[data-edge-id="${CSS.escape(prev)}"]`).forEach(element => {
+        element.classList.remove("edge-selected");
+        if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", "false");
+      });
+    }
+    if (selectedEdge) {
+      svg?.querySelectorAll<SVGElement>(`[data-edge-id="${CSS.escape(selectedEdge)}"]`).forEach(element => {
+        element.classList.add("edge-selected");
+        if (element.getAttribute("role") === "button") element.setAttribute("aria-pressed", "true");
+      });
+    }
+    prevSelectedEdgeRef.current = selectedEdge;
+  }, [selectedEdge, result, settings, busy, error, editable]);
+  useEffect(() => {
+    if (!selectedEdge || busy || error) return;
+    const svg = root();
+    if (svg) scaleEdgeControls(svg, zoom);
+  }, [zoom, selectedEdge, busy, error]);
+  useEffect(() => { setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; }, [content]);
   useEffect(() => {
     if (!busy && renderedId.current === diagram.id && renderedContent.current === content && selectedNode && !model.current.nodes.some(node => node.name === selectedNode)) {
       setSelectedNode(""); setFeedback("");
@@ -412,20 +487,20 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       const current = viewState.current;
       if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
         const nextPan = { x: current.pan.x - (event.deltaX || delta), y: current.pan.y };
-        viewState.current = { ...current, pan: nextPan }; setPan(nextPan); return;
+        syncViewDom(current.zoom, nextPan);
+        return;
       }
       const box = el.getBoundingClientRect();
       const x = event.clientX - box.left - el.clientWidth / 2;
       const y = event.clientY - box.top - el.clientHeight / 2;
       const next = zoomAt(current, current.zoom * Math.exp(-Math.max(-100, Math.min(100, delta)) * .0025), { x, y });
-      viewState.current = next;
-      setZoom(next.zoom); setPan(next.pan);
+      syncViewDom(next.zoom, next.pan);
     };
     // React's delegated wheel listener is passive, so use a local listener to
     // stop page/browser scrolling only while the gesture belongs to the canvas.
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
-  }, [busy, error]);
+  }, [busy, error, result]);
 
   function setSelectedNode(name: string) { if (name) setSelectedEdge(""); setLocalSelection(name); callbacks.current.onSelectionChange?.(name); }
   function selectEdge(id: string) {
@@ -465,11 +540,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     }
     return { ...current, positions: { ...positions.current }, routes: { ...current.routes, [edge.routeKey]: next } };
   }
-  function showSettings(next: CanvasSettings, edgeId = selectedEdge) {
+  function showSettings(next: CanvasSettings, edgeId = selectedEdge, dirtyEdgeOnly = false) {
     const svg = root(); if (!svg) return;
-    positions.current = applyCanvas(svg, model.current, next, dark);
-    edgeControls(svg, model.current, next, edgeId, zoom, !!callbacks.current.onSourceChange);
-    svg.querySelectorAll<SVGElement>("[data-edge-id]").forEach(el => el.classList.toggle("edge-selected", el.getAttribute("data-edge-id") === edgeId));
+    positions.current = applyCanvas(svg, model.current, next, dark, undefined, dirtyEdgeOnly ? edgeId : undefined);
+    edgeControls(svg, model.current, next, edgeId, viewState.current.zoom, !!callbacks.current.onSourceChange);
   }
   function addBend() {
     if (!chosenEdge || chosenRoute.points.length >= 20) return;
@@ -495,8 +569,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     const svg = root();
     if (!svg) return;
     if (isSequence) { const geometry = model.current.nodes.find(n => n.name === name); const el = geometry && svg.getElementById(geometry.domId); if (el) el.setAttribute("transform", `translate(${point.x - geometry.x},0) ${geometry.transform}`); return; }
-    const next = { ...settingsRef.current, positions: { ...positions.current, [name]: point } };
-    positions.current = applyCanvas(svg, model.current, next, dark);
+    positions.current[name] = point;
+    const next = { ...settingsRef.current, positions: positions.current };
+    applyCanvas(svg, model.current, next, dark, name);
   }
   function changeSettings(patch: Partial<CanvasSettings>) { if (callbacks.current.onSourceChange) callbacks.current.onSettingsChange({ ...settingsRef.current, ...patch }); }
   function setViewZoom(value: number) {
@@ -815,14 +890,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
         onPointerMove={e => {
-          if (!drag.current) { setHoveredEdge((e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id") || ""); return; }
+          if (!drag.current) { updateHoveredEdge((e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id") || ""); return; }
           const d = drag.current; if (!d) return;
           const dx = e.clientX - d.x, dy = e.clientY - d.y;
           if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
           if (d.kind === "draw" && d.points) {
             const pt = roundPoint(clientPoint(e.clientX, e.clientY));
             const last = d.points[d.points.length - 1];
-            if (Math.hypot(pt.x - last.x, pt.y - last.y) >= 1.5 / Math.max(.2, zoom) && d.points.length < 1500) {
+            if (Math.hypot(pt.x - last.x, pt.y - last.y) >= 1.5 / Math.max(.2, viewState.current.zoom) && d.points.length < 1500) {
               d.points.push(pt);
               const svg = root();
               if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: d.points, color: penColor, width: penWidth });
@@ -832,7 +907,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (d.kind === "erase") {
             const pt = clientPoint(e.clientX, e.clientY);
             const currentStrokes = d.strokes || settingsRef.current.strokes || [];
-            const filtered = currentStrokes.filter(s => !pointNearStroke(pt, s, 14 / Math.max(.2, zoom)));
+            const filtered = currentStrokes.filter(s => !pointNearStroke(pt, s, 14 / Math.max(.2, viewState.current.zoom)));
             if (filtered.length !== currentStrokes.length) {
               d.strokes = filtered;
               d.erased = true;
@@ -842,14 +917,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             return;
           }
           if (d.kind === "edge" && d.moved && d.edgeId && d.handle) {
-            d.next = moveEdgeHandle(d.edgeId, d.handle, clientPoint(e.clientX, e.clientY)); showSettings(d.next, d.edgeId);
+            d.next = moveEdgeHandle(d.edgeId, d.handle, clientPoint(e.clientX, e.clientY)); showSettings(d.next, d.edgeId, true);
           }
           else if (d.kind === "pan") {
             const nextPan = { x: d.start.x + dx, y: d.start.y + dy };
-            viewState.current = { zoom: viewState.current.zoom, pan: nextPan };
-            setPan(nextPan);
+            syncViewDom(viewState.current.zoom, nextPan);
           }
-          else if (mode === "move" && d.moved && d.name) placeClass(d.name, snapPoint({ x: d.start.x + dx / zoom, y: d.start.y + dy / zoom }, snapToGrid && !e.altKey && !isSequence));
+          else if (mode === "move" && d.moved && d.name) placeClass(d.name, snapPoint({ x: d.start.x + dx / viewState.current.zoom, y: d.start.y + dy / viewState.current.zoom }, snapToGrid && !e.altKey && !isSequence));
         }}
         onPointerUp={e => {
           const d = drag.current; drag.current = null; setPanning(false);
@@ -860,19 +934,17 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             const nextStrokes = [...(settingsRef.current.strokes || []).slice(-299), stroke];
             changeSettings({ strokes: nextStrokes });
             const svg = root();
-            if (svg) { renderStrokes(svg, nextStrokes); callbacks.current.onRendered(exportCanvas(svg)); }
+            if (svg) renderStrokes(svg, nextStrokes);
             return;
           }
           if (d.kind === "erase") {
             if (d.erased && d.strokes) {
               changeSettings({ strokes: d.strokes.length ? d.strokes : undefined });
-              const svg = root();
-              if (svg) callbacks.current.onRendered(exportCanvas(svg));
             }
             return;
           }
           if (d.kind === "edge") {
-            if (d.moved && d.next) { callbacks.current.onSettingsChange(d.next); const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg)); }
+            if (d.moved && d.next) callbacks.current.onSettingsChange(d.next);
             return;
           }
           if (!d.name) {
@@ -890,9 +962,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           }
           if (!d.moved) selectClass(d.name);
           else if (mode === "move") {
-            if (isSequence) { const x = d.start.x + (e.clientX - d.x) / zoom; const before = model.current.nodes.filter(n => n.name !== d.name).sort((a,b) => a.x - b.x).find(n => n.x > x)?.name; mutate(() => reorderSequence(diagram.source, d.name!, before)); return; }
+            if (isSequence) { const x = d.start.x + (e.clientX - d.x) / viewState.current.zoom; const before = model.current.nodes.filter(n => n.name !== d.name).sort((a,b) => a.x - b.x).find(n => n.x > x)?.name; mutate(() => reorderSequence(diagram.source, d.name!, before)); return; }
             callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
-            const svg = root(); if (svg) callbacks.current.onRendered(exportCanvas(svg));
+            const svg = root();
             const node = Array.from(svg?.querySelectorAll<SVGGElement>("[data-class]") || []).find(node => node.getAttribute("data-class") === d.name);
             const outline = node?.querySelector("g.outer-path > path");
             if (outline && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) outline.animate([{ strokeWidth: "4px" }, { strokeWidth: "2.5px" }], { duration: 220, easing: "cubic-bezier(.16,1,.3,1)" });
@@ -904,7 +976,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           else if (cancelled?.kind === "node" && cancelled.name) placeClass(cancelled.name, cancelled.start);
           else { const svg = root(); if (svg) renderStrokes(svg, settingsRef.current.strokes); }
         }}
-        onPointerLeave={() => setHoveredEdge("")}
+        onPointerLeave={() => updateHoveredEdge("")}
         onDoubleClick={e => { if (mode !== "move" || spaceHeld || busy || error || (e.target as Element).closest("button,[data-handle]")) return; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { editEdge(edgeId); return; } const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class") || pointerNode.current; if (name && mode === "move" && !busy && !error && onSourceChange) openClass(name); }}
         onKeyDown={e => {
           const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");

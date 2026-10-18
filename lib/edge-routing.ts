@@ -115,3 +115,26 @@ export function routeEdge(a: RectNode, b: RectNode, route: EdgeRoute, startGap =
 }
 
 export function relationRouteKey(from: string, to: string, occurrence: number) { return JSON.stringify([from, to, occurrence]); }
+
+export function polylineMidpoint(points: Point[]): Point {
+  if (!points.length) return { x: 0, y: 0 };
+  if (points.length === 1) return points[0];
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    total += distance(points[i - 1], points[i]);
+  }
+  if (total <= 0.001) return points[Math.floor(points.length / 2)];
+  const half = total / 2;
+  let acc = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i];
+    const seg = distance(a, b);
+    if (acc + seg >= half && seg > 0) {
+      const t = (half - acc) / seg;
+      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    }
+    acc += seg;
+  }
+  return points[Math.floor(points.length / 2)];
+}
+

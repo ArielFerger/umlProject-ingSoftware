@@ -16,6 +16,7 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
   const historyCallback = useRef(onHistoryChange);
   historyCallback.current = onHistoryChange;
   const initial = useRef(value);
+  const syncing = useRef(false);
   useImperativeHandle(ref, () => ({
     undo() { if (view.current) undo(view.current); },
     redo() { if (view.current) redo(view.current); },
@@ -33,7 +34,7 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
         EditorView.contentAttributes.of({ "aria-label": "Código Mermaid del diagrama", spellcheck: "false" }),
         EditorView.updateListener.of(update => {
           if (update.docChanged) {
-            callback.current(update.state.doc.toString());
+            if (!syncing.current) callback.current(update.state.doc.toString());
             historyCallback.current?.({ undo: undoDepth(update.state) > 0, redo: redoDepth(update.state) > 0 });
           }
         }),
@@ -56,8 +57,29 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
   }, []);
   useEffect(() => {
     const v = view.current;
-    if (v && v.state.doc.toString() !== value) v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value }, annotations: isolateHistory.of("full") });
+    if (!v) return;
+    const current = v.state.doc.toString();
+    if (current === value) return;
+    let start = 0;
+    const minLen = Math.min(current.length, value.length);
+    while (start < minLen && current.charCodeAt(start) === value.charCodeAt(start)) start++;
+    let endCurrent = current.length;
+    let endValue = value.length;
+    while (endCurrent > start && endValue > start && current.charCodeAt(endCurrent - 1) === value.charCodeAt(endValue - 1)) {
+      endCurrent--;
+      endValue--;
+    }
+    syncing.current = true;
+    try {
+      v.dispatch({
+        changes: { from: start, to: endCurrent, insert: value.slice(start, endValue) },
+        annotations: isolateHistory.of("full"),
+      });
+    } finally {
+      syncing.current = false;
+    }
   }, [value]);
   return <div ref={host} className="code-editor" />;
 });
 export default CodeEditor;
+

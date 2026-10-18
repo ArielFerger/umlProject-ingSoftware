@@ -132,8 +132,10 @@ input, textarea, .cm-content { caret-color: var(--accent); }
 .board-shell.is-focused { inset: 0; border: 0; border-radius: 0; }
 .board-shell .canvas-stage { isolation: isolate; }
 .board-shell .diagram-viewport { cursor: default; background-color: var(--canvas); }
+.board-shell .diagram-art { will-change: transform; }
 .board-shell .diagram-viewport.hand-tool, .board-shell .hand-tool .diagram-art * { cursor: grab !important; }
-.board-shell .diagram-viewport.is-panning, .board-shell .is-panning .diagram-art * { cursor: grabbing !important; }
+.board-shell .diagram-viewport.is-panning { cursor: grabbing !important; }
+.board-shell .diagram-viewport.is-panning .diagram-art { pointer-events: none; }
 .board-shell .diagram-viewport.placing, .board-shell .diagram-viewport.drawing, .board-shell .drawing .diagram-art * { cursor: crosshair; }
 .board-shell .diagram-viewport.erasing, .board-shell .erasing .diagram-art * { cursor: cell; }
 .board-heading { position: absolute; top: 20px; left: 20px; z-index: 2; display: flex; gap: 10px; align-items: center; pointer-events: none; max-width: calc(100% - 300px); color: var(--ink); }

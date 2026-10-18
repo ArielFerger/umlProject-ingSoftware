@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { anchorPoint, nearestAnchor, routeEdge, relationRouteKey, segmentClear } from "../lib/edge-routing.ts";
+import { anchorPoint, nearestAnchor, routeEdge, relationRouteKey, segmentClear, polylineMidpoint } from "../lib/edge-routing.ts";
 import { DEFAULT_CANVAS, readCanvas, writeCanvas } from "../lib/canvas.ts";
 import { sourceRelations, removeRelation, updateRelation } from "../lib/relation-actions.ts";
 
@@ -89,3 +89,8 @@ test("routing metadata survives old documents, saved edits and parallel-edge rem
   assert.deepEqual(readCanvas(removed).routes, { [key0]: routes[key1], [reverse]: routes[reverse] });
   assert.deepEqual(readCanvas(source + '\n%% uml-studio: {"routes":{"bad":{"shape":"orthogonal","from":{"side":"left","offset":2}}}}'), DEFAULT_CANVAS);
 });
+test("polylineMidpoint computes arc-length midpoint without DOM layout queries", () => {
+  assert.deepEqual(polylineMidpoint([{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]), { x: 100, y: 0 });
+  assert.deepEqual(polylineMidpoint([{ x: 10, y: 20 }, { x: 10, y: 20 }]), { x: 10, y: 20 });
+});
+

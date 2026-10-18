@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Link from "next/link";
 import ThemePicker from "./theme-picker";
 import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2 } from "lucide-react";
@@ -86,7 +86,8 @@ export default function Studio() {
   const editor = useRef<EditorHandle>(null);
   const importInput = useRef<HTMLInputElement>(null);
   const current = documents.find(d => d.id === selected);
-  const blocks = current?.type === "class" ? classBlocks(current.source) : [];
+  const cleanCurrentSource = useMemo(() => current ? cleanSource(current.source) : "", [current?.source]);
+  const blocks = useMemo(() => current?.type === "class" ? classBlocks(cleanCurrentSource) : [], [current?.type, cleanCurrentSource]);
 
   const updateDocuments = useCallback((update: (docs: Diagram[]) => Diagram[]) => {
     const next = update(docsRef.current); docsRef.current = next; setDocuments(next);
@@ -283,8 +284,9 @@ export default function Studio() {
     : current?.type === "component" ? [["component", "Componente"], ["database", "Base de datos"], ["flow", "Conexion"]]
     : [["node", "Actividad"], ["decisión", "Decisión"], ["flow", "Conexion"]];
 
-  const canvasSettings = current ? readCanvas(current.source) : null;
+  const canvasSettings = useMemo(() => current && propertiesOpen ? readCanvas(current.source) : null, [current?.source, propertiesOpen]);
   const selectedBlock = blocks.find(block => block.name === inspectedClass);
+  const selectedBody = useMemo(() => selectedBlock && propertiesOpen ? classMembers(cleanCurrentSource, selectedBlock.name) : "", [cleanCurrentSource, propertiesOpen, selectedBlock]);
   const openNotes = () => { if (current) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
   const goStudy = async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } };
   const selectForInspection = (name: string) => { setInspectedClass(name); };
@@ -395,7 +397,7 @@ export default function Studio() {
             <div className="properties-content">
               {selectedBlock ? <>
                 <button className="property-back" onClick={() => setInspectedClass("")}><ChevronRight size={13} />Volver al diagrama</button>
-                <ClassProperties key={current.id + selectedBlock.name + classMembers(current.source, selectedBlock.name)} name={selectedBlock.name} body={classMembers(current.source, selectedBlock.name)} onApply={body => edit({ source: setClassMembers(current.source, selectedBlock.name, body) })} />
+                <ClassProperties key={current.id + selectedBlock.name + selectedBody} name={selectedBlock.name} body={selectedBody} onApply={body => edit({ source: setClassMembers(current.source, selectedBlock.name, body) })} />
               </> : <>
                 <section className="property-section"><h3>Diagrama</h3>
                   <label className="property-field">Nombre<input value={current.name} maxLength={100} onChange={event => edit({ name: event.target.value })} onBlur={() => { if (!current.name.trim()) edit({ name: "Sin título" }); }} /></label>
