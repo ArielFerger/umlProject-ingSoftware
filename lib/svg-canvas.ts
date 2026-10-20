@@ -1,4 +1,6 @@
 import type { CanvasSettings, CanvasStroke, EdgeRoute, Point } from "./canvas";
+import { renderFrames } from "./svg-frames";
+import { colorClass, colorArrow } from "./svg-colors";
 import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint, polylineMidpoint } from "./edge-routing";
 
 export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string };
@@ -18,6 +20,7 @@ type MarkerCache = {
 type CachedEdgeEntry = {
   edge: EdgeGeometry;
   path: SVGPathElement;
+  coloredMarkers: SVGMarkerElement[];
   hit: SVGPathElement;
   anchor: SVGCircleElement;
   label: SVGGElement | null;
@@ -241,9 +244,25 @@ function buildDomCache(root: SVGSVGElement, model: CanvasModel): CanvasDomCache 
     const startTerminal = createTerminal(terminals, edge.startLabelRight || "", edge.id);
     const endTerminal = createTerminal(terminals, edge.endLabelLeft || "", edge.id);
 
+    // Mermaid shares marker definitions. Give each connection its own tips so
+    // recoloring one arrow cannot change the other connections.
+    const coloredMarkers: SVGMarkerElement[] = [];
+    for (const end of ["start", "end"]) {
+      const ref = path.getAttribute(`marker-${end}`);
+      const id = ref?.match(/#([^)'"\s]+)/)?.[1];
+      const original = id ? markers.get(id) : undefined;
+      if (!original) continue;
+      const marker = original.el.cloneNode(true) as SVGMarkerElement;
+      marker.id = `${original.el.id}-studio-${edges.length}-${end}`;
+      original.el.parentNode!.appendChild(marker);
+      markers.set(marker.id, { ...original, el: marker, children: Array.from(marker.children) });
+      path.setAttribute(`marker-${end}`, `url(#${marker.id})`);
+      coloredMarkers.push(marker);
+    }
     const entry: CachedEdgeEntry = {
       edge,
       path,
+      coloredMarkers,
       hit,
       anchor,
       label,
@@ -289,9 +308,11 @@ function updateEdgeEntry(entry: CachedEdgeEntry, cache: CanvasDomCache, settings
   const originalA = cache.modelNodes.get(edge.start!), originalB = cache.modelNodes.get(edge.end!);
   if (!a || !b || !originalA || !originalB) return;
   const custom = edge.routeKey ? settings.routes[edge.routeKey] : undefined;
-  const key = `${a.x},${a.y}|${b.x},${b.y}|${settings.arrowScale}|${settings.labelSize}|${dark ? 1 : 0}|${routeSignature(custom)}`;
+  const color = edge.routeKey ? settings.edgeColors?.[edge.routeKey] : undefined;
+  const key = `${color || ""}|${a.x},${a.y}|${b.x},${b.y}|${settings.arrowScale}|${settings.labelSize}|${dark ? 1 : 0}|${routeSignature(custom)}`;
   if (entry.lastKey === key) return;
   entry.lastKey = key;
+  colorArrow(path, entry.coloredMarkers, color);
 
   const startGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-start"), settings.arrowScale, true);
   const endGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-end"), settings.arrowScale, false);
@@ -311,6 +332,7 @@ function updateEdgeEntry(entry: CachedEdgeEntry, cache: CanvasDomCache, settings
 }
 
 export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: CanvasSettings, dark: boolean, dirtyNode?: string, dirtyEdgeId?: string) {
+  root.dataset.framesDark = String(dark);
   let cache = domCache.get(root);
   if (!cache || cache.modelNodes.size !== model.nodes.length) {
     cache = buildDomCache(root, model);
@@ -332,6 +354,7 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
         for (const entry of incident) updateEdgeEntry(entry, cache, settings, dark);
       }
     }
+    renderFrames(root, settings, model.nodes);
     const result: Record<string, Point> = {};
     for (const [name, node] of cache.placedNodes) result[name] = { x: node.x, y: node.y };
     return result;
@@ -340,10 +363,13 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
   if (dirtyEdgeId) {
     const entry = cache.edgesById.get(dirtyEdgeId);
     if (entry) updateEdgeEntry(entry, cache, settings, dark);
+    renderFrames(root, settings, model.nodes);
     const result: Record<string, Point> = {};
     for (const [name, node] of cache.placedNodes) result[name] = { x: node.x, y: node.y };
     return result;
   }
+
+  for (const [name, el] of cache.nodeEls) if (!el.hasAttribute("data-visual")) colorClass(el, settings.nodeColors && Object.hasOwn(settings.nodeColors, name) ? settings.nodeColors[name] : undefined);
 
   const result: Record<string, Point> = {};
   for (const node of model.nodes) {
@@ -382,6 +408,7 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     renderStrokes(root, settings.strokes);
   }
 
+  renderFrames(root, settings, model.nodes);
   return result;
 }
 
@@ -446,7 +473,7 @@ export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [],
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });

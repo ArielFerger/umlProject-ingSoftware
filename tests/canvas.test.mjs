@@ -50,3 +50,19 @@ test("freehand pencil strokes round-trip in canvas metadata", () => {
   assert.equal(readCanvas(cleared).strokes, undefined);
 });
 
+
+test("class and arrow colors round-trip and reject CSS injection", () => {
+  const settings = { ...DEFAULT_CANVAS, nodeColors: { Equipo: "#FDE68A" }, edgeColors: { '["Equipo","Jugador",0]': "#dc2626" } };
+  assert.deepEqual(readCanvas(writeCanvas(source, settings)), settings);
+  assert.equal(cleanSource(writeCanvas(source, settings)), source.trimEnd());
+  assert.throws(() => writeCanvas(source, { ...settings, nodeColors: { Equipo: "url(https://invalid.test)" } }));
+  assert.deepEqual(readCanvas(writeCanvas(source, { ...DEFAULT_CANVAS, nodeColors: {}, edgeColors: {} })), DEFAULT_CANVAS);
+});
+
+test("color contrast switches between light and dark class labels", async () => {
+  const { colorInk } = await import("../lib/svg-colors.ts");
+  assert.equal(colorInk("#ffffff"), "#111827");
+  assert.equal(colorInk("#fde68a"), "#111827");
+  assert.equal(colorInk("#334155"), "#ffffff");
+  assert.equal(colorInk("#000000"), "#ffffff");
+});

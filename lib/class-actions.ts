@@ -94,6 +94,7 @@ export function duplicateClass(source: string, name: string, occupied: string[] 
   let next = setClassMembers(source, copy, [classMembers(source, name), ...externalStereotypes(source, name)].filter(Boolean).join("\n"));
   const settings = readCanvas(next), position = settings.positions[name];
   if (position) settings.positions[copy] = { x: Math.min(19000, position.x + 70), y: Math.min(19000, position.y + 70) };
+  if (settings.nodeColors && Object.hasOwn(settings.nodeColors, name)) settings.nodeColors[copy] = settings.nodeColors[name];
   next = writeCanvas(next, settings);
   return { name: copy, source: next };
 }
@@ -110,5 +111,7 @@ export function removeClass(source: string, name: string) {
     return !(pair?.includes(name) || member.test(line) || annotation.test(line) || note.test(line));
   });
   const settings = readCanvas(source); delete settings.positions[name];
+  if (settings.nodeColors) delete settings.nodeColors[name];
+  if (settings.frameLinks) settings.frameLinks = Object.fromEntries(Object.entries(settings.frameLinks).filter(([, link]) => ![link.from, link.to].some(end => end.kind === "class" && end.id === name)));
   return writeCanvas(next, settings);
 }

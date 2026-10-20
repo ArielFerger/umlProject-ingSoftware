@@ -32,6 +32,7 @@ export function removeRelation(source: string, relation: SourceRelation) {
   const lines = currentLines(source, relation);
   const settings = readCanvas(source), counts = new Map<string, number>();
   const routes: typeof settings.routes = {};
+  const edgeColors: Record<string, string> = {};
   const nextCounts = new Map<string, number>();
   for (const item of sourceRelations(source)) {
     const pair = JSON.stringify([item.from, item.to]);
@@ -40,7 +41,9 @@ export function removeRelation(source: string, relation: SourceRelation) {
     const next = nextCounts.get(pair) || 0; nextCounts.set(pair, next + 1);
     const route = settings.routes[relationRouteKey(item.from, item.to, previous)];
     if (route) routes[relationRouteKey(item.from, item.to, next)] = route;
+    const color = settings.edgeColors?.[relationRouteKey(item.from, item.to, previous)];
+    if (color) edgeColors[relationRouteKey(item.from, item.to, next)] = color;
   }
   lines.splice(relation.line, 1);
-  return writeCanvas(lines.join("\n"), { ...settings, routes });
+  return writeCanvas(lines.join("\n"), { ...settings, routes, edgeColors });
 }

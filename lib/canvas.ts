@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { frameSettings, frameLinkSettings } from "./frames.ts";
 
 const PREFIX = "%% uml-studio: ";
 const point = z.object({ x: z.number().finite().min(-20000).max(20000), y: z.number().finite().min(-20000).max(20000) });
@@ -18,11 +19,15 @@ export type EdgeAnchor = z.infer<typeof anchor>;
 export type CanvasStroke = z.infer<typeof strokeSettings>;
 export const canvasSettings = z.object({
   positions: z.record(point).default({}),
+  nodeColors: z.record(z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
+  edgeColors: z.record(z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
   lineWidth: z.number().min(1).max(6).default(2),
   arrowScale: z.number().min(1).max(3).default(1.4),
   labelSize: z.number().min(12).max(24).default(14),
   routes: z.record(edgeRouteSettings).default({}),
   strokes: z.array(strokeSettings).max(300).optional(),
+  frames: z.record(frameSettings).refine(value => Object.keys(value).length <= 40).optional(),
+  frameLinks: z.record(frameLinkSettings).refine(value => Object.keys(value).length <= 100).optional(),
 });
 export type CanvasSettings = z.infer<typeof canvasSettings>;
 export type Point = z.infer<typeof point>;
@@ -35,6 +40,7 @@ export function readCanvas(source: string): CanvasSettings {
     const parsed = canvasSettings.safeParse(JSON.parse(line.trimStart().slice(PREFIX.length)));
     if (!parsed.success) return { ...DEFAULT_CANVAS, positions: {} };
     if (!parsed.data.strokes?.length) delete parsed.data.strokes;
+    for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks"] as const) if (!Object.keys(parsed.data[key] || {}).length) delete parsed.data[key];
     return parsed.data;
   } catch { return { ...DEFAULT_CANVAS, positions: {} }; }
 }
@@ -44,6 +50,7 @@ export function cleanSource(source: string) {
 export function writeCanvas(source: string, settings: CanvasSettings) {
   const parsed = canvasSettings.parse(settings);
   if (!parsed.strokes?.length) delete parsed.strokes;
+  for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks"] as const) if (!Object.keys(parsed[key] || {}).length) delete parsed[key];
   return cleanSource(source) + "\n" + PREFIX + JSON.stringify(parsed) + "\n";
 }
 

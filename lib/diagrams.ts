@@ -13,7 +13,7 @@ export const diagramInput = z.object({
   notes: z.string().max(10000).default(""),
 });
 export type DiagramInput = z.infer<typeof diagramInput>;
-export type Diagram = DiagramInput & { id: string; revision: number; updatedAt: string };
+export type Diagram = DiagramInput & { access?: "owner" | "edit" | "view"; id: string; revision: number; updatedAt: string };
 export const signature = (d: DiagramInput) => JSON.stringify([d.name, d.type, d.project, d.source, d.theme, d.notes]);
 
 export const TEMPLATES: { type: DiagramType; name: string; description: string; source: string }[] = [

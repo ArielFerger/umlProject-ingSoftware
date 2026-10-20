@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import "./sites-env.mjs";
 import { createLocalGateway } from "./docker-gateway.mjs";
+import { createOnlineGateway } from "./online-gateway.mjs";
 
 if (process.env.DOCKER_LOCAL_MODE !== "1") {
   throw new Error("Este adaptador se usa exclusivamente en Docker con DOCKER_LOCAL_MODE=1.");
@@ -19,7 +20,8 @@ await new Promise((resolve, reject) => {
   migration.once("exit", code => code === 0 ? resolve() : reject(new Error(`La migración local falló (${code}).`)));
 });
 const worker = spawn(process.execPath, [...wrangler, "dev", "--local", ...common, "--ip", "127.0.0.1", "--port", "8787", "--inspector-port", "0"], { stdio: "inherit" });
-const gateway = createLocalGateway();
+const online = process.env.UML_MODE === "online";
+const gateway = online ? createOnlineGateway({ publicOrigin: process.env.UML_PUBLIC_ORIGIN }) : createLocalGateway();
 let stopping = false;
 function stop(signal = "SIGTERM") {
   if (stopping) return;
@@ -39,4 +41,4 @@ for (let attempt = 0; attempt < 120 && worker.exitCode === null && !stopping; at
   await delay(500);
 }
 if (!ready) { stop(); throw new Error("El Worker local no inició a tiempo."); }
-gateway.listen(Number(process.env.PORT || 3000), "0.0.0.0", () => console.log("UML Studio — espacio local: http://localhost:3000"));
+gateway.listen(Number(process.env.PORT || 3000), "0.0.0.0", () => console.log(online ? "UML Studio online: " + process.env.UML_PUBLIC_ORIGIN : "UML Studio — espacio local: http://localhost:3000"));

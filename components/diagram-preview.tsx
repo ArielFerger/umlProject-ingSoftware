@@ -1,11 +1,13 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes } from "lucide-react";
+import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
 import { CanvasModel, applyCanvas, measureClasses, exportCanvas, lazyExportCanvas, edgeControls, scaleEdgeControls, renderStrokes } from "@/lib/svg-canvas";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
+import CanvasFrames from "./canvas-frames";
+import CanvasColors from "./canvas-colors";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
 import Modal from "./modal";
 import { useAppTheme } from "./theme-picker";
@@ -115,6 +117,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [localSelection, setLocalSelection] = useState("");
   const selectedNode = selectedClass ?? localSelection;
   const [selectedEdge, setSelectedEdge] = useState("");
+  const [frameRequest, setFrameRequest] = useState(0);
   const hoveredEdgeRef = useRef("");
   const prevSelectedEdgeRef = useRef("");
   const viewRaf = useRef<number>(0);
@@ -519,6 +522,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (!chosenEdge?.routeKey || !callbacks.current.onSourceChange) return;
     changeSettings({ routes: { ...settingsRef.current.routes, [chosenEdge.routeKey]: { ...chosenRoute, ...patch } } });
   }
+  function changeColor(key: "nodeColors" | "edgeColors", id: string, color?: string) {
+    const colors = { ...settingsRef.current[key] };
+    if (color) colors[id] = color; else delete colors[id];
+    changeSettings({ [key]: colors });
+  }
   function resetRoute() {
     if (!chosenEdge?.routeKey) return;
     const routes = { ...settingsRef.current.routes }; delete routes[chosenEdge.routeKey]; changeSettings({ routes });
@@ -797,6 +805,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
       <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
       {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
+      {onSourceChange && !isSequence && chosenEdge.routeKey && <CanvasColors label="Color de flecha" value={settings.edgeColors?.[chosenEdge.routeKey]} onChange={color => changeColor("edgeColors", chosenEdge.routeKey!, color)} />}
       <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
       {onSourceChange && !isSequence && chosenEdge.routeKey && <div className="relation-routing">
         <label>Trazo<select aria-label="Forma de la conexión" value={settings.routes[chosenEdge.routeKey]?.shape || "automatic"} onChange={e => e.target.value === "automatic" ? resetRoute() : changeRoute({ shape: e.target.value as EdgeRoute["shape"] })}>
@@ -812,6 +821,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       </div>}
     </div>}
     <div className="canvas-stage">
+      {isClass && <CanvasFrames key={diagram.id} settings={settings} renderKey={result} addRequest={frameRequest} zoom={zoom} active={mode === "move" && !spaceHeld && !busy && !error} otherSelection={selection || selectedEdge} root={root} nodes={() => model.current.nodes} point={clientPoint} preview={next => showSettings(next)} commit={onSourceChange ? next => callbacks.current.onSourceChange && callbacks.current.onSettingsChange(next) : undefined} select={() => { setSelectedNode(""); setSelectedEdge(""); }} />}
       <aside className="draw-side-toolbar" role="toolbar" aria-label="Herramientas del lienzo" aria-orientation="vertical">
         <button className={"icon-btn board-tool " + (mode === "move" && !spaceHeld ? "active" : "")} data-tooltip="Seleccionar · V" title="Seleccionar y mover (V)" aria-label="Seleccionar y mover" aria-pressed={mode === "move"} onClick={() => activateTool("move")}><MousePointer2 size={20} /></button>
         <button className={"icon-btn board-tool " + (mode === "hand" || spaceHeld ? "active" : "")} data-tooltip="Mano · H / Espacio" title="Mover lienzo (H o mantener Espacio)" aria-label="Mover lienzo" aria-pressed={mode === "hand" || spaceHeld} onClick={() => activateTool("hand")}><Hand size={20} /></button>
@@ -820,6 +830,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           <button className={"icon-btn board-tool " + (mode === "place" ? "active" : "")} data-tooltip={isClass ? "Nueva clase · N" : "Nuevo elemento · N"} title={isClass ? "Agregar clase en el lienzo (N)" : "Agregar elemento (N)"} aria-label={isClass ? "Agregar clase" : "Agregar elemento"} aria-pressed={mode === "place"} disabled={busy || !!error} onClick={() => { if (isSequence) openClass(); else activateTool(mode === "place" ? "move" : "place"); }}><Plus size={23} /></button>
           <button className={"icon-btn board-tool " + (mode === "connect" ? "active" : "")} data-tooltip="Conectar · C" title="Conectar elementos (C)" aria-label="Conectar elementos" aria-pressed={mode === "connect"} disabled={busy || !!error} onClick={() => activateTool(mode === "connect" ? "move" : "connect")}><Link2 size={20} /></button>
           <span className="draw-toolbar-divider" />
+          {isClass && <button className="icon-btn board-tool" data-tooltip="Marco de módulo" title="Crear marco de módulo" aria-label="Crear marco de módulo" disabled={busy || !!error} onClick={() => { activateTool("move"); setSelectedNode(""); setSelectedEdge(""); setFrameRequest(value => value + 1); }}><FrameIcon size={20} /></button>}
           <button className={"icon-btn board-tool " + (mode === "draw" ? "active" : "")} data-tooltip="Lápiz · P" title="Lápiz (P)" aria-label="Lápiz" aria-pressed={mode === "draw"} disabled={busy || !!error} onClick={() => activateTool(mode === "draw" ? "move" : "draw")}><Pencil size={20} /></button>
           <button className={"icon-btn board-tool " + (mode === "erase" ? "active" : "")} data-tooltip="Borrador · E" title="Borrador (E)" aria-label="Borrador" aria-pressed={mode === "erase"} disabled={busy || !!error} onClick={() => activateTool(mode === "erase" ? "move" : "erase")}><Eraser size={20} /></button>
           <span className="draw-toolbar-divider" />
@@ -833,6 +844,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       </div>}
       {selection && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label={"Acciones de " + selection}>
         <strong>{selection}</strong><span className="board-control-divider" />
+        {isClass && <CanvasColors label="Color de clase" value={settings.nodeColors && Object.hasOwn(settings.nodeColors, selection) ? settings.nodeColors[selection] : undefined} onChange={color => changeColor("nodeColors", selection, color)} />}
         <button className="icon-btn" title="Editar elemento" aria-label="Editar elemento seleccionado" onClick={() => openClass(selection)}><Pencil size={16} /></button>
         <button className="icon-btn" title="Duplicar elemento" aria-label="Duplicar elemento seleccionado" onClick={() => copyClass(selection)}><Copy size={16} /></button>
         <button className="icon-btn" title="Conectar desde aquí" aria-label="Conectar elemento seleccionado" onClick={() => { activateTool("connect"); setOrigin(selection); }}><Link2 size={16} /></button>

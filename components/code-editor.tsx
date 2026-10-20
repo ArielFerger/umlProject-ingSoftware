@@ -2,13 +2,13 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorView, keymap } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import { undo, redo, undoDepth, redoDepth, indentWithTab, isolateHistory } from "@codemirror/commands";
 
 export type EditorHandle = { undo: () => void; redo: () => void; insert: (text: string) => void };
 
-const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: string) => void; onHistoryChange?: (history: { undo: boolean; redo: boolean }) => void }>(function CodeEditor({ value, onChange, onHistoryChange }, ref) {
+const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: string) => void; readOnly?: boolean; remoteRevision?: number; onHistoryChange?: (history: { undo: boolean; redo: boolean }) => void }>(function CodeEditor({ value, onChange, onHistoryChange, readOnly = false, remoteRevision }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const callback = useRef(onChange);
@@ -17,6 +17,8 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
   historyCallback.current = onHistoryChange;
   const initial = useRef(value);
   const syncing = useRef(false);
+  const editable = useRef(new Compartment());
+  const lastRevision = useRef(remoteRevision);
   useImperativeHandle(ref, () => ({
     undo() { if (view.current) undo(view.current); },
     redo() { if (view.current) redo(view.current); },
@@ -30,7 +32,7 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
     const instance = new EditorView({
       parent: host.current,
       state: EditorState.create({ doc: initial.current, extensions: [
-        basicSetup, keymap.of([indentWithTab]), EditorView.lineWrapping,
+        basicSetup, editable.current.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]), keymap.of([indentWithTab]), EditorView.lineWrapping,
         EditorView.contentAttributes.of({ "aria-label": "Código Mermaid del diagrama", spellcheck: "false" }),
         EditorView.updateListener.of(update => {
           if (update.docChanged) {
@@ -56,6 +58,8 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
     return () => { instance.destroy(); view.current = null; };
   }, []);
   useEffect(() => {
+    const remote = remoteRevision !== undefined && lastRevision.current !== remoteRevision;
+    lastRevision.current = remoteRevision;
     const v = view.current;
     if (!v) return;
     const current = v.state.doc.toString();
@@ -73,12 +77,15 @@ const CodeEditor = forwardRef<EditorHandle, { value: string; onChange: (value: s
     try {
       v.dispatch({
         changes: { from: start, to: endCurrent, insert: value.slice(start, endValue) },
-        annotations: isolateHistory.of("full"),
+        annotations: [isolateHistory.of("full"), ...(remote ? [Transaction.addToHistory.of(false)] : [])],
       });
     } finally {
       syncing.current = false;
     }
-  }, [value]);
+  }, [value, remoteRevision]);
+  useEffect(() => {
+    view.current?.dispatch({ effects: editable.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]) });
+  }, [readOnly]);
   return <div ref={host} className="code-editor" />;
 });
 export default CodeEditor;

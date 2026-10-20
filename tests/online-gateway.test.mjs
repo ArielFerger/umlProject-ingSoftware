@@ -1,0 +1,34 @@
+import assert from "node:assert/strict";
+import http from "node:http";
+import { test } from "node:test";
+import { createOnlineGateway } from "../scripts/online-gateway.mjs";
+test("online gateway isolates accounts, strips forged identity, validates origins and revokes sessions", async t=>{
+ const upstream=http.createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({headers:req.headers,path:req.url}));});
+ await new Promise(r=>upstream.listen(0,"127.0.0.1",r));
+ const probe=http.createServer();await new Promise(r=>probe.listen(0,"127.0.0.1",r));const port=probe.address().port;await new Promise(r=>probe.close(r));
+ const origin="http://127.0.0.1:"+port,gateway=createOnlineGateway({upstreamPort:upstream.address().port,publicOrigin:origin,databasePath:":memory:"});
+ await new Promise(r=>gateway.listen(port,"127.0.0.1",r));
+ t.after(()=>{gateway.closeAllConnections();upstream.closeAllConnections();gateway.close();upstream.close();});
+ const base="http://127.0.0.1:"+gateway.address().port;
+ const call=(path,init={})=>fetch(base+path,{...init,redirect:"manual",headers:{...init.headers}});
+ assert.equal((await call("/api/diagrams",{headers:{"oai-authenticated-user-id":"alice"}})).status,401);
+ const register=await call("/auth/register",{method:"POST",headers:{Origin:origin,"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({username:"alice",password:"secure test password",display_name:"Alice",return_to:"/\t/attacker.test"})});
+ assert.equal(register.status,303);assert.equal(register.headers.get("location"),"/");
+ const cookie=register.headers.get("set-cookie").split(";")[0];assert.match(register.headers.get("set-cookie"),/HttpOnly; SameSite=Lax/);
+ const result=await(await call("/api/diagrams",{headers:{Cookie:cookie,"oai-authenticated-user-id":"forged","x-uml-auth-provider":"forged"}})).json();
+ assert.match(result.headers["oai-authenticated-user-id"],/^vps_/);assert.equal(result.headers["x-uml-auth-provider"],"vps");assert.equal(result.headers.cookie,undefined);
+ assert.equal((await call("/api/diagrams",{method:"PUT",headers:{Cookie:cookie,Origin:"https://attacker.test"}})).status,403);
+ assert.equal((await call("/api/diagrams",{method:"PUT",headers:{Cookie:cookie}})).status,403);
+ const logout=await call("/auth/logout",{method:"POST",headers:{Cookie:cookie,Origin:origin}});assert.equal(logout.status,303);
+ assert.equal((await call("/api/diagrams",{headers:{Cookie:cookie}})).status,401);
+ const login=await call("/auth/login",{method:"POST",headers:{Origin:origin},body:new URLSearchParams({username:"alice",password:"secure test password"})});assert.ok(login.headers.get("set-cookie"));
+ const bad=await call("/auth/login",{method:"POST",headers:{Origin:origin},body:new URLSearchParams({username:"alice",password:"incorrect password"})});assert.equal(bad.headers.get("set-cookie"),null);
+ assert.throws(()=>createOnlineGateway({publicOrigin:"http://example.com",databasePath:":memory:"}),/HTTPS/);
+});
+test("HTTPS sessions are host-only Secure cookies",async t=>{
+ const probe=http.createServer();await new Promise(r=>probe.listen(0,"127.0.0.1",r));const port=probe.address().port;await new Promise(r=>probe.close(r));
+ const origin="https://127.0.0.1:"+port,gateway=createOnlineGateway({publicOrigin:origin,databasePath:":memory:"});
+ await new Promise(r=>gateway.listen(port,"127.0.0.1",r));t.after(()=>{gateway.closeAllConnections();gateway.close();});
+ const response=await fetch("http://127.0.0.1:"+port+"/auth/register",{method:"POST",redirect:"manual",headers:{Origin:origin},body:new URLSearchParams({username:"secure_user",display_name:"Secure",password:"secure test password"})});
+ assert.match(response.headers.get("set-cookie"),/^__Host-uml_session=/);assert.match(response.headers.get("set-cookie"),/; Secure/);assert.doesNotMatch(response.headers.get("set-cookie"),/Domain=/i);
+});

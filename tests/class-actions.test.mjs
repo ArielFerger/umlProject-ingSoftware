@@ -76,3 +76,10 @@ test("copy and duplicate retain external interface or abstract annotations and m
   assert.match(duplicateClass(source,"Contrato").source,/class Contrato_copia \{\n  \+run\(\) void\n  <<interface>>\n\}/);
   assert.match(duplicateClass(source,"Base").source,/class Base_copia \{\n  \+go\(\) void\n  <<abstract>>\n\}/);
 });
+
+test("duplicating and deleting a colored class preserves unrelated colors", () => {
+  const source = writeCanvas("classDiagram\nclass A\nclass B", { ...readCanvas(""), nodeColors: { A: "#fde68a", B: "#334155" } });
+  const copy = duplicateClass(source, "A");
+  assert.equal(readCanvas(copy.source).nodeColors[copy.name], "#fde68a");
+  assert.deepEqual(readCanvas(removeClass(copy.source, "A")).nodeColors, { B: "#334155", [copy.name]: "#fde68a" });
+});

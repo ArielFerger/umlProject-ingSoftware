@@ -68,7 +68,13 @@ Abrí `http://localhost:3002`. Para desarrollo con Next.js: `npm run dev:vercel 
 
 Referencias: [deploy de Next.js](https://nextjs.org/docs/pages/getting-started/deploying) y [configuración de compilación de Vercel](https://vercel.com/docs/builds/configure-a-build).
 
-### Con Docker (recomendado)
+### Compartir tableros online en un VPS
+
+La variante online de Docker incorpora cuentas propias, invitaciones por enlace con lectura o edición, gestión de participantes y sincronización entre navegadores. Los diagramas y el historial se guardan en el VPS; **Compartir** abre los permisos del tablero. Los cambios superpuestos conservan el borrador para resolver el conflicto.
+
+Consultá [la instalación online, HTTPS y respaldos](deploy/README.md). Usá `compose.online.yaml` para esta variante; la configuración local de abajo sigue siendo personal.
+
+### Con Docker (uso personal local)
 
 ```sh
 cd umlProject-ingSoftware
@@ -290,3 +296,9 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## Marcos de módulos
+
+En un diagrama de clases, el botón **Crear marco de módulo** agrega un sector detrás de las clases. Seleccioná su encabezado para cambiar título, color y borde (continuo, discontinuo o punteado), o ingresá ancho y alto. Arrastrá los tiradores para redimensionar y el encabezado para mover. La opción **Mover también las clases que contiene** incluye únicamente las clases completamente encerradas. Eliminar un marco conserva las clases.
+
+Desde el panel del marco podés crear flechas hacia otro marco o una clase; seleccioná la flecha para editar etiqueta, color, trazo y dirección. Las conexiones entre módulos pasan por arriba para separarse de las relaciones UML. Marcos y flechas se guardan como anotaciones del lienzo, se comparten y se incluyen en Mermaid/JSON y en SVG/PNG. Las operaciones usan el historial del editor.

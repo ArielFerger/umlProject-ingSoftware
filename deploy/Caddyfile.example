@@ -1,0 +1,10 @@
+diagramia.online {
+    encode zstd gzip
+    reverse_proxy uml-studio:3000
+    header Referrer-Policy strict-origin
+    header X-Content-Type-Options nosniff
+}
+
+www.diagramia.online {
+    redir https://diagramia.online{uri} 308
+}

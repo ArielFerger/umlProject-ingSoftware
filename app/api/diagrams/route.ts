@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
     const result = id ? (url.searchParams.has("history") ? await getHistory(owner, id) : await getDiagram(owner, id)) : await listDiagrams(owner);
+    if (!id && url.searchParams.has("versions")) return Response.json((result as Awaited<ReturnType<typeof listDiagrams>>).map(d => ({ id: d.id, revision: d.revision, access: d.access })), { headers: { "Cache-Control": "no-store" } });
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return errorResponse(e); }
 }

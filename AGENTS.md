@@ -7,11 +7,14 @@ This is Ariel's editable UML application, published with Sites. Reuse the existi
 - `components/studio.tsx`: workspace, document lifecycle, modals, import/export.
 - `components/code-editor.tsx`: CodeMirror editing and history.
 - `components/diagram-preview.tsx`: Mermaid rendering, pan and zoom.
+- `components/canvas-frames.tsx`, `lib/frames.ts`, `lib/svg-frames.ts`: module frames and annotation arrows, stored in canvas metadata. Preserve their titles, colors, bounds and connectors in undo, shared merges and exports. Frame dragging moves only fully enclosed classes when enabled; resizing and frame deletion never remove or resize classes. Keep frame hit areas and resize handles out of exports.
 - `components/canvas-menu.tsx`, `lib/class-actions.ts`: accessible context menus and targeted class mutations. Preserve unrelated declarations, annotations, relationships and canvas metadata.
 - `app/canvas-interactions.css`: contextual controls and purposeful motion; honor reduced-motion preferences.
 - `app/globals.css`: responsive application layout and print styles.
 - `lib/diagrams.ts`: shared validation, seven diagram templates, file interchange.
-- `lib/store.ts`: authenticated D1 persistence and optimistic revision checks.
+- `lib/store.ts`, `lib/board-access.ts`: authenticated D1 persistence, shared board membership/invites and optimistic revision checks. Viewers never write; only owners delete boards or manage access. Invitation hashes, not raw tokens, are stored. Revoke invite links separately from existing memberships.
+- `lib/shared-sync.ts`, `components/sharing.tsx`, `app/join/`: shared-board synchronization and invitation UI. Preserve local drafts on conflicts, merge only independent edits and exclude remote updates from local undo history.
+- `scripts/online-gateway.mjs`, `compose.online.yaml`, `deploy/`: VPS accounts and deployment. The gateway strips supplied identity headers, authenticates HttpOnly sessions and validates Host/Origin. Preserve the localhost-only single-user Docker adapter. Keep account and D1 files on the persistent online volume.
 - `lib/studio-request.ts`, `lib/browser-workspace.ts`: Vercel's browser-owned IndexedDB adapter; preserve transactional revision checks and history. Docker/Sites keep the authenticated D1 adapter.
 - `lib/relation-actions.ts`: mutate only the selected relationship, preserving other source lines and canvas metadata. SVG hit areas and selection classes must stay out of exports.
 - `lib/visual-diagrams.ts`, `lib/visual-svg.ts`: non-class element/connection forms, targeted source changes and unified SVG geometry. Use-case actors carry `:::umlActor`; reserve their layout space and route connections to the figure, not its transparent hit area. SVG/PNG must retain standalone actor styling.

@@ -31,3 +31,12 @@ test("recognizes reversed and same-class connections without parsing class membe
   const records = sourceRelations('classDiagram\nclass A {\n  A -- B\n}\nA <|-- B\nA --> A : repite');
   assert.deepEqual(records.map(r => [r.from, r.kind, r.to]), [["A", "<|--", "B"], ["A", "-->", "A"]]);
 });
+
+test("removing a parallel arrow moves its surviving color with the relationship", async () => {
+  const { relationRouteKey } = await import("../lib/edge-routing.ts");
+  const first = relationRouteKey("Cliente", "Pedido", 0), second = relationRouteKey("Cliente", "Pedido", 1);
+  const colored = writeCanvas(source, { ...settings, edgeColors: { [first]: "#dc2626", [second]: "#2563eb" } });
+  const next = removeRelation(colored, sourceRelations(colored)[0]);
+  assert.deepEqual(readCanvas(next).edgeColors, { [first]: "#2563eb" });
+  assert.match(next, /Cliente \.\.> Pedido : consulta/);
+});

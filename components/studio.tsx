@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Link from "next/link";
 import ThemePicker from "./theme-picker";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2 } from "lucide-react";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users } from "lucide-react";
 import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
 import Modal from "./modal";
+import SharingDialog from "./sharing";
+import { mergeSharedDiagram } from "@/lib/shared-sync";
 import RelationGuide, { RelationSymbol } from "./relation-guide";
 import { RELATIONS, appendRelation, cleanSource, readCanvas, relationInfo, writeCanvas } from "@/lib/canvas";
 import { classMembers, setClassMembers } from "@/lib/class-actions";
@@ -15,8 +17,10 @@ import ClassProperties from "./class-properties";
 import { browserStorage, studioRequest } from "@/lib/studio-request";
 
 const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database };
-type ModalKind = "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
+type ModalKind = "share" | "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
 type Revision = { revision: number; createdAt: string; diagram: Diagram };
+
+class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 
 async function api<T>(method = "GET", data?: unknown, query = ""): Promise<T> {
   const response = await studioRequest("/api/diagrams" + query, {
@@ -24,7 +28,7 @@ async function api<T>(method = "GET", data?: unknown, query = ""): Promise<T> {
     body: data ? JSON.stringify(data) : undefined,
   });
   const result = await response.json() as T & { error?: string };
-  if (!response.ok) throw new Error(result.error || "No se pudo completar la operación.");
+  if (!response.ok) throw new ApiError(result.error || "No se pudo completar la operación.", response.status);
   return result;
 }
 
@@ -53,6 +57,10 @@ export default function Studio() {
   const [notice, setNotice] = useState("");
   const [saveState, setSaveState] = useState<"saved" | "pending" | "saving" | "error">("saved");
   const saved = useRef(new Map<string, string>());
+  const serverSnapshots = useRef(new Map<string, Diagram>());
+  const [profile, setProfile] = useState<{ displayName: string; sharing: boolean } | null>(null);
+  const [syncOffline, setSyncOffline] = useState(false);
+  const saveCycle = useRef(0);
   const saveLock = useRef<Promise<boolean> | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
   const [sideOpen, setSideOpen] = useState(true);
@@ -65,6 +73,7 @@ export default function Studio() {
   const [view, setView] = useState<"split" | "code" | "diagram">("diagram");
   const [svg, setSvg] = useState<SvgResult | null>(null);
   const [working, setWorking] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [formError, setFormError] = useState("");
   const [newType, setNewType] = useState<DiagramType>("class");
   const [newName, setNewName] = useState("Nuevo diagrama");
@@ -86,6 +95,8 @@ export default function Studio() {
   const editor = useRef<EditorHandle>(null);
   const importInput = useRef<HTMLInputElement>(null);
   const current = documents.find(d => d.id === selected);
+  const canEdit = !recovering && current?.access !== "view";
+  const isOwner = !current?.access || current.access === "owner";
   const cleanCurrentSource = useMemo(() => current ? cleanSource(current.source) : "", [current?.source]);
   const blocks = useMemo(() => current?.type === "class" ? classBlocks(cleanCurrentSource) : [], [current?.type, cleanCurrentSource]);
 
@@ -98,6 +109,7 @@ export default function Studio() {
     try {
       const docs = await api<Diagram[]>();
       saved.current = new Map(docs.map(d => [d.id, signature(d)]));
+      serverSnapshots.current = new Map(docs.map(d => [d.id, d]));
       const requested = new URLSearchParams(window.location.search).get("diagram");
       updateDocuments(() => docs); setSelected(prev => requested && docs.some(d => d.id === requested) ? requested : docs.some(d => d.id === prev) ? prev : docs[0]?.id || "");
       setSaveState("saved");
@@ -108,13 +120,31 @@ export default function Studio() {
   const saveAll = useCallback(async (): Promise<boolean> => {
     if (saveLock.current) return saveLock.current;
     const action = async () => {
+      saveCycle.current++;
       let snapshot = docsRef.current.find(d => saved.current.get(d.id) !== signature(d));
       if (!snapshot) { setSaveState("saved"); return true; }
       setSaveState("saving");
       try {
+        let rebases = 0;
         while (snapshot) {
           const id = snapshot.id;
-          const result = await api<Diagram>("PUT", snapshot);
+          let result: Diagram;
+          try { result = await api<Diagram>("PUT", snapshot); }
+          catch (error) {
+            if (error instanceof ApiError && error.status === 409 && rebases++ < 3) {
+              const latest = await api<Diagram>("GET", undefined, "?id=" + encodeURIComponent(id));
+              const base = serverSnapshots.current.get(id), local = docsRef.current.find(d => d.id === id);
+              const merged = base && local && mergeSharedDiagram(base, local, latest);
+              if (merged) {
+                saved.current.set(id, signature(latest)); serverSnapshots.current.set(id, latest);
+                updateDocuments(docs => docs.map(d => d.id === id ? merged : d));
+                snapshot = docsRef.current.find(d => saved.current.get(d.id) !== signature(d)); continue;
+              }
+              throw new Error("Otra persona cambió la misma parte del tablero. Tu borrador está intacto: conservá una copia para revisar los cambios.");
+            }
+            throw error;
+          }
+          serverSnapshots.current.set(id, result);
           saved.current.set(id, signature(snapshot));
           updateDocuments(docs => docs.map(d => d.id === id ? { ...d, revision: result.revision, updatedAt: result.updatedAt } : d));
           snapshot = docsRef.current.find(d => saved.current.get(d.id) !== signature(d));
@@ -125,6 +155,56 @@ export default function Studio() {
     const promise = action(); saveLock.current = promise;
     try { return await promise; } finally { saveLock.current = null; }
   }, [updateDocuments]);
+
+  useEffect(() => {
+    void studioRequest("/api/study-profile").then(async response => { if (response.ok) setProfile(await response.json()); }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!profile?.sharing) return;
+    let cancelled = false, polling = false;
+    const controller = new AbortController();
+    const poll = async () => {
+      if (polling || saveLock.current || document.hidden) return;
+      polling = true;
+      const cycle = saveCycle.current;
+      try {
+        const response = await fetch("/api/diagrams?versions=1", { signal: controller.signal });
+        if (!response.ok) throw new Error("Sin conexión");
+        const versions = await response.json() as { id: string; revision: number; access?: Diagram["access"] }[];
+        const remote = await Promise.all(versions.map(async version => {
+          const known = serverSnapshots.current.get(version.id);
+          return known?.revision === version.revision ? { ...known, access: version.access } : await api<Diagram>("GET", undefined, "?id=" + encodeURIComponent(version.id));
+        }));
+        if (cancelled || saveLock.current || cycle !== saveCycle.current) return;
+        setSyncOffline(false);
+        const changed = remote.some(d => { const known = serverSnapshots.current.get(d.id); return !known || known.revision !== d.revision || known.access !== d.access; }) || remote.length !== serverSnapshots.current.size;
+        if (!changed) return;
+        const byId = new Map(remote.map(d => [d.id, d]));
+        let conflict = false;
+        const next = remote.map(server => {
+          const local = docsRef.current.find(d => d.id === server.id), base = serverSnapshots.current.get(server.id);
+          const dirty = local && saved.current.get(local.id) !== signature(local);
+          if (dirty && local && base) {
+            const merged = mergeSharedDiagram(base, local, server);
+            if (!merged) { conflict = true; return { ...local, access: server.access }; }
+            saved.current.set(server.id, signature(server)); serverSnapshots.current.set(server.id, server); return merged;
+          }
+          saved.current.set(server.id, signature(server)); serverSnapshots.current.set(server.id, server); return server;
+        });
+        for (const local of docsRef.current) if (!byId.has(local.id)) {
+          if (saved.current.get(local.id) !== signature(local)) { next.push({ ...local, access: "view" }); conflict = true; }
+          else { serverSnapshots.current.delete(local.id); saved.current.delete(local.id); }
+        }
+        updateDocuments(() => next);
+        if (!next.some(d => d.id === selectedRef.current)) setSelected(next[0]?.id || "");
+        if (conflict) { setSaveState("error"); setNotice("Hay cambios que necesitan revisión o cambió tu permiso. Tu borrador se conserva: guardalo como copia para continuar."); }
+      } catch { if (!cancelled) setSyncOffline(true); } finally { polling = false; }
+    };
+    const timer = setInterval(() => void poll(), 2000);
+    const visible = () => { if (!document.hidden) void poll(); };
+    document.addEventListener("visibilitychange", visible);
+    return () => { cancelled = true; controller.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
+  }, [profile?.sharing, updateDocuments]);
 
   useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 1100) setPropertiesOpen(false); }, [load]);
   useEffect(() => {
@@ -159,6 +239,7 @@ export default function Studio() {
   }, [saveAll]);
 
   function edit(patch: Partial<DiagramInput>) {
+    if (recovering || docsRef.current.find(d => d.id === selectedRef.current)?.access === "view") return;
     updateDocuments(docs => docs.map(d => d.id === selectedRef.current ? { ...d, ...patch } : d));
     if (saveState === "error") { setSaveState("pending"); setNotice(""); }
   }
@@ -172,12 +253,13 @@ export default function Studio() {
     try {
       if (!(await saveAll())) return;
       const doc = await api<Diagram>("POST", data);
-      saved.current.set(doc.id, signature(doc)); updateDocuments(docs => [...docs, doc]);
+      saved.current.set(doc.id, signature(doc)); serverSnapshots.current.set(doc.id, doc); updateDocuments(docs => [...docs, doc]);
       setSelected(doc.id); setInspectedClass(""); setSvg(null); setModal(null); setSearch(""); setNotice("");
     } catch (e) { setFormError((e as Error).message); setNotice((e as Error).message); }
     finally { setWorking(false); }
   }
   function beginClass(name = "") {
+    if (!canEdit) return;
     if (!name && view !== "code") {
       setInsertRequest({ serial: Date.now(), kind: "class" });
       return;
@@ -194,6 +276,7 @@ export default function Studio() {
     setModal(null);
   }
   function beginRelation() {
+    if (!canEdit) return;
     setRelFrom(blocks[0]?.name || "Origen"); setRelTo(blocks[1]?.name || "Destino"); setRelKind("-->");
     setRelLabel(""); setRelCardFrom(""); setRelCardTo(""); openModal("relation");
   }
@@ -203,6 +286,16 @@ export default function Studio() {
     const from = relFrom + (relCardFrom ? ` "${relCardFrom}"` : "");
     const to = (relCardTo ? `"${relCardTo}" ` : "") + relTo;
     edit({ source: writeCanvas(cleanSource(current!.source) + `\n${from} ${relKind} ${to}${relLabel ? " : " + relLabel : ""}\n`, readCanvas(current!.source)) }); setModal(null);
+  }
+  async function preserveCopy() {
+    if (!current || recovering) return;
+    setWorking(true); setRecovering(true); saveCycle.current++;
+    try {
+      const doc = await api<Diagram>("POST", { ...current, name: current.name.slice(0, 85) + " (mi copia)" });
+      const remote = await api<Diagram[]>();
+      saved.current = new Map(remote.map(d => [d.id, signature(d)])); serverSnapshots.current = new Map(remote.map(d => [d.id, d]));
+      updateDocuments(() => remote); setSelected(doc.id); setSvg(null); setNotice(""); setSaveState("saved");
+    } catch (e) { setNotice((e as Error).message); } finally { setWorking(false); setRecovering(false); }
   }
   async function showHistory() {
     if (!current) return;
@@ -287,7 +380,7 @@ export default function Studio() {
   const canvasSettings = useMemo(() => current && propertiesOpen ? readCanvas(current.source) : null, [current?.source, propertiesOpen]);
   const selectedBlock = blocks.find(block => block.name === inspectedClass);
   const selectedBody = useMemo(() => selectedBlock && propertiesOpen ? classMembers(cleanCurrentSource, selectedBlock.name) : "", [cleanCurrentSource, propertiesOpen, selectedBlock]);
-  const openNotes = () => { if (current) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
+  const openNotes = () => { if (current && canEdit) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
   const goStudy = async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } };
   const selectForInspection = (name: string) => { setInspectedClass(name); };
 
@@ -299,9 +392,9 @@ export default function Studio() {
         <ThemePicker /><Link href="/git" className="btn header-quiet header-git-link" aria-label="Laboratorio Git"><GitBranch size={16} /><span>Git Lab</span></Link>
         <span className={"save-status " + saveState} aria-live="polite">
           {saveState === "saving" ? <LoaderCircle size={14} className="spin" /> : saveState === "error" ? <CloudOff size={15} /> : browserStorage ? <Save size={15} /> : <Cloud size={15} />}
-          {saveState === "saved" ? browserStorage ? "Guardado en este navegador" : "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
+          {saveState === "saved" ? browserStorage ? "Guardado en este navegador" : profile?.sharing ? syncOffline ? "Reconectando…" : canEdit ? "Guardado · online" : "Solo lectura · online" : "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
         </span>
-        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button><button className="btn header-quiet chat-btn" onClick={() => openModal("chat")}><MessageSquare size={16} /><span>{browserStorage ? "Compartir JSON" : "Conectar con ChatGPT"}</span></button>
+        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button>{profile?.sharing && <form className="online-account" method="post" action="/auth/logout"><span>{profile.displayName}</span><button>Salir</button></form>}<button className="btn header-quiet chat-btn" onClick={() => { if (profile?.sharing && current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); else openModal("chat"); }}><MessageSquare size={16} /><span>{profile?.sharing ? "Exportar JSON" : browserStorage ? "Compartir JSON" : "Conectar con ChatGPT"}</span></button>
       </div>
     </header>
 
@@ -329,7 +422,7 @@ export default function Studio() {
               {closed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}<Folder size={15} /><span>{project}</span><small>{items.length}</small>
             </button>
             {!closed && items.map(doc => { const Icon = ICONS[doc.type]; return <button key={doc.id} className={"diagram-item " + (selected === doc.id ? "selected" : "")} onClick={() => void choose(doc.id)}>
-              <Icon size={17} /><span><strong>{doc.name}</strong><small>{TYPE_LABELS[doc.type]}</small></span>
+              <Icon size={17} /><span><strong>{doc.name}</strong><small>{TYPE_LABELS[doc.type]}{doc.access === "edit" || doc.access === "view" ? " · Compartido" : ""}</small></span>
               {selected === doc.id && <Check size={13} className="document-selected-icon" />}
             </button>; })}
           </section>;
@@ -339,14 +432,14 @@ export default function Studio() {
       </div>
       {current && <section className="toolbox" aria-label="Herramientas de diagramado"><div className="toolbox-heading"><h2>Insertar</h2><span>{TYPE_LABELS[current.type]}</span></div>
         {current.type === "class" ? <>
-          <button className="sidebar-tool" onClick={() => beginClass()}><Boxes size={17} /><span>Clase</span><Plus size={13} /></button>
-          <button className="sidebar-tool" onClick={beginRelation}><Link2 size={17} /><span>Relación</span><Plus size={13} /></button>
-        </> : tools.map(([kind, label]) => <button className="sidebar-tool" key={kind} onClick={() => insertSnippet(kind)}><Shapes size={17} /><span>{label}</span><Plus size={13} /></button>)}
-        <button className="sidebar-tool" onClick={() => insertSnippet("note")}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
+          <button disabled={!canEdit} className="sidebar-tool" onClick={() => beginClass()}><Boxes size={17} /><span>Clase</span><Plus size={13} /></button>
+          <button disabled={!canEdit} className="sidebar-tool" onClick={beginRelation}><Link2 size={17} /><span>Relación</span><Plus size={13} /></button>
+        </> : tools.map(([kind, label]) => <button disabled={!canEdit} className="sidebar-tool" key={kind} onClick={() => insertSnippet(kind)}><Shapes size={17} /><span>{label}</span><Plus size={13} /></button>)}
+        <button disabled={!canEdit} className="sidebar-tool" onClick={() => insertSnippet("note")}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
       </section>}
       <div className="sidebar-bottom"><button className="sidebar-action" onClick={() => importInput.current?.click()} disabled={loading || !!loadError}><Upload size={16} />Importar archivo</button>
         <button className="sidebar-action" onClick={beginNew} disabled={loading || !!loadError}><LayoutTemplate size={16} />Plantillas</button>
-        <div className="sidebar-count"><span>{documents.length} diagramas</span><span><LockKeyhole size={11} />Personal</span></div>
+        <div className="sidebar-count"><span>{documents.length} diagramas</span><span><LockKeyhole size={11} />{profile?.sharing ? "Online" : "Personal"}</span></div>
       </div>
     </aside>
 
@@ -356,9 +449,9 @@ export default function Studio() {
           <div className="document-title">
             {!sideOpen && <IconButton title="Mostrar explorador" onClick={() => setSideOpen(true)}><PanelLeft size={18} /></IconButton>}
             <div className="document-breadcrumb"><Folder size={13} /><span>{current.project}</span><ChevronRight size={12} /><span>{TYPE_LABELS[current.type]}</span></div>
-            <input className="name-input" aria-label="Nombre del diagrama" value={current.name} maxLength={100} onChange={e => edit({ name: e.target.value })} onBlur={() => { if (!current.name.trim()) edit({ name: "Sin titulo" }); }} />
+            <input readOnly={!canEdit} className="name-input" aria-label="Nombre del diagrama" value={current.name} maxLength={100} onChange={e => edit({ name: e.target.value })} onBlur={() => { if (canEdit && !current.name.trim()) edit({ name: "Sin titulo" }); }} />
           </div>
-          <div className="document-actions"><IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title={browserStorage ? "Recargar diagramas" : "Actualizar desde el chat"} onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
+          <div className="document-actions">{profile?.sharing && <button className="btn" onClick={async () => { if (await saveAll()) openModal("share"); }}><Users size={16}/><span>Compartir</span></button>}<IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title={browserStorage || profile?.sharing ? "Recargar diagramas" : "Actualizar desde el chat"} onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
             <button className="btn export-btn" aria-label="Exportar diagrama" onClick={() => openModal("export")}><Download size={16} /><span>Exportar</span></button>
           </div>
         </div>
@@ -367,26 +460,26 @@ export default function Studio() {
             <button className={view === "diagram" ? "active" : ""} aria-pressed={view === "diagram"} onClick={() => setView("diagram")}><Shapes size={15} /><span>Lienzo</span></button>
             <button className={view === "split" ? "active" : ""} aria-pressed={view === "split"} onClick={() => setView("split")}><Columns2 size={15} /><span>Dividir</span></button>
             <button className={view === "code" ? "active" : ""} aria-pressed={view === "code"} onClick={() => setView("code")}><Code2 size={15} /><span>Código</span></button>
-          </div><span className="toolbar-divider" /><IconButton title="Deshacer" disabled={!editorHistory.undo} onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" disabled={!editorHistory.redo} onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
+          </div><span className="toolbar-divider" /><IconButton title="Deshacer" disabled={!canEdit || !editorHistory.undo} onClick={() => editor.current?.undo()}><Undo2 size={16} /></IconButton><IconButton title="Rehacer" disabled={!canEdit || !editorHistory.redo} onClick={() => editor.current?.redo()}><Redo2 size={16} /></IconButton></div>
           <div className="toolbar-right">
             <IconButton title={canvasFocused ? "Salir de pantalla casi completa" : "Enfocar pantalla de dibujo (pantalla casi completa)"} active={canvasFocused} onClick={() => { if (view === "code") setView("diagram"); setCanvasFocused(f => !f); }}>{canvasFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</IconButton>
             <IconButton title="Notas y proyecto" active={!!current.notes} onClick={openNotes}><StickyNote size={16} /></IconButton>
             <IconButton title="Duplicar diagrama" onClick={() => void create({ ...current, name: current.name + " (copia)" })}><Copy size={16} /></IconButton>
-            <IconButton title="Eliminar diagrama" onClick={() => openModal("delete")}><Trash2 size={16} /></IconButton>
+            <IconButton title="Eliminar diagrama" disabled={!isOwner} onClick={() => openModal("delete")}><Trash2 size={16} /></IconButton>
             <span className="toolbar-divider" /><IconButton title={propertiesOpen ? "Ocultar propiedades" : "Mostrar propiedades"} active={propertiesOpen} onClick={() => { setPropertiesOpen(open => !open); if (window.innerWidth <= 800) setSideOpen(false); }}>{propertiesOpen ? <PanelRightClose size={17} /> : <PanelRight size={17} />}</IconButton>
           </div>
         </div>
-        {notice && <div className="notice" role="alert"><CloudOff size={16} /><span>{notice}</span><button className="text-btn" onClick={() => { setSaveState("pending"); void saveAll(); }}>Reintentar</button><IconButton title="Cerrar aviso" onClick={() => setNotice("")}><X size={14} /></IconButton></div>}
+        {notice && <div className="notice" role="alert"><CloudOff size={16} /><span>{notice}</span>{current && <><button className="text-btn" disabled={working} onClick={() => void preserveCopy()}>Conservar como copia</button><button className="text-btn" onClick={() => download(exportDocument(current), filename(current.name) + ".uml.json")}>Descargar borrador</button></>}<button className="text-btn" onClick={() => { setSaveState("pending"); void saveAll(); }}>Reintentar</button><IconButton title="Cerrar aviso" onClick={() => setNotice("")}><X size={14} /></IconButton></div>}
         <div className={"editor-workspace view-" + view}>
           <section className="code-pane">
             <div className="pane-header"><span><Braces size={15} />Código</span><small>Mermaid</small></div>
-            <CodeEditor ref={editor} key={current.id} value={current.source} onChange={source => edit({ source })} onHistoryChange={setEditorHistory} />
+            <CodeEditor readOnly={!canEdit} remoteRevision={current.revision} ref={editor} key={current.id} value={current.source} onChange={source => edit({ source })} onHistoryChange={setEditorHistory} />
             <div className="code-footer"><span>{current.source.split("\n").length} líneas</span><span>UTF-8</span></div>
           </section>
           <section className="canvas-pane"><div className="pane-header canvas-pane-heading"><span><Shapes size={15} />{TYPE_LABELS[current.type]}</span><span className="live-label"><Check size={12} />Sincronizado con Mermaid</span></div>
-            <DiagramPreview initialFit="contain" insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={source => edit({ source })}
+            <DiagramPreview initialFit="contain" insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={canEdit ? source => edit({ source }) : undefined}
               selectedClass={inspectedClass} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
-              onUndo={() => editor.current?.undo()} onRedo={() => editor.current?.redo()} canUndo={editorHistory.undo} canRedo={editorHistory.redo}
+              onUndo={canEdit ? () => editor.current?.undo() : undefined} onRedo={canEdit ? () => editor.current?.redo() : undefined} canUndo={editorHistory.undo} canRedo={editorHistory.redo}
               focused={canvasFocused} onFocusChange={setCanvasFocused}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
               onConnect={(from, to, kind, positions) => edit({ source: writeCanvas(appendRelation(current.source, from, to, kind), { ...readCanvas(current.source), positions }) })}
@@ -394,13 +487,13 @@ export default function Studio() {
           </section>
           <aside className="properties-panel" aria-label="Propiedades del diagrama">
             <div className="pane-header"><span><SlidersHorizontal size={15} />Propiedades</span><IconButton title="Cerrar propiedades" onClick={() => setPropertiesOpen(false)}><X size={15} /></IconButton></div>
-            <div className="properties-content">
+            <fieldset className="properties-content" disabled={!canEdit}>
               {selectedBlock ? <>
                 <button className="property-back" onClick={() => setInspectedClass("")}><ChevronRight size={13} />Volver al diagrama</button>
                 <ClassProperties key={current.id + selectedBlock.name + selectedBody} name={selectedBlock.name} body={selectedBody} onApply={body => edit({ source: setClassMembers(current.source, selectedBlock.name, body) })} />
               </> : <>
                 <section className="property-section"><h3>Diagrama</h3>
-                  <label className="property-field">Nombre<input value={current.name} maxLength={100} onChange={event => edit({ name: event.target.value })} onBlur={() => { if (!current.name.trim()) edit({ name: "Sin título" }); }} /></label>
+                  <label className="property-field">Nombre<input value={current.name} maxLength={100} onChange={event => edit({ name: event.target.value })} onBlur={() => { if (canEdit && !current.name.trim()) edit({ name: "Sin título" }); }} /></label>
                   <label className="property-field">Proyecto<input value={current.project} maxLength={80} onChange={event => edit({ project: event.target.value })} onBlur={() => { if (!current.project.trim()) edit({ project: "Sin proyecto" }); }} /></label>
                   <label className="property-field">Apariencia<select aria-label="Tema del diagrama" value={current.theme} onChange={event => edit({ theme: event.target.value as DiagramInput["theme"] })}><option value="studio">Studio · petróleo</option><option value="neutral">Neutro</option><option value="dark">Oscuro</option></select></label>
                 </section>
@@ -412,7 +505,7 @@ export default function Studio() {
                   <label className="range-property"><span>Texto de relaciones<output>{canvasSettings.labelSize} px</output></span><input aria-label="Texto de relaciones" type="range" min="12" max="24" value={canvasSettings.labelSize} onChange={event => edit({ source: writeCanvas(current.source, { ...canvasSettings, labelSize: Number(event.target.value) }) })} /></label></>}
               </section>}
               <section className="property-section"><h3>Notas</h3><textarea className="diagram-notes" aria-label="Notas del diagrama" placeholder="Decisiones, supuestos, pendientes…" rows={3} maxLength={10000} value={current.notes} onChange={event => edit({ notes: event.target.value })} /></section>
-            </div>
+            </fieldset>
             <div className="inspector-tip"><MousePointer2 size={15} /><p>{current.type === "class" ? "Seleccioná una clase para editar sus atributos y métodos." : "Agregá elementos desde el lienzo. Doble clic para editar; conectá origen y destino con el mouse."}</p></div>
           </aside>
         </div>
@@ -424,6 +517,7 @@ export default function Studio() {
 
     <input type="file" className="file-input" accept=".json,.mmd,.mermaid,.txt" ref={importInput} onChange={e => { const file = e.target.files?.[0]; if (file) void importFile(file); e.currentTarget.value = ""; }} />
 
+    {modal === "share" && current && <SharingDialog diagram={current} onClose={() => setModal(null)} />}
     {modal === "new" && <Modal title="Nuevo diagrama" wide onClose={() => setModal(null)}>
       <form onSubmit={e => { e.preventDefault(); void create({ name: newName, type: newType, project: newProject, source: useTemplate ? TEMPLATES.find(t => t.type === newType)!.source : EMPTY[newType], theme: "studio", notes: "" }); }}>
         <div className="modal-body"><div className="form-row"><label>Nombre<input autoFocus required maxLength={100} value={newName} onChange={e => setNewName(e.target.value)} /></label><label>Proyecto<input required maxLength={80} list="projects" value={newProject} onChange={e => setNewProject(e.target.value)} /><datalist id="projects">{projects.map(p => <option key={p} value={p} />)}</datalist></label></div>
@@ -464,7 +558,7 @@ export default function Studio() {
 
     {modal === "history" && current && <Modal title="Historial de versiones" onClose={() => setModal(null)}><div className="modal-body">
       <div className="history-current"><Check size={16} /><strong>Versión {current.revision}</strong><span>Actual</span></div>
-      {working ? <div className="history-empty"><LoaderCircle className="spin" size={24} /></div> : history.length ? <div className="history-list">{history.map(rev => <div className="history-row" key={rev.revision}><History size={17} /><div><strong>Versión {rev.revision}</strong><small>{new Date(rev.createdAt).toLocaleString("es-AR")}</small></div><button className="btn" onClick={() => { edit(diagramInput.parse(rev.diagram)); setModal(null); }}>Restaurar</button></div>)}</div> : <div className="history-empty">Las versiones anteriores apareceran acá.</div>}
+      {working ? <div className="history-empty"><LoaderCircle className="spin" size={24} /></div> : history.length ? <div className="history-list">{history.map(rev => <div className="history-row" key={rev.revision}><History size={17} /><div><strong>Versión {rev.revision}</strong><small>{new Date(rev.createdAt).toLocaleString("es-AR")}</small></div><button className="btn" disabled={!canEdit} onClick={() => { edit(diagramInput.parse(rev.diagram)); setModal(null); }}>Restaurar</button></div>)}</div> : <div className="history-empty">Las versiones anteriores apareceran acá.</div>}
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div></Modal>}
 
