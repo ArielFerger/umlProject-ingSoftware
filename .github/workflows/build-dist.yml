@@ -1,0 +1,43 @@
+# Va en el repo de UML Studio: .github/workflows/build-dist.yml
+#
+# En cada push a main compila la app (lo mismo que hacia el Dockerfile en su
+# etapa "builder") y sube un artefacto "release-<sha>" con dist, drizzle y
+# scripts. El panel lo baja y lo pone encima de la imagen base en el VPS, igual
+# que tus scripts deploy-*-vps.sh pero con un boton.
+name: Build para el panel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --include=dev --include=optional --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      # package.json va para que el panel compare dependencias con la base.
+      - name: Empaquetar
+        run: tar -czf release.tar.gz dist drizzle scripts package.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: release.tar.gz
+          retention-days: 30
+          if-no-files-found: error
