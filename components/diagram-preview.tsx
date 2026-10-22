@@ -22,7 +22,7 @@ let renderQueue: Promise<unknown> = Promise.resolve();
 export type SvgResult = { svg: string; width: number; height: number; center?: Point };
 type ToolMode = "move" | "hand" | "place" | "connect" | "draw" | "erase";
 type Drag = {
-  kind: "node" | "pan" | "edge" | "draw" | "erase";
+  kind: "node" | "pan" | "edge" | "draw" | "erase" | "marquee";
   name?: string;
   x: number;
   y: number;
@@ -35,6 +35,10 @@ type Drag = {
   strokes?: CanvasStroke[];
   erased?: boolean;
   navigationOnly?: boolean;
+  /** Every selected element moved together, with its position when the drag began. */
+  group?: { name: string; start: Point }[];
+  /** Selection box: elements already selected when it started with Ctrl/⌘ or Shift. */
+  additive?: string[];
 };
 
 const PEN_COLORS = [
@@ -142,6 +146,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [connectionForm, setConnectionForm] = useState<{ from: string; to: string; kind: string; label: string } | null>(null);
   const [visualKind, setVisualKind] = useState("");
   const [deleteTarget, setDeleteTarget] = useState("");
+  // Multiple selection (two or more elements); a single selection keeps using selectedNode.
+  const [group, setGroup] = useState<string[]>([]);
+  const [marquee, setMarquee] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const [deleteGroup, setDeleteGroup] = useState<string[]>([]);
   const [formError, setFormError] = useState("");
   const [feedback, setFeedback] = useState("");
   const pendingLink = useRef<{ from: string; to: string } | null>(null);
@@ -156,17 +164,19 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const isDer = diagram.type === "der";
   // Attribute placement around Chen entities, used where the user has not placed them.
   const derGraph = useRef<{ kinds: Record<string, string>; edges: CanvasModel["edges"] }>({ kinds: {}, edges: [] });
-  const withLayout = (next: CanvasSettings): CanvasSettings => {
+  const withLayout = useCallback((next: CanvasSettings): CanvasSettings => {
     if (!isDer) return next;
     const saved = next.positions, nodes = model.current.nodes.map(node => Object.hasOwn(saved, node.name) ? { ...node, ...saved[node.name] } : node);
     return { ...next, positions: { ...chenLayout(nodes, derGraph.current.kinds, derGraph.current.edges, Object.keys(saved)), ...saved } };
-  };
+  }, [isDer]);
   const movingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const editable = !!onSourceChange;
   const nodesInSource = useMemo(() => visualNodes(content, diagram.type), [content, diagram.type]);
   const availableRelations = isClass ? RELATIONS : VISUAL_RELATIONS[diagram.type] || [];
   const activeKind = isClass ? relationKind : visualKind || availableRelations[0]?.value || "-->";
   const selection = model.current.nodes.some(node => node.name === selectedNode) ? selectedNode : "";
+  const selectedGroup = group.filter(name => model.current.nodes.some(node => node.name === name));
+  const multi = selectedGroup.length > 1;
   const root = () => art.current?.querySelector<SVGSVGElement>("svg") || null;
 
   function updateHoveredEdge(nextId: string) {
@@ -390,7 +400,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
 
   useEffect(() => {
     const svg = root();
-    if (!svg || busy || error || renderedId.current !== diagram.id) return;
+    // Wait for the drawing of the current source: applying new positions to the
+    // previous drawing makes removed elements jump for a moment.
+    if (!svg || busy || error || renderedId.current !== diagram.id || renderedContent.current !== content) return;
     if (!isSequence) positions.current = applyCanvas(svg, model.current, withLayout(settings), dark);
     else {
       positions.current = Object.fromEntries(model.current.nodes.map(n => [n.name, { x: n.x, y: n.y }]));
@@ -439,9 +451,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       }
       prevViewCenter.current = { id: diagram.id, center: result.center };
     }
-  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit]);
+  }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit, content, withLayout]);
 
   useEffect(() => {
+    setGroup([]); setMarquee(null); setDeleteGroup([]);
     setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
   }, [diagram.id]);
   useEffect(() => {
@@ -454,8 +467,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       const node = model.current.nodes.find(n => n.name === remote.name);
       const element = node ? svg.getElementById(node.domId) as SVGGElement | null : null;
       if (!element) continue;
-      const box = element.getBBox(), group = document.createElementNS(NS, "g");
-      group.setAttribute("class", "studio-remote-selection"); group.style.pointerEvents = "none";
+      const box = element.getBBox(), overlay = document.createElementNS(NS, "g");
+      overlay.setAttribute("class", "studio-remote-selection"); overlay.style.pointerEvents = "none";
       const ring = document.createElementNS(NS, "rect");
       for (const [key, value] of Object.entries({ x: box.x - 7, y: box.y - 7, width: box.width + 14, height: box.height + 14, rx: 9 })) ring.setAttribute(key, String(value));
       ring.style.cssText = `fill:none;stroke:${remote.color};stroke-width:2.5px;stroke-dasharray:7 4;`;
@@ -463,16 +476,18 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       tag.setAttribute("x", String(box.x - 6)); tag.setAttribute("y", String(box.y - 12));
       tag.style.cssText = `fill:${remote.color};font:700 12px 'Source Sans 3 Variable',sans-serif;paint-order:stroke;stroke:#fff;stroke-width:3px;`;
       tag.textContent = remote.label;
-      group.appendChild(ring); group.appendChild(tag); element.appendChild(group);
+      overlay.appendChild(ring); overlay.appendChild(tag); element.appendChild(overlay);
     }
   }, [remoteSelections, result, busy, error]);
   useEffect(() => {
     const svg = root();
     svg?.querySelectorAll("[data-class]").forEach(node => {
       node.classList.toggle("connection-origin", node.getAttribute("data-class") === origin);
-      node.classList.toggle("class-selected", node.getAttribute("data-class") === selection);
+      const name = node.getAttribute("data-class") || "";
+      node.classList.toggle("class-selected", multi ? selectedGroup.includes(name) : name === selection);
     });
-  }, [origin, selection, result]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin, selection, result, group]);
   useEffect(() => {
     const svg = root();
     if (svg && !busy && !error) {
@@ -616,6 +631,41 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         setOrigin("");
       }
     }
+  }
+  /** Ctrl/⌘ + click: add or remove one element from the selection. */
+  function toggleInGroup(name: string) {
+    const base = multi ? selectedGroup : selection ? [selection] : [];
+    const next = base.includes(name) ? base.filter(n => n !== name) : [...base, name];
+    setSelectedEdge("");
+    setGroup(next.length > 1 ? next : []);
+    setSelectedNode(next.at(-1) || "");
+    setFeedback(next.length > 1 ? `${next.length} elementos seleccionados.` : "");
+  }
+  function selectMany(names: string[]) {
+    setSelectedEdge("");
+    setGroup(names.length > 1 ? names : []);
+    setSelectedNode(names.at(-1) || "");
+    if (names.length > 1) setFeedback(`${names.length} elementos seleccionados. Arrastrá cualquiera para moverlos juntos.`);
+  }
+  function clearSelection() { setGroup([]); setSelectedNode(""); setSelectedEdge(""); }
+  /** Elements whose box touches the screen rectangle drawn with the selection box. */
+  function namesInside(x1: number, y1: number, x2: number, y2: number) {
+    const a = clientPoint(Math.min(x1, x2), Math.min(y1, y2)), b = clientPoint(Math.max(x1, x2), Math.max(y1, y2));
+    return model.current.nodes.filter(node => {
+      const p = positions.current[node.name] || node;
+      return p.x + node.width / 2 >= a.x && p.x - node.width / 2 <= b.x && p.y + node.height / 2 >= a.y && p.y - node.height / 2 <= b.y;
+    }).map(node => node.name);
+  }
+  function moveGroup(entries: { name: string; start: Point }[], dx: number, dy: number, snap: boolean) {
+    const svg = root(); if (!svg) return;
+    for (const entry of entries) positions.current[entry.name] = snapPoint({ x: entry.start.x + dx, y: entry.start.y + dy }, snap);
+    positions.current = applyCanvas(svg, model.current, withLayout({ ...settingsRef.current, positions: { ...positions.current } }), dark);
+  }
+  /** Removes several elements as one source change, so a single Undo restores them all. */
+  function removeMany(names: string[]) {
+    let next = diagram.source;
+    for (const name of names) next = isClass ? removeClass(next, name) : removeVisualNode(next, diagram.type, name);
+    return next;
   }
   function placeClass(name: string, point: Point) {
     const svg = root();
@@ -761,17 +811,18 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
 
   function canvasShortcut(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.defaultPrevented || (e.target as Element).closest("input,textarea,select,[contenteditable=true],dialog,[role=menu]")) return;
-    if (classForm || nodeForm || connectionForm || edgeForm || edgeDelete || deleteTarget || context || drag.current) return;
+    if (classForm || nodeForm || connectionForm || edgeForm || edgeDelete || deleteTarget || deleteGroup.length || context || drag.current) return;
     const key = e.key.toLowerCase();
     if (e.key === "Escape") {
       e.preventDefault();
       if (showShortcuts) setShowShortcuts(false);
-      else if (mode !== "move" || selection || selectedEdge) {
-        activateTool("move"); setSelectedNode(""); setSelectedEdge("");
+      else if (mode !== "move" || selection || selectedEdge || multi) {
+        activateTool("move"); clearSelection();
       } else if (isFocused) toggleFocus(false);
       return;
     }
     if (e.ctrlKey || e.metaKey) {
+      if (key === "a" && onSourceChange && !isSequence && result && !busy && !error) { e.preventDefault(); activateTool("move"); selectMany(model.current.nodes.map(node => node.name)); return; }
       if (onSourceChange && ((key === "z" && onUndo) || (key === "y" && onRedo))) {
         e.preventDefault();
         if (key === "y" || e.shiftKey) { if (canRedo) onRedo?.(); }
@@ -795,6 +846,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (tools[key]) { e.preventDefault(); activateTool(tools[key]); return; }
     if (key === "n") { e.preventDefault(); if (isSequence) openClass(); else activateTool("place"); return; }
     if (key === "s" && !isSequence) { e.preventDefault(); setSnapToGrid(v => !v); return; }
+    if (multi && (key === "delete" || key === "backspace")) { e.preventDefault(); setFormError(""); setDeleteGroup(selectedGroup); return; }
     if (selection && (key === "delete" || key === "backspace")) { e.preventDefault(); setFormError(""); setDeleteTarget(selection); }
   }
 
@@ -823,7 +875,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {showShortcuts && <section className="board-shortcuts" aria-label="Atajos de teclado">
       <header><strong>Tu lienzo, a mano</strong><button className="icon-btn" aria-label="Cerrar atajos" onClick={() => setShowShortcuts(false)}><X size={16} /></button></header>
       <p>Usá los atajos con el foco en el tablero.</p>
-      <dl>{[["Seleccionar", "V"], ["Mano", "H"], ["Mano temporal", "Espacio"], ...(onSourceChange ? [["Añadir elemento", "N"], ["Conectar", "C"], ["Lápiz / borrador", "P / E"]] : []), ["Ajustar / 100%", "1 / 0"], ["Cuadrícula", "G"], ["Modo foco", "F"], ...(onUndo ? [["Deshacer / rehacer", "Ctrl/⌘ Z / ⇧ Z"]] : [])].map(([label, key]) => <div key={label}><dt>{label}</dt><dd><kbd>{key}</kbd></dd></div>)}</dl>
+      <dl>{[["Seleccionar", "V"], ["Mano", "H"], ["Mano temporal", "Espacio"], ...(onSourceChange ? [["Añadir elemento", "N"], ["Conectar", "C"], ["Lápiz / borrador", "P / E"], ["Selección múltiple", "Arrastrar en vacío"], ["Sumar / quitar de la selección", "Ctrl/⌘ clic"], ["Seleccionar todo", "Ctrl/⌘ A"]] : []), ["Ajustar / 100%", "1 / 0"], ["Cuadrícula", "G"], ["Modo foco", "F"], ...(onUndo ? [["Deshacer / rehacer", "Ctrl/⌘ Z / ⇧ Z"]] : [])].map(([label, key]) => <div key={label}><dt>{label}</dt><dd><kbd>{key}</kbd></dd></div>)}</dl>
       <footer>Rueda para zoom · Mayús + rueda para desplazar · Esc para cancelar</footer>
     </section>}
     {mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><select aria-label="Relación rápida" value={activeKind} onChange={e => { if (isClass) setRelationKind(e.target.value as RelationKind); else setVisualKind(e.target.value); setOrigin(""); }}>{availableRelations.map(item => <option key={item.value} value={item.value}>{item.name}</option>)}</select>{isClass && <button className="icon-btn" title="Guía de relaciones UML" aria-label="Guía de relaciones UML" onClick={() => callbacks.current.onGuide(relationKind)}><BookOpen size={16} /></button>}<span>{origin ? origin + " → elegí el destino" : "Elegí el origen y después el destino"}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
@@ -886,7 +938,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         <button className="icon-btn" title="Deshacer (Ctrl/⌘ Z)" aria-label="Deshacer en el lienzo" disabled={!canUndo || busy} onClick={onUndo}><Undo2 size={18} /></button>
         <button className="icon-btn" title="Rehacer (Ctrl/⌘ Mayús Z)" aria-label="Rehacer en el lienzo" disabled={!canRedo || busy} onClick={onRedo}><Redo2 size={18} /></button>
       </div>}
-      {selection && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label={"Acciones de " + selection}>
+      {multi && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label="Acciones de la selección">
+        <strong>{selectedGroup.length} elementos</strong><span className="board-control-divider" />
+        <span className="node-selection-hint">Arrastrá o usá las flechas para moverlos</span>
+        <button className="icon-btn board-delete" title="Eliminar selección (Supr)" aria-label="Eliminar elementos seleccionados" onClick={() => { setFormError(""); setDeleteGroup(selectedGroup); }}><Trash2 size={16} /></button>
+        <button className="icon-btn" title="Deseleccionar (Esc)" aria-label="Deseleccionar todo" onClick={clearSelection}><X size={15} /></button>
+      </div>}
+      {!multi && selection && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label={"Acciones de " + selection}>
         <strong>{selection}</strong><span className="board-control-divider" />
         {isClass && <CanvasColors label="Color de clase" value={settings.nodeColors && Object.hasOwn(settings.nodeColors, selection) ? settings.nodeColors[selection] : undefined} onChange={color => changeColor("nodeColors", selection, color)} />}
         <button className="icon-btn" title="Editar elemento" aria-label="Editar elemento seleccionado" onClick={() => openClass(selection)}><Pencil size={16} /></button>
@@ -939,9 +997,17 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (edgeId && mode !== "place") { e.preventDefault(); selectEdge(edgeId); Array.from(root()?.querySelectorAll<SVGElement>(".studio-edge-target") || []).find(el => el.getAttribute("data-edge-id") === edgeId)?.focus({ preventScroll: true }); return; }
           const node = (e.target as Element).closest("[data-class]");
           const name = node?.getAttribute("data-class");
+          const additive = e.ctrlKey || e.metaKey;
+          if (name && mode === "move" && additive && onSourceChange && !busy && !error) { e.preventDefault(); toggleInGroup(name); return; }
           if (name && mode !== "place" && onSourceChange && !busy && !error) {
+            const together = mode === "move" && multi && selectedGroup.includes(name) && !isSequence;
+            if (!together) setGroup([]);
             setSelectedNode(name);
-            drag.current = { kind: "node", name, x: e.clientX, y: e.clientY, start: positions.current[name] || { x: 0, y: 0 }, moved: false };
+            drag.current = { kind: "node", name, x: e.clientX, y: e.clientY, start: positions.current[name] || { x: 0, y: 0 }, moved: false,
+              group: together ? selectedGroup.map(member => ({ name: member, start: positions.current[member] || { x: 0, y: 0 } })) : undefined };
+          } else if (mode === "move" && e.pointerType !== "touch" && onSourceChange && !isSequence && !busy && !error) {
+            // Dragging on empty board draws a selection box; the hand tool, Space and the middle button still pan.
+            drag.current = { kind: "marquee", x: e.clientX, y: e.clientY, start: { x: 0, y: 0 }, moved: false, additive: additive || e.shiftKey ? (multi ? selectedGroup : selection ? [selection] : []) : [] };
           } else { drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: viewState.current.pan, moved: false }; setPanning(true); }
           e.currentTarget.setPointerCapture(e.pointerId);
         }}
@@ -979,6 +1045,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             const nextPan = { x: d.start.x + dx, y: d.start.y + dy };
             syncViewDom(viewState.current.zoom, nextPan);
           }
+          else if (d.kind === "marquee") {
+            if (!d.moved) return;
+            const box = e.currentTarget.getBoundingClientRect();
+            setMarquee({ left: Math.min(d.x, e.clientX) - box.left, top: Math.min(d.y, e.clientY) - box.top, width: Math.abs(e.clientX - d.x), height: Math.abs(e.clientY - d.y) });
+          }
+          else if (mode === "move" && d.moved && d.group) moveGroup(d.group, dx / viewState.current.zoom, dy / viewState.current.zoom, snapToGrid && !e.altKey);
           else if (mode === "move" && d.moved && d.name) placeClass(d.name, snapPoint({ x: d.start.x + dx / viewState.current.zoom, y: d.start.y + dy / viewState.current.zoom }, snapToGrid && !e.altKey && !isSequence));
         }}
         onPointerUp={e => {
@@ -1003,6 +1075,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             if (d.moved && d.next) callbacks.current.onSettingsChange(d.next);
             return;
           }
+          if (d.kind === "marquee") {
+            setMarquee(null);
+            if (!d.moved) { clearSelection(); return; }
+            const inside = namesInside(d.x, d.y, e.clientX, e.clientY);
+            selectMany([...new Set([...(d.additive || []), ...inside])]);
+            return;
+          }
           if (!d.name) {
             if (!d.moved) {
               const clickedPoint = snapPoint(roundPoint(clientPoint(e.clientX, e.clientY)), snapToGrid && !e.altKey);
@@ -1011,12 +1090,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
                 openClass("", clickedPoint);
                 return;
               }
-              setSelectedNode("");
-              setSelectedEdge("");
+              clearSelection();
             }
             return;
           }
-          if (!d.moved) selectClass(d.name);
+          if (!d.moved) { if (d.group) setGroup([]); selectClass(d.name); }
           else if (mode === "move") {
             if (isSequence) { const x = d.start.x + (e.clientX - d.x) / viewState.current.zoom; const before = model.current.nodes.filter(n => n.name !== d.name).sort((a,b) => a.x - b.x).find(n => n.x > x)?.name; mutate(() => reorderSequence(diagram.source, d.name!, before)); return; }
             callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
@@ -1027,7 +1105,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           }
         }}
         onPointerCancel={() => {
-          const cancelled = drag.current; drag.current = null; setPanning(false);
+          const cancelled = drag.current; drag.current = null; setPanning(false); setMarquee(null);
           if (!isSequence) showSettings(settingsRef.current);
           else if (cancelled?.kind === "node" && cancelled.name) placeClass(cancelled.name, cancelled.start);
           else { const svg = root(); if (svg) renderStrokes(svg, settingsRef.current.strokes); }
@@ -1056,18 +1134,25 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           const name = (e.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (!name || busy || error) return;
           if (e.key === "Enter") { e.preventDefault(); if (mode === "connect") selectClass(name); else openClass(name); }
           const vectors: Record<string, Point> = { ArrowLeft: { x: -10, y: 0 }, ArrowRight: { x: 10, y: 0 }, ArrowUp: { x: 0, y: -10 }, ArrowDown: { x: 0, y: 10 } };
-          const delta = vectors[e.key]; if (delta && onSourceChange && !isSequence && positions.current[name]) {
+          const delta = vectors[e.key];
+          if (delta && onSourceChange && !isSequence && multi && selectedGroup.includes(name)) {
+            e.preventDefault(); moveGroup(selectedGroup.map(member => ({ name: member, start: positions.current[member] || { x: 0, y: 0 } })), delta.x, delta.y, false);
+            callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
+            return;
+          }
+          if (delta && onSourceChange && !isSequence && positions.current[name]) {
             e.preventDefault(); const point = positions.current[name]; placeClass(name, { x: Math.max(-19000, Math.min(19000, point.x + delta.x)), y: Math.max(-19000, Math.min(19000, point.y + delta.y)) });
             callbacks.current.onSettingsChange({ ...settingsRef.current, positions: { ...positions.current } });
           }
         }}
         >
+        {marquee && <div className="selection-marquee" style={marquee} aria-hidden="true" />}
         {result && <div ref={art} className={"diagram-art " + (error ? "invalid-art" : "")}
           style={{ width: result.width, height: result.height, transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, "--edge-emphasis-width": `${settings.lineWidth + 1.5}px` } as React.CSSProperties}
           dangerouslySetInnerHTML={markup} />}
         {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
         {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-        {!busy && !error && <span className="canvas-caption"><span className="board-mode-dot" />{modeLabel}<span className="canvas-context-hint">{snapToGrid && onSourceChange && !isSequence ? "Ajuste a 20 px · Alt para mover libremente" : mode === "hand" || spaceHeld ? "Arrastrá para recorrer el tablero" : "Espacio + arrastrar para navegar · doble clic para editar"}</span></span>}
+        {!busy && !error && <span className="canvas-caption"><span className="board-mode-dot" />{modeLabel}<span className="canvas-context-hint">{snapToGrid && onSourceChange && !isSequence ? "Ajuste a 20 px · Alt para mover libremente" : mode === "hand" || spaceHeld ? "Arrastrá para recorrer el tablero" : onSourceChange && !isSequence ? "Arrastrá en vacío para seleccionar varios · Espacio + arrastrar para navegar" : "Espacio + arrastrar para navegar · doble clic para editar"}</span></span>}
         {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
         <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
           <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
@@ -1127,6 +1212,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <div className="visibility-key"><code>+</code> Público <code>-</code> Privado <code>#</code> Protegido</div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setClassForm(null)}>Cancelar</button><button className="btn primary"><Check size={16} />{classForm.editing ? "Aplicar cambios" : "Agregar clase"}</button></div></form></Modal>}
+    {deleteGroup.length > 0 && <Modal title={`Eliminar ${deleteGroup.length} elementos`} onClose={() => setDeleteGroup([])}><div className="modal-body"><p>Se quitarán <strong>{deleteGroup.map(name => nodesInSource.find(n => n.id === name)?.label || name).join(", ")}</strong> y sus relaciones del diagrama.</p><p>Un solo Deshacer los recupera a todos.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setDeleteGroup([])}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(removeMany(deleteGroup)); setDeleteGroup([]); clearSelection(); setFeedback("Elementos eliminados. Podés recuperarlos con Deshacer."); } catch (e) { setFormError((e as Error).message); } }}><Trash2 size={16} />Eliminar {deleteGroup.length} elementos</button></div></Modal>}
     {deleteTarget && <Modal title={isClass ? "Eliminar clase" : "Eliminar elemento"} onClose={() => setDeleteTarget("")}><div className="modal-body"><p>Se quitará <strong>{deleteTarget}</strong> y sus relaciones del diagrama.</p><p>Podés recuperar este cambio con Deshacer en el editor.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setDeleteTarget("")}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(isClass ? removeClass(diagram.source, deleteTarget) : removeVisualNode(diagram.source, diagram.type, deleteTarget)); setDeleteTarget(""); setSelectedNode(""); setFeedback((isClass ? "Clase eliminada." : "Elemento eliminado.") + " Podés recuperar el cambio con Deshacer."); } catch(e) { setFormError((e as Error).message); } }}><Trash2 size={16} />{isClass ? "Eliminar clase" : "Eliminar elemento"}</button></div></Modal>}
   </div>;
 }

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (data.leave) { await leave(getBinding(), user, data.id, data.session); return Response.json({ ok: true }); }
     let name = request.headers.get("oai-authenticated-user-full-name") || "Participante";
     try { name = decodeURIComponent(name); } catch { /* Plain text display name. */ }
-    return Response.json(await heartbeat(getBinding(), user, name, data.id, data.session, data.selection), { headers: { "Cache-Control": "no-store" } });
+    return Response.json(await heartbeat(getBinding(), user, name, data.id, data.session, data.selection, Date.now(), request.headers.get("x-uml-user-color") || ""), { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof StoreError) return Response.json({ error: error.message }, { status: error.status });
     if (error instanceof z.ZodError) return Response.json({ error: "Datos de presencia inválidos." }, { status: 400 });

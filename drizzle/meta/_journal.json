@@ -29,6 +29,13 @@
       "when": 1792682746647,
       "tag": "0003_shared_projects_presence",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792685871749,
+      "tag": "0004_presence_color",
+      "breakpoints": true
     }
   ]
 }

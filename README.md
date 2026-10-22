@@ -35,6 +35,7 @@ Las respuestas de opción múltiple y numéricas tienen corrección automática.
 
 Usá **Insertar** en el explorador o **+ Elemento** en el lienzo para crear elementos con identificador y texto visible. Cada tipo muestra sus opciones: actores y casos de uso, participantes, estados, actividades y decisiones, componentes y bases de datos, o entidades con atributos.
 
+- **Selección múltiple:** arrastrá sobre un espacio vacío del lienzo para dibujar un recuadro de selección, o usá Ctrl/⌘ + clic para sumar o quitar elementos uno por uno (Ctrl/⌘ + A selecciona todo). Arrastrá cualquiera de los seleccionados o usá las flechas para moverlos juntos; Supr los elimina con un solo Deshacer. Para recorrer el lienzo usá la mano, Espacio + arrastrar, el botón central o la rueda.
 - Arrastrá los elementos para ubicarlos. En secuencia, arrastrá horizontalmente los participantes para cambiar su orden; los mensajes mantienen su orden temporal.
 - Elegí **Conectar elementos**, seleccioná origen y destino, y completá el tipo y texto de la conexión. El menú del lienzo y el explorador también permiten crear conexiones por formulario.
 - Doble clic o click derecho sobre un elemento para editarlo, duplicarlo o eliminarlo. Seleccioná una conexión para editarla o eliminarla; sus elementos se conservan.
@@ -72,7 +73,7 @@ Referencias: [deploy de Next.js](https://nextjs.org/docs/pages/getting-started/d
 
 ### Compartir tableros online en un VPS
 
-La variante online de Docker incorpora cuentas propias, invitaciones por enlace con lectura o edición, gestión de participantes y sincronización entre navegadores. **Compartir → Proyecto completo** (o el ícono junto al nombre del proyecto) invita a todos los diagramas del proyecto, incluidos los que se agreguen después; los editores del proyecto pueden crear diagramas dentro de él. La cabecera muestra quién está conectado al tablero y el lienzo marca el elemento que cada persona tiene seleccionado. Los diagramas y el historial se guardan en el VPS; **Compartir** abre los permisos del tablero. Los cambios superpuestos conservan el borrador para resolver el conflicto.
+La variante online de Docker incorpora cuentas propias, invitaciones por enlace con lectura o edición, gestión de participantes y sincronización entre navegadores. **Compartir → Proyecto completo** (o el ícono junto al nombre del proyecto) invita a todos los diagramas del proyecto, incluidos los que se agreguen después; los editores del proyecto pueden crear diagramas dentro de él. La cabecera muestra quién está conectado al tablero y el lienzo marca el elemento que cada persona tiene seleccionado. Con el avatar de la barra superior se abre **Mi perfil**: foto (se recorta cuadrada) o iniciales con un color a elección, nombre visible, descripción breve, cambio de contraseña (cierra la sesión en los demás dispositivos) y cierre de sesión. Tu foto y tu color se muestran en los avatares de conectados, en la lista de participantes y en el marco de lo que tenés seleccionado. Los diagramas y el historial se guardan en el VPS; **Compartir** abre los permisos del tablero. Los cambios superpuestos conservan el borrador para resolver el conflicto.
 
 Consultá [la instalación online, HTTPS y respaldos](deploy/README.md). Usá `compose.online.yaml` para esta variante; la configuración local de abajo sigue siendo personal.
 

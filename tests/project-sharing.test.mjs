@@ -60,9 +60,11 @@ test("presence lists active tabs on a board and protects session ids", async t =
   await acceptInvite(db, "bob", "Bob", project.token);
   const aliceTab = "11111111-1111-4111-8111-111111111111", bobTab = "22222222-2222-4222-8222-222222222222";
   const now = 1_800_000_000_000;
-  await heartbeat(db, "alice", "Alice", "a1", aliceTab, "Cliente", now);
+  await heartbeat(db, "alice", "Alice", "a1", aliceTab, "Cliente", now, "#0f766e");
   const seen = await heartbeat(db, "bob", "Bob", "a1", bobTab, "", now + 1000);
   assert.deepEqual(seen.map(p => [p.displayName, p.selection, p.self]), [["Bob", "", true], ["Alice", "Cliente", false]]);
+  assert.equal(seen.find(p => p.displayName === "Alice").color, "#0f766e");
+  assert.equal((await heartbeat(db, "bob", "Bob", "a1", bobTab, "", now + 1500, "red;}")).find(p => p.self).color, "", "only hex colors are stored");
   await heartbeat(db, "bob", "Impostor", "a1", aliceTab, "Pedido", now + 2000);
   const after = await heartbeat(db, "alice", "Alice", "a1", aliceTab, "Cliente", now + 2500);
   assert.equal(after.find(p => p.sessionId === aliceTab).displayName, "Alice");

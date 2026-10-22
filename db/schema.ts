@@ -73,5 +73,6 @@ export const boardPresence = sqliteTable("board_presence", {
   userId: text("user_id").notNull(),
   displayName: text("display_name").notNull(),
   selection: text("selection").notNull().default(""),
+  color: text("color").notNull().default(""),
   lastSeen: integer("last_seen").notNull(),
 }, table => [uniqueIndex("idx_presence_session").on(table.diagramId, table.sessionId), index("idx_presence_seen").on(table.lastSeen)]);
