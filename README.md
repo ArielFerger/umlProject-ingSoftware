@@ -9,6 +9,8 @@ Editor UML, espacio de estudio de Ingeniería de Software II y laboratorio visua
 ## Qué incluye
 
 - Editor Mermaid para clases, secuencia, estados, actividades, casos de uso, componentes y entidad-relación: formularios, edición por código, movimiento, conexiones con el mouse, menú con click derecho, deshacer/rehacer e importación/exportación.
+- **DER en notación de Chen** (tipo «DER (Chen)»): entidades y entidades débiles en rectángulo, relaciones e identificadoras en rombo, atributos en elipse (clave subrayada, clave parcial, multivaluado con doble elipse, derivado punteado), cardinalidades junto a cada entidad y razón 1:N / N:M en el rombo. Participación total con línea doble (`===`). Los atributos conectados a una entidad se ubican solos a su alrededor.
+- Exportación PNG a 2×, 4×, 6× u 8× (hasta el máximo que admite el navegador), con fondo transparente opcional, y **Ver en alta resolución** en una pestaña vectorial. El lienzo admite zoom hasta 1000% y se vuelve a dibujar nítido al terminar cada gesto.
 - Animaciones y controles adaptados a pantallas pequeñas, teclado y preferencias de movimiento reducido.
 - 17 temas de teoría, 8 fichas de patrones con estructura y secuencia y 155 ejercicios distribuidos en 5 niveles. Dos parciales originales por año y cuatro simulacros de práctica adicional; 19 actividades de entrenamiento incluyen C++17 de solo lectura y análisis.
 - 23 diagramas guiados para aprender: 16 vistas de patrones y 7 mapas de familias, calidad, mejora de procesos, CMMI, cambios, Git y GQM. Pasos con selección de participantes, lectura de flechas, preguntas de comprensión y copias editables en el mismo motor Mermaid.
@@ -70,7 +72,7 @@ Referencias: [deploy de Next.js](https://nextjs.org/docs/pages/getting-started/d
 
 ### Compartir tableros online en un VPS
 
-La variante online de Docker incorpora cuentas propias, invitaciones por enlace con lectura o edición, gestión de participantes y sincronización entre navegadores. Los diagramas y el historial se guardan en el VPS; **Compartir** abre los permisos del tablero. Los cambios superpuestos conservan el borrador para resolver el conflicto.
+La variante online de Docker incorpora cuentas propias, invitaciones por enlace con lectura o edición, gestión de participantes y sincronización entre navegadores. **Compartir → Proyecto completo** (o el ícono junto al nombre del proyecto) invita a todos los diagramas del proyecto, incluidos los que se agreguen después; los editores del proyecto pueden crear diagramas dentro de él. La cabecera muestra quién está conectado al tablero y el lienzo marca el elemento que cada persona tiene seleccionado. Los diagramas y el historial se guardan en el VPS; **Compartir** abre los permisos del tablero. Los cambios superpuestos conservan el borrador para resolver el conflicto.
 
 Consultá [la instalación online, HTTPS y respaldos](deploy/README.md). Usá `compose.online.yaml` para esta variante; la configuración local de abajo sigue siendo personal.
 

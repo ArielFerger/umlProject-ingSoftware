@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { zoomAt, snapPoint, gridSpacing } from "../lib/canvas-navigation.ts";
+import { zoomAt, snapPoint, gridSpacing, MAX_ZOOM } from "../lib/canvas-navigation.ts";
 
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
 
 test("cursor anchored zoom preserves the world point after panning", () => {
   const view = { zoom: .7, pan: { x: 315, y: -92 } };
   const anchor = { x: -175, y: 210 };
-  for (const zoom of [.1, 1, 2.5, 4, 10]) {
+  for (const zoom of [.1, 1, 2.5, 4, 10, 25]) {
     const next = zoomAt(view, zoom, anchor);
     close((anchor.x - next.pan.x) / next.zoom, (anchor.x - view.pan.x) / view.zoom);
     close((anchor.y - next.pan.y) / next.zoom, (anchor.y - view.pan.y) / view.zoom);
-    assert.ok(next.zoom >= .1 && next.zoom <= 4);
+    assert.ok(next.zoom >= .1 && next.zoom <= MAX_ZOOM);
   }
 });
 

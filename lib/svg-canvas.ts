@@ -2,9 +2,10 @@ import type { CanvasSettings, CanvasStroke, EdgeRoute, Point } from "./canvas";
 import { renderFrames } from "./svg-frames";
 import { colorClass, colorArrow } from "./svg-colors";
 import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint, polylineMidpoint } from "./edge-routing";
+import { shapeBoundary, type DerShape } from "./der";
 
-export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string };
-export type EdgeGeometry = { id: string; routeKey?: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string };
+export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string; shape?: DerShape };
+export type EdgeGeometry = { id: string; routeKey?: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string; labelNear?: "start" | "end" };
 export type CanvasModel = { nodes: ClassGeometry[]; edges: EdgeGeometry[] };
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -28,6 +29,10 @@ type CachedEdgeEntry = {
   endTerminal: SVGTextElement | null;
   parallelOffset: number;
   actorEdge: boolean;
+  /** Chen shapes: straight lines that stop at the diamond or ellipse outline. */
+  shaped: boolean;
+  /** Inner stroke that turns a thick Mermaid link into a total-participation double line. */
+  double: SVGPathElement | null;
   lastKey: string;
 };
 
@@ -92,6 +97,22 @@ function layoutRoute(edge: EdgeGeometry, startGap: number, endGap: number) {
   path += ` L ${last.x} ${last.y}`;
   const midpoint = polylineMidpoint(points);
   return { path, knots: points, start: first, end: last, midpoint, label: edge.labelPosition || midpoint };
+}
+
+function svgOf(element: SVGElement) { return element.ownerSVGElement || element; }
+
+function shapedRoute(a: ClassGeometry, b: ClassGeometry) {
+  const start = shapeBoundary(a, b), end = shapeBoundary(b, a);
+  return { path: `M ${start.x} ${start.y} L ${end.x} ${end.y}`, knots: [start, end], start, end, midpoint: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 } };
+}
+
+/** Cardinality sits beside the entity end of a line, clear of the stroke. */
+function nearEnd(knots: Point[], side: "start" | "end"): Point {
+  const points = side === "start" ? knots : [...knots].reverse();
+  const [from, to] = [points[0], points[1] || points[0]];
+  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1, along = Math.min(26, length * .35);
+  const ux = (to.x - from.x) / length, uy = (to.y - from.y) / length;
+  return { x: from.x + ux * along - uy * 13, y: from.y + uy * along + ux * 13 };
 }
 
 function updateTerminal(el: SVGTextElement | null, point: Point, other: Point, size: number, dark: boolean, start: boolean) {
@@ -175,7 +196,7 @@ function buildDomCache(root: SVGSVGElement, model: CanvasModel): CanvasDomCache 
     }
   }
 
-  const allPaths = Array.from(root.querySelectorAll<SVGPathElement>(".edgePaths path"));
+  const allPaths = Array.from(root.querySelectorAll<SVGPathElement>(".edgePaths path:not(.der-double-inner)"));
   const pathById = new Map<string, SVGPathElement>();
   for (const p of allPaths) {
     if (p.dataset.id) pathById.set(p.dataset.id, p);
@@ -210,6 +231,15 @@ function buildDomCache(root: SVGSVGElement, model: CanvasModel): CanvasDomCache 
     const count = pairCounts.get(pair) || 0;
     pairCounts.set(pair, count + 1);
     const actorEdge = !!(nodeEls.get(a.name)?.hasAttribute("data-uml-actor") || nodeEls.get(b.name)?.hasAttribute("data-uml-actor"));
+    const shaped = !!(a.shape || b.shape);
+    let double: SVGPathElement | null = null;
+    if (shaped && path.classList.contains("edge-thickness-thick")) {
+      double = document.createElementNS(SVG_NS, "path");
+      double.setAttribute("class", "der-double-inner");
+      double.setAttribute("data-edge-id", edge.id);
+      double.style.cssText = "fill:none;pointer-events:none;stroke-linecap:butt;";
+      path.parentNode?.insertBefore(double, path.nextSibling);
+    }
 
     path.setAttribute("data-source", a.name);
     path.setAttribute("data-target", b.name);
@@ -270,6 +300,8 @@ function buildDomCache(root: SVGSVGElement, model: CanvasModel): CanvasDomCache 
       endTerminal,
       parallelOffset: count * 28,
       actorEdge,
+      shaped,
+      double,
       lastKey: "",
     };
     edges.push(entry);
@@ -317,14 +349,22 @@ function updateEdgeEntry(entry: CachedEdgeEntry, cache: CanvasDomCache, settings
   const startGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-start"), settings.arrowScale, true);
   const endGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-end"), settings.arrowScale, false);
   const atLayout = Math.abs(a.x - originalA.x) < .1 && Math.abs(a.y - originalA.y) < .1 && Math.abs(b.x - originalB.x) < .1 && Math.abs(b.y - originalB.y) < .1;
-  const geometry = (!custom && atLayout && !actorEdge ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, parallelOffset);
+  const geometry = (entry.shaped && !custom?.points.length && !custom?.from && !custom?.to ? shapedRoute(a, b) : null)
+    || (!custom && atLayout && !actorEdge ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, parallelOffset);
   path.setAttribute("d", geometry.path);
   hit.setAttribute("d", geometry.path);
+  if (entry.double) {
+    entry.double.setAttribute("d", geometry.path);
+    entry.double.style.stroke = getComputedStyle(svgOf(path)).getPropertyValue("--canvas").trim() || (dark ? "#1d2c36" : "#ffffff");
+    entry.double.style.strokeWidth = `${settings.lineWidth}px`;
+    path.style.strokeWidth = `${settings.lineWidth * 3}px`;
+  }
   const midpoint = "midpoint" in geometry && geometry.midpoint ? geometry.midpoint : polylineMidpoint(geometry.knots);
   anchor.setAttribute("cx", String(midpoint.x));
   anchor.setAttribute("cy", String(midpoint.y));
   if (label) {
-    label.setAttribute("transform", `translate(${midpoint.x}, ${midpoint.y}) scale(${settings.labelSize / 14})`);
+    const at = edge.labelNear ? nearEnd(geometry.knots, edge.labelNear) : midpoint;
+    label.setAttribute("transform", `translate(${at.x}, ${at.y}) scale(${settings.labelSize / 14})`);
   }
   const labelSize = settings.labelSize * .85;
   updateTerminal(startTerminal, geometry.start, "startToward" in geometry ? geometry.startToward as Point : geometry.end, labelSize, dark, true);
@@ -397,6 +437,7 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     cache.lineWidth = settings.lineWidth;
     const widthStr = String(settings.lineWidth);
     for (const path of cache.allPaths) path.style.strokeWidth = widthStr;
+    for (const entry of cache.edges) { if (entry.double) entry.lastKey = ""; }
   }
 
   for (const entry of cache.edges) {
@@ -473,7 +514,7 @@ export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [],
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });

@@ -2,10 +2,12 @@ import type { Point } from "./canvas";
 
 export type CanvasView = { zoom: number; pan: Point };
 export const GRID_SIZE = 20;
+/** Diagrams are vectors, so close inspection stays sharp up to 1000%. */
+export const MAX_ZOOM = 10;
 
 /** Zoom around a viewport point measured from its center. */
 export function zoomAt(view: CanvasView, zoom: number, anchor: Point = { x: 0, y: 0 }): CanvasView {
-  const nextZoom = Math.min(4, Math.max(.1, zoom));
+  const nextZoom = Math.min(MAX_ZOOM, Math.max(.1, zoom));
   const ratio = nextZoom / view.zoom;
   return {
     zoom: nextZoom,

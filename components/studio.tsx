@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Link from "next/link";
 import ThemePicker from "./theme-picker";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users } from "lucide-react";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users, Diamond, ExternalLink, ImageDown } from "lucide-react";
 import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
@@ -15,8 +15,14 @@ import { RELATIONS, appendRelation, cleanSource, readCanvas, relationInfo, write
 import { classMembers, setClassMembers } from "@/lib/class-actions";
 import ClassProperties from "./class-properties";
 import { browserStorage, studioRequest } from "@/lib/studio-request";
+import type { PresenceEntry } from "@/lib/presence";
 
-const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database };
+const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database, der: Diamond };
+// Browsers refuse canvases beyond ~16k px per side or ~268 Mpx in total.
+const PNG_SCALES = [{ value: 2, label: "2×" }, { value: 4, label: "4×" }, { value: 6, label: "6×" }, { value: 8, label: "8×" }];
+function pngScale(width: number, height: number, requested: number) {
+  return Math.max(.5, Math.min(requested, 16000 / Math.max(width, height, 1), Math.sqrt(200_000_000 / Math.max(1, width * height))));
+}
 type ModalKind = "share" | "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
 type Revision = { revision: number; createdAt: string; diagram: Diagram };
 
@@ -37,6 +43,11 @@ function download(content: Blob | string, name: string, type = "text/plain;chars
   const a = document.createElement("a"); a.href = url; a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+const PRESENCE_COLORS = ["#c2410c", "#7c3aed", "#0f766e", "#be123c", "#1d4ed8", "#a16207", "#15803d", "#9333ea"];
+function presenceColor(userId: string) { let hash = 0; for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) | 0; return PRESENCE_COLORS[Math.abs(hash) % PRESENCE_COLORS.length]; }
+function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]!.toUpperCase()).join("") || "?"; }
+/** Boards from another account are grouped by owner too, so equal project names never merge. */
+function projectKey(d: Diagram) { return d.owner ? `${d.owner}\u0000${d.project}` : d.project; }
 function filename(name: string) { return name.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-") || "diagrama"; }
 function IconButton({ title, children, onClick, disabled = false, active }: { title: string; children: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
   return <button type="button" className={"icon-btn " + (active ? "active" : "")} title={title} aria-label={title} aria-pressed={active} onClick={onClick} disabled={disabled}>{children}</button>;
@@ -45,6 +56,7 @@ function IconButton({ title, children, onClick, disabled = false, active }: { ti
 const EMPTY: Record<DiagramType, string> = {
   class: "classDiagram\ndirection TB\n", sequence: "sequenceDiagram\n", state: "stateDiagram-v2\n[*] --> Inicio\n",
   activity: "flowchart TD\nInicio([Inicio])\n", usecase: "flowchart LR\n", component: "flowchart LR\n", er: "erDiagram\n",
+  der: "flowchart LR\n%% DER en notación de Chen: entidades [ ], relaciones { } y atributos ([ ])\n",
 };
 
 export default function Studio() {
@@ -60,6 +72,10 @@ export default function Studio() {
   const serverSnapshots = useRef(new Map<string, Diagram>());
   const [profile, setProfile] = useState<{ displayName: string; sharing: boolean } | null>(null);
   const [syncOffline, setSyncOffline] = useState(false);
+  const [presence, setPresence] = useState<PresenceEntry[]>([]);
+  const presenceSession = useRef("");
+  const presenceBeat = useRef<() => void>(() => {});
+  const [shareRequest, setShareRequest] = useState<{ id: string; scope: "board" | "project" }>({ id: "", scope: "board" });
   const saveCycle = useRef(0);
   const saveLock = useRef<Promise<boolean> | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
@@ -73,6 +89,8 @@ export default function Studio() {
   const [view, setView] = useState<"split" | "code" | "diagram">("diagram");
   const [svg, setSvg] = useState<SvgResult | null>(null);
   const [working, setWorking] = useState(false);
+  const [exportScale, setExportScale] = useState(4);
+  const [transparentPng, setTransparentPng] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [formError, setFormError] = useState("");
   const [newType, setNewType] = useState<DiagramType>("class");
@@ -97,6 +115,9 @@ export default function Studio() {
   const current = documents.find(d => d.id === selected);
   const canEdit = !recovering && current?.access !== "view";
   const isOwner = !current?.access || current.access === "owner";
+  const selectionRef = useRef(""); selectionRef.current = inspectedClass;
+  const others = useMemo(() => Array.from(new Map(presence.filter(p => !p.self).map(p => [p.userId, p])).values()), [presence]);
+  const remoteSelections = useMemo(() => presence.filter(p => !p.self && p.selection).map(p => ({ name: p.selection, color: presenceColor(p.userId), label: p.displayName })), [presence]);
   const cleanCurrentSource = useMemo(() => current ? cleanSource(current.source) : "", [current?.source]);
   const blocks = useMemo(() => current?.type === "class" ? classBlocks(cleanCurrentSource) : [], [current?.type, cleanCurrentSource]);
 
@@ -206,6 +227,27 @@ export default function Studio() {
     return () => { cancelled = true; controller.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
   }, [profile?.sharing, updateDocuments]);
 
+  useEffect(() => {
+    const id = current?.id;
+    if (!profile?.sharing || !id) { setPresence([]); return; }
+    presenceSession.current ||= crypto.randomUUID();
+    let active = true;
+    const send = (body: object, keepalive = false) => fetch("/api/presence", { method: "POST", keepalive, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, session: presenceSession.current, ...body }) });
+    const beat = async () => {
+      if (document.hidden) return;
+      try { const response = await send({ selection: selectionRef.current }); if (response.ok && active) setPresence(await response.json()); } catch { /* The next heartbeat retries. */ }
+    };
+    presenceBeat.current = () => void beat();
+    void beat();
+    const timer = setInterval(() => void beat(), 5000);
+    const leave = () => { void send({ leave: true }, true).catch(() => {}); };
+    const visible = () => { if (!document.hidden) void beat(); };
+    window.addEventListener("pagehide", leave);
+    document.addEventListener("visibilitychange", visible);
+    return () => { active = false; clearInterval(timer); window.removeEventListener("pagehide", leave); document.removeEventListener("visibilitychange", visible); presenceBeat.current = () => {}; leave(); setPresence([]); };
+  }, [profile?.sharing, current?.id]);
+  useEffect(() => { const timer = setTimeout(() => presenceBeat.current(), 250); return () => clearTimeout(timer); }, [inspectedClass]);
+
   useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 1100) setPropertiesOpen(false); }, [load]);
   useEffect(() => {
     const narrow = window.matchMedia("(max-width: 800px)");
@@ -248,11 +290,11 @@ export default function Studio() {
     setNewProject(current?.project || "Mi primer proyecto"); setNewName("Nuevo diagrama"); setNewType("class"); setUseTemplate(true); openModal("new");
   }
   async function choose(id: string) { if (await saveAll()) { setSvg(null); setSelected(id); setInspectedClass(""); setNotice(""); if (window.innerWidth <= 800) setSideOpen(false); } }
-  async function create(data: DiagramInput) {
+  async function create(data: DiagramInput, projectOwner?: string) {
     setWorking(true); setFormError("");
     try {
       if (!(await saveAll())) return;
-      const doc = await api<Diagram>("POST", data);
+      const doc = await api<Diagram>("POST", { ...data, projectOwner });
       saved.current.set(doc.id, signature(doc)); serverSnapshots.current.set(doc.id, doc); updateDocuments(docs => [...docs, doc]);
       setSelected(doc.id); setInspectedClass(""); setSvg(null); setModal(null); setSearch(""); setNotice("");
     } catch (e) { setFormError((e as Error).message); setNotice((e as Error).message); }
@@ -323,7 +365,7 @@ export default function Studio() {
         if (parsed.format !== "uml-studio" || parsed.version !== 1) throw new Error("Elige un archivo JSON exportado por UML Studio.");
         await create(diagramInput.parse(parsed.diagram));
       } else {
-        const type: DiagramType = text.includes("classDiagram") ? "class" : text.includes("sequenceDiagram") ? "sequence" : text.includes("stateDiagram") ? "state" : text.includes("erDiagram") ? "er" : text.includes(":::umlActor") ? "usecase" : "activity";
+        const type: DiagramType = text.includes("classDiagram") ? "class" : text.includes("sequenceDiagram") ? "sequence" : text.includes("stateDiagram") ? "state" : text.includes("erDiagram") ? "er" : /:::der[A-Z]/.test(text) ? "der" : text.includes(":::umlActor") ? "usecase" : "activity";
         await create({ name: file.name.replace(/\.[^.]+$/, ""), type, source: text, project: current?.project || "Importados", theme: "studio", notes: "" });
       }
     } catch (e) { setNotice((e as Error).message); }
@@ -335,22 +377,33 @@ export default function Studio() {
     try {
       const image = new Image(); image.src = url;
       await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("No se pudo preparar la imagen.")); });
-      const scale = Math.min(2, 8000 / Math.max(svg.width, svg.height));
-      const canvas = document.createElement("canvas"); canvas.width = Math.ceil(svg.width * scale + 64); canvas.height = Math.ceil(svg.height * scale + 64);
-      const context = canvas.getContext("2d")!;
-      context.fillStyle = current.theme === "studio" ? getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#f8fbfc" : current.theme === "dark" ? "#20252d" : "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 32, 32, svg.width * scale, svg.height * scale);
-      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("No se pudo exportar PNG.")), "image/png"));
-      download(blob, filename(current.name) + ".png");
+      const scale = pngScale(svg.width, svg.height, exportScale), margin = Math.round(16 * scale);
+      const canvas = document.createElement("canvas"); canvas.width = Math.ceil(svg.width * scale + margin * 2); canvas.height = Math.ceil(svg.height * scale + margin * 2);
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("El navegador no pudo reservar memoria para esa resolución. Probá con una escala menor.");
+      if (!transparentPng) { context.fillStyle = current.theme === "studio" ? getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#f8fbfc" : current.theme === "dark" ? "#20252d" : "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height); }
+      context.imageSmoothingQuality = "high";
+      // The SVG is rasterized directly at the target size, so text and lines stay sharp.
+      context.drawImage(image, margin, margin, svg.width * scale, svg.height * scale);
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("No se pudo exportar PNG. Probá con una escala menor.")), "image/png"));
+      download(blob, `${filename(current.name)}-${Math.round(scale * 10) / 10}x.png`);
     } catch (e) { setFormError((e as Error).message); }
     finally { URL.revokeObjectURL(url); setWorking(false); }
+  }
+  function openHighResolution() {
+    if (!svg || !current) return;
+    const background = current.theme === "dark" ? "#20252d" : "#ffffff";
+    const page = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${current.name.replace(/[<&>"]/g, "")} · alta resolución</title><style>html,body{margin:0;background:${background};}body{display:grid;place-items:center;min-height:100vh;}svg{width:min(96vw,${Math.round(svg.width * 2)}px);height:auto;max-width:none;}</style></head><body>${svg.svg}</body></html>`;
+    const url = URL.createObjectURL(new Blob([page], { type: "text/html;charset=utf-8" }));
+    if (!window.open(url, "_blank")) setFormError("El navegador bloqueó la ventana nueva. Permití ventanas emergentes para este sitio.");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
   async function refresh() {
     if (await saveAll()) { setNotice(""); await load(); }
   }
   function insertSnippet(kind: string) {
     if (!current) return;
-    if (current.type !== "class" && ["participant", "actor", "message", "state", "transition", "node", "decisión", "flow", "usecase", "component", "database", "entity", "erlink"].includes(kind)) { setInsertRequest({ serial: Date.now(), kind }); return; }
+    if (current.type !== "class" && ["participant", "actor", "message", "state", "transition", "node", "decisión", "flow", "usecase", "component", "database", "entity", "erlink", "weak", "relationship", "identifying", "attribute", "key", "multivalued", "derived"].includes(kind)) { setInsertRequest({ serial: Date.now(), kind }); return; }
     const suffix = Math.floor(Date.now() % 100000);
     const id = "Elemento" + suffix;
     const snippets: Record<string, string> = {
@@ -369,10 +422,14 @@ export default function Studio() {
   }
 
   const projects = Array.from(new Set(documents.map(d => d.project)));
+  const projectGroups = Array.from(new Map(documents.map(d => [projectKey(d), d])).entries());
+  // Editors of a shared project add new diagrams to the owner's project.
+  const sharedOwnerFor = (project: string) => current?.sharedProject && current.access === "edit" && current.owner && current.project === project ? current.owner : undefined;
   const filtered = documents.filter(d => (d.name + " " + d.project + " " + TYPE_LABELS[d.type]).toLowerCase().includes(search.toLowerCase()));
   const tools = current?.type === "sequence" ? [["participant", "Participante"], ["actor", "Actor"], ["message", "Mensaje"], ["alternative", "Alternativa"], ["loop", "Bucle"]]
     : current?.type === "state" ? [["state", "Estado"], ["transition", "Transición"], ["composite", "Estado compuesto"]]
     : current?.type === "er" ? [["entity", "Entidad"], ["erlink", "Relación"]]
+    : current?.type === "der" ? [["entity", "Entidad"], ["weak", "Entidad débil"], ["relationship", "Relación (rombo)"], ["attribute", "Atributo"], ["key", "Atributo clave"], ["multivalued", "Multivaluado"], ["derived", "Derivado"], ["flow", "Conexión"]]
     : current?.type === "usecase" ? [["actor", "Actor"], ["usecase", "Caso de uso"], ["flow", "Relación"]]
     : current?.type === "component" ? [["component", "Componente"], ["database", "Base de datos"], ["flow", "Conexion"]]
     : [["node", "Actividad"], ["decisión", "Decisión"], ["flow", "Conexion"]];
@@ -413,14 +470,18 @@ export default function Studio() {
       <button className="btn primary new-btn" onClick={beginNew} disabled={loading || !!loadError}><Plus size={17} />Nuevo diagrama</button>
       <label className="search-box"><Search size={15} /><input aria-label="Buscar diagramas" placeholder="Buscar diagramas" value={search} onChange={e => setSearch(e.target.value)} /></label>
       <div className="diagram-list">
-        {projects.map(project => {
-          const items = filtered.filter(d => d.project === project);
+        {projectGroups.map(([key, sample]) => {
+          const items = filtered.filter(d => projectKey(d) === key);
           if (!items.length) return null;
-          const closed = collapsed.includes(project) && !search;
-          return <section key={project} className="project-group">
-            <button className="project-title" onClick={() => setCollapsed(prev => prev.includes(project) ? prev.filter(p => p !== project) : [...prev, project])}>
-              {closed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}<Folder size={15} /><span>{project}</span><small>{items.length}</small>
-            </button>
+          const closed = collapsed.includes(key) && !search;
+          const own = !sample.owner;
+          return <section key={key} className="project-group">
+            <div className="project-row">
+              <button className="project-title" onClick={() => setCollapsed(prev => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])}>
+                {closed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}<Folder size={15} /><span>{sample.project}{!own && <em className="project-shared">{sample.ownerName ? `de ${sample.ownerName}` : "compartido"}</em>}</span><small>{items.length}</small>
+              </button>
+              {profile?.sharing && own && <IconButton title={`Compartir el proyecto ${sample.project}`} onClick={async () => { if (await saveAll()) { setShareRequest({ id: sample.id, scope: "project" }); openModal("share"); } }}><Users size={14} /></IconButton>}
+            </div>
             {!closed && items.map(doc => { const Icon = ICONS[doc.type]; return <button key={doc.id} className={"diagram-item " + (selected === doc.id ? "selected" : "")} onClick={() => void choose(doc.id)}>
               <Icon size={17} /><span><strong>{doc.name}</strong><small>{TYPE_LABELS[doc.type]}{doc.access === "edit" || doc.access === "view" ? " · Compartido" : ""}</small></span>
               {selected === doc.id && <Check size={13} className="document-selected-icon" />}
@@ -451,7 +512,12 @@ export default function Studio() {
             <div className="document-breadcrumb"><Folder size={13} /><span>{current.project}</span><ChevronRight size={12} /><span>{TYPE_LABELS[current.type]}</span></div>
             <input readOnly={!canEdit} className="name-input" aria-label="Nombre del diagrama" value={current.name} maxLength={100} onChange={e => edit({ name: e.target.value })} onBlur={() => { if (canEdit && !current.name.trim()) edit({ name: "Sin titulo" }); }} />
           </div>
-          <div className="document-actions">{profile?.sharing && <button className="btn" onClick={async () => { if (await saveAll()) openModal("share"); }}><Users size={16}/><span>Compartir</span></button>}<IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title={browserStorage || profile?.sharing ? "Recargar diagramas" : "Actualizar desde el chat"} onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
+          <div className="document-actions">{profile?.sharing && others.length > 0 && <div className="presence-stack" role="group" aria-label={`${others.length === 1 ? "1 persona conectada" : others.length + " personas conectadas"} a este tablero`}>
+              {others.slice(0, 4).map(p => <span key={p.userId} className="presence-avatar" style={{ background: presenceColor(p.userId) }} title={p.displayName + (p.selection ? ` · en ${p.selection}` : " · conectado")}>{initials(p.displayName)}</span>)}
+              {others.length > 4 && <span className="presence-avatar presence-more" title={others.slice(4).map(p => p.displayName).join(", ")}>+{others.length - 4}</span>}
+              <span className="presence-label">{others.length === 1 ? others[0].displayName.split(" ")[0] + " está aquí" : others.length + " conectados"}</span>
+            </div>}
+            {profile?.sharing && <button className="btn" onClick={async () => { if (await saveAll()) { setShareRequest({ id: current.id, scope: "board" }); openModal("share"); } }}><Users size={16}/><span>Compartir</span></button>}<IconButton title="Guardar ahora" onClick={() => void saveAll()}><Save size={17} /></IconButton><IconButton title={browserStorage || profile?.sharing ? "Recargar diagramas" : "Actualizar desde el chat"} onClick={() => void refresh()}><RefreshCw size={17} /></IconButton><IconButton title="Historial de versiones" onClick={() => void showHistory()}><History size={17} /></IconButton>
             <button className="btn export-btn" aria-label="Exportar diagrama" onClick={() => openModal("export")}><Download size={16} /><span>Exportar</span></button>
           </div>
         </div>
@@ -464,7 +530,7 @@ export default function Studio() {
           <div className="toolbar-right">
             <IconButton title={canvasFocused ? "Salir de pantalla casi completa" : "Enfocar pantalla de dibujo (pantalla casi completa)"} active={canvasFocused} onClick={() => { if (view === "code") setView("diagram"); setCanvasFocused(f => !f); }}>{canvasFocused ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</IconButton>
             <IconButton title="Notas y proyecto" active={!!current.notes} onClick={openNotes}><StickyNote size={16} /></IconButton>
-            <IconButton title="Duplicar diagrama" onClick={() => void create({ ...current, name: current.name + " (copia)" })}><Copy size={16} /></IconButton>
+            <IconButton title="Duplicar diagrama" onClick={() => void create({ ...current, name: current.name + " (copia)" }, sharedOwnerFor(current.project))}><Copy size={16} /></IconButton>
             <IconButton title="Eliminar diagrama" disabled={!isOwner} onClick={() => openModal("delete")}><Trash2 size={16} /></IconButton>
             <span className="toolbar-divider" /><IconButton title={propertiesOpen ? "Ocultar propiedades" : "Mostrar propiedades"} active={propertiesOpen} onClick={() => { setPropertiesOpen(open => !open); if (window.innerWidth <= 800) setSideOpen(false); }}>{propertiesOpen ? <PanelRightClose size={17} /> : <PanelRight size={17} />}</IconButton>
           </div>
@@ -478,7 +544,7 @@ export default function Studio() {
           </section>
           <section className="canvas-pane"><div className="pane-header canvas-pane-heading"><span><Shapes size={15} />{TYPE_LABELS[current.type]}</span><span className="live-label"><Check size={12} />Sincronizado con Mermaid</span></div>
             <DiagramPreview initialFit="contain" insertRequest={insertRequest} diagram={current} onRendered={setSvg} onClassClick={name => beginClass(name)} onSourceChange={canEdit ? source => edit({ source }) : undefined}
-              selectedClass={inspectedClass} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen}
+              selectedClass={inspectedClass} onSelectionChange={selectForInspection} inspectorOpen={propertiesOpen} remoteSelections={remoteSelections}
               onUndo={canEdit ? () => editor.current?.undo() : undefined} onRedo={canEdit ? () => editor.current?.redo() : undefined} canUndo={editorHistory.undo} canRedo={editorHistory.redo}
               focused={canvasFocused} onFocusChange={setCanvasFocused}
               onSettingsChange={settings => edit({ source: writeCanvas(current.source, settings) })}
@@ -494,7 +560,7 @@ export default function Studio() {
               </> : <>
                 <section className="property-section"><h3>Diagrama</h3>
                   <label className="property-field">Nombre<input value={current.name} maxLength={100} onChange={event => edit({ name: event.target.value })} onBlur={() => { if (canEdit && !current.name.trim()) edit({ name: "Sin título" }); }} /></label>
-                  <label className="property-field">Proyecto<input value={current.project} maxLength={80} onChange={event => edit({ project: event.target.value })} onBlur={() => { if (!current.project.trim()) edit({ project: "Sin proyecto" }); }} /></label>
+                  <label className="property-field">Proyecto<input value={current.project} readOnly={!isOwner} title={isOwner ? undefined : "Sólo el propietario mueve el tablero a otro proyecto"} maxLength={80} onChange={event => edit({ project: event.target.value })} onBlur={() => { if (!current.project.trim()) edit({ project: "Sin proyecto" }); }} /></label>
                   <label className="property-field">Apariencia<select aria-label="Tema del diagrama" value={current.theme} onChange={event => edit({ theme: event.target.value as DiagramInput["theme"] })}><option value="studio">Studio · petróleo</option><option value="neutral">Neutro</option><option value="dark">Oscuro</option></select></label>
                 </section>
                 {current.type === "class" && <section className="property-section"><div className="property-section-heading"><h3>Clases</h3><span>{blocks.length}</span></div><div className="inspector-classes">{blocks.map(block => <button key={block.name} onClick={() => selectForInspection(block.name)}><Boxes size={14} /><span>{block.name}</span><ChevronRight size={13} /></button>)}</div><button className="property-add" onClick={() => beginClass()}><Plus size={14} />Agregar clase</button></section>}
@@ -517,13 +583,14 @@ export default function Studio() {
 
     <input type="file" className="file-input" accept=".json,.mmd,.mermaid,.txt" ref={importInput} onChange={e => { const file = e.target.files?.[0]; if (file) void importFile(file); e.currentTarget.value = ""; }} />
 
-    {modal === "share" && current && <SharingDialog diagram={current} onClose={() => setModal(null)} />}
+    {modal === "share" && (() => { const doc = documents.find(d => d.id === shareRequest.id) || current; return doc ? <SharingDialog key={doc.id + shareRequest.scope} diagram={doc} initialScope={shareRequest.scope} presence={doc.id === current?.id ? presence : []} onClose={() => setModal(null)} /> : null; })()}
     {modal === "new" && <Modal title="Nuevo diagrama" wide onClose={() => setModal(null)}>
-      <form onSubmit={e => { e.preventDefault(); void create({ name: newName, type: newType, project: newProject, source: useTemplate ? TEMPLATES.find(t => t.type === newType)!.source : EMPTY[newType], theme: "studio", notes: "" }); }}>
+      <form onSubmit={e => { e.preventDefault(); void create({ name: newName, type: newType, project: newProject, source: useTemplate ? TEMPLATES.find(t => t.type === newType)!.source : EMPTY[newType], theme: "studio", notes: "" }, sharedOwnerFor(newProject)); }}>
         <div className="modal-body"><div className="form-row"><label>Nombre<input autoFocus required maxLength={100} value={newName} onChange={e => setNewName(e.target.value)} /></label><label>Proyecto<input required maxLength={80} list="projects" value={newProject} onChange={e => setNewProject(e.target.value)} /><datalist id="projects">{projects.map(p => <option key={p} value={p} />)}</datalist></label></div>
           <div className="template-grid">{TEMPLATES.map(template => { const Icon = ICONS[template.type]; return <label key={template.type} className={"template-option " + (newType === template.type ? "chosen" : "")}><input type="radio" name="diagram-type" value={template.type} checked={newType === template.type} onChange={() => setNewType(template.type)} /><Icon size={24} /><strong>{TYPE_LABELS[template.type]}</strong><span>{template.description}</span>{newType === template.type && <Check size={15} className="template-check" />}</label>; })}</div>
           <label className="checkbox-label"><input type="checkbox" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} />Empezar con un ejemplo</label>
-          {newType === "usecase" || newType === "component" ? <p className="form-hint">Representacion con nodos y conexiones Mermaid.</p> : null}
+          {newType === "usecase" || newType === "component" ? <p className="form-hint">Representacion con nodos y conexiones Mermaid.</p> : newType === "der" ? <p className="form-hint">Notación de Chen: entidades en rectángulo, relaciones en rombo, atributos en elipse y claves subrayadas. Las cardinalidades se escriben en cada conexión.</p> : null}
+          {sharedOwnerFor(newProject) && <p className="form-hint">Se agregará al proyecto compartido de {current?.ownerName || "su propietario"}; todos sus participantes lo verán.</p>}
           {formError && <p className="form-error" role="alert">{formError}</p>}
         </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn primary" disabled={working}>{working ? <LoaderCircle size={16} className="spin" /> : <Plus size={16} />}Crear diagrama</button></div>
       </form>
@@ -549,7 +616,15 @@ export default function Studio() {
 
     {modal === "export" && current && <Modal title="Exportar diagrama" onClose={() => setModal(null)}><div className="modal-body export-options">
       <button onClick={() => svg && download(svg.svg, filename(current.name) + ".svg", "image/svg+xml")} disabled={!svg}><Shapes size={22} /><span><strong>SVG</strong><small>Vectorial, para documentos y diseño</small></span><Download size={17} /></button>
-      <button onClick={() => void exportPng()} disabled={!svg || working}><Eye size={22} /><span><strong>PNG</strong><small>Imagen en alta resolución</small></span>{working ? <LoaderCircle size={17} className="spin" /> : <Download size={17} />}</button>
+      <div className="export-png">
+        <button onClick={() => void exportPng()} disabled={!svg || working}><ImageDown size={22} /><span><strong>PNG en alta resolución</strong><small>{svg ? (() => { const scale = pngScale(svg.width, svg.height, exportScale); return `${Math.ceil(svg.width * scale + 32 * scale)} × ${Math.ceil(svg.height * scale + 32 * scale)} px`; })() : "Esperando el diagrama"}</small></span>{working ? <LoaderCircle size={17} className="spin" /> : <Download size={17} />}</button>
+        <div className="export-png-options">
+          <div className="segmented" role="group" aria-label="Escala del PNG">{PNG_SCALES.map(option => <button key={option.value} type="button" className={exportScale === option.value ? "active" : ""} aria-pressed={exportScale === option.value} onClick={() => setExportScale(option.value)}>{option.label}</button>)}</div>
+          <label className="checkbox-label"><input type="checkbox" checked={transparentPng} onChange={e => setTransparentPng(e.target.checked)} />Fondo transparente</label>
+        </div>
+        {svg && pngScale(svg.width, svg.height, exportScale) < exportScale && <p className="form-hint">El diagrama es muy grande: se exporta a la máxima resolución que admite el navegador.</p>}
+      </div>
+      <button onClick={openHighResolution} disabled={!svg}><ExternalLink size={22} /><span><strong>Ver en alta resolución</strong><small>Abre el diagrama vectorial en una pestaña para ampliarlo sin pérdida</small></span><Eye size={17} /></button>
       <button onClick={() => download(current.source, filename(current.name) + ".mmd")}><FileCode2 size={22} /><span><strong>Mermaid</strong><small>Código fuente editable</small></span><Download size={17} /></button>
       <button onClick={() => download(exportDocument(current), filename(current.name) + ".uml.json", "application/json")}><Braces size={22} /><span><strong>Proyecto JSON</strong><small>Diagrama, notas y configuración</small></span><Download size={17} /></button>
       <button onClick={() => { setModal(null); setTimeout(() => window.print(), 150); }} disabled={!svg || view === "code"}><Printer size={22} /><span><strong>Imprimir / PDF</strong><small>Desde el diálogo de impresión</small></span><Printer size={17} /></button>
@@ -562,7 +637,7 @@ export default function Studio() {
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div></Modal>}
 
-    {modal === "notes" && current && <Modal title="Notas del diagrama" onClose={() => setModal(null)}><form onSubmit={e => { e.preventDefault(); edit({ notes, project: newProject }); setModal(null); }}><div className="modal-body"><label>Proyecto<input required value={newProject} maxLength={80} onChange={e => setNewProject(e.target.value)} /></label><label>Notas<textarea rows={8} maxLength={10000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Decisiones, restricciones, pendientes..." /></label></div><div className="modal-footer"><button type="button" className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn primary"><Check size={16} />Guardar notas</button></div></form></Modal>}
+    {modal === "notes" && current && <Modal title="Notas del diagrama" onClose={() => setModal(null)}><form onSubmit={e => { e.preventDefault(); edit({ notes, project: isOwner ? newProject : current.project }); setModal(null); }}><div className="modal-body"><label>Proyecto<input required readOnly={!isOwner} value={newProject} maxLength={80} onChange={e => setNewProject(e.target.value)} /></label><label>Notas<textarea rows={8} maxLength={10000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Decisiones, restricciones, pendientes..." /></label></div><div className="modal-footer"><button type="button" className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn primary"><Check size={16} />Guardar notas</button></div></form></Modal>}
 
     {modal === "delete" && current && <Modal title="Eliminar diagrama" onClose={() => setModal(null)}><div className="modal-body"><p>Se eliminara <strong>{current.name}</strong> y su historial de versiones.</p><p>Descarga una copia antes de continuar si querés conservarlo.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn danger" disabled={working} onClick={() => void removeCurrent()}><Trash2 size={16} />Eliminar</button></div></Modal>}
 

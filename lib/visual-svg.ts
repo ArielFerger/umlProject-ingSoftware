@@ -4,6 +4,8 @@ import type { CanvasModel, ClassGeometry } from "./svg-canvas";
 
 import { visualNodes, visualRelations } from "./visual-diagrams.ts";
 
+import { derInfo, type DerShape } from "./der.ts";
+
 const NS = "http://www.w3.org/2000/svg";
 
 type RenderNode = { id: string; domId?: string; label?: string; isGroup?: boolean };
@@ -27,6 +29,102 @@ export function prepareVisualSource(source: string, type: DiagramType) {
   }
 
   return prepared;
+
+}
+
+function svgElement<K extends keyof SVGElementTagNameMap>(tag: K, attributes: Record<string, string | number>) {
+
+  const element = document.createElementNS(NS, tag);
+
+  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+
+  return element;
+
+}
+
+/**
+ * Replaces Mermaid's node outline with the Chen shape for the element kind and
+ * returns the outline geometry in the node's own coordinates. Styles are inline
+ * so SVG and PNG exports keep the notation without the app stylesheet.
+ */
+function drawDerNode(group: SVGGElement, kind: string, ratio: string): { cx: number; cy: number; width: number; height: number; shape: DerShape } {
+
+  const info = derInfo(kind);
+
+  const outline = Array.from(group.children).find(child => !child.classList.contains("label") && child.tagName !== "text") as SVGGraphicsElement | undefined;
+
+  const shapeStyle = outline ? getComputedStyle(outline.matches("rect,polygon,path,circle,ellipse") ? outline : outline.querySelector("rect,polygon,path,circle,ellipse") || outline) : null;
+
+  const textElement = group.querySelector<SVGTextElement>("text");
+
+  const ink = textElement ? getComputedStyle(textElement).fill : "#243c48";
+
+  const fill = shapeStyle && shapeStyle.fill && shapeStyle.fill !== "none" ? shapeStyle.fill : "#ffffff";
+
+  const stroke = shapeStyle && shapeStyle.stroke && shapeStyle.stroke !== "none" ? shapeStyle.stroke : ink;
+
+  for (const child of Array.from(group.children)) if (!child.classList.contains("label") && child.tagName !== "text") child.remove();
+
+  const text = group.getBBox();
+
+  const cx = text.x + text.width / 2, cy = text.y + text.height / 2;
+
+  const style = (dashed = false, filled = true) => `fill:${filled ? fill : "none"};stroke:${stroke};stroke-width:1.6px;${dashed ? "stroke-dasharray:6 4;" : ""}`;
+
+  const shapes: SVGElement[] = [];
+
+  let width: number, height: number;
+
+  if (info.shape === "rect") {
+
+    width = Math.max(104, text.width + 40); height = Math.max(46, text.height + 24);
+
+    shapes.push(svgElement("rect", { x: cx - width / 2, y: cy - height / 2, width, height, style: style() }));
+
+    if (kind === "weak") shapes.push(svgElement("rect", { x: cx - width / 2 + 5, y: cy - height / 2 + 5, width: width - 10, height: height - 10, style: style(false, false) }));
+
+  } else if (info.shape === "diamond") {
+
+    width = Math.max(124, text.width * 1.55 + 48); height = Math.max(70, text.height * 1.6 + 40);
+
+    const diamond = (w: number, h: number) => `${cx},${cy - h / 2} ${cx + w / 2},${cy} ${cx},${cy + h / 2} ${cx - w / 2},${cy}`;
+
+    shapes.push(svgElement("polygon", { points: diamond(width, height), style: style() }));
+
+    if (kind === "identifying") shapes.push(svgElement("polygon", { points: diamond(width - 18, height - 11), style: style(false, false) }));
+
+  } else {
+
+    const rx = Math.max(42, text.width / 2 + 20) + (kind === "multivalued" ? 5 : 0), ry = Math.max(22, text.height / 2 + 12) + (kind === "multivalued" ? 5 : 0);
+
+    width = rx * 2; height = ry * 2;
+
+    shapes.push(svgElement("ellipse", { cx, cy, rx, ry, style: style(kind === "derived") }));
+
+    if (kind === "multivalued") shapes.push(svgElement("ellipse", { cx, cy, rx: rx - 5, ry: ry - 5, style: style(false, false) }));
+
+    if (kind === "key" || kind === "partialKey") {
+
+      const y = text.y + text.height - 2;
+
+      shapes.push(svgElement("line", { x1: text.x, x2: text.x + text.width, y1: y, y2: y, class: "der-key-underline", style: `stroke:${ink};stroke-width:1.3px;${kind === "partialKey" ? "stroke-dasharray:4 3;" : ""}` }));
+
+    }
+
+  }
+
+  for (const shape of shapes.reverse()) { shape.classList.add("der-shape"); group.insertBefore(shape, group.firstChild); }
+
+  if (ratio) {
+
+    // Upper-right edge of the diamond: clear of lines that reach its top vertex.
+    const label = svgElement("text", { x: cx + width / 4 + 8, y: cy - height / 4 - 8, "text-anchor": "start", class: "der-ratio", style: `fill:${ink};font-size:14px;font-weight:600;font-family:'Source Sans 3 Variable',sans-serif` });
+
+    label.textContent = ratio; group.appendChild(label);
+
+  }
+
+  return { cx, cy, width, height, shape: info.shape };
 
 }
 
@@ -79,15 +177,19 @@ export function measureVisualNodes(root: SVGSVGElement, data: RenderNode[], sour
 
     if (!group.id) group.id = "studio-participant-" + i;
 
+    const der = type === "der" ? drawDerNode(group, definitions.find(n => n.id === name)?.kind || "entity", definitions.find(n => n.id === name)?.body || "") : null;
+
     const box = group.getBBox();
 
     const matrix = root.getCTM()?.inverse().multiply(group.getCTM()!);
 
     if (!matrix) return [];
 
-    const center = new DOMPoint(isActor ? 0 : box.x + box.width / 2, isActor ? 0 : box.y + box.height / 2).matrixTransform(matrix);
+    const center = new DOMPoint(der ? der.cx : isActor ? 0 : box.x + box.width / 2, der ? der.cy : isActor ? 0 : box.y + box.height / 2).matrixTransform(matrix);
 
     group.setAttribute("data-class", name); group.setAttribute("data-visual", type);
+
+    if (der) { group.setAttribute("data-der-shape", der.shape); return [{ name, domId: group.id, x: center.x, y: center.y, width: der.width, height: der.height, transform: original, shape: der.shape }]; }
 
     return [{ name, domId: group.id, x: center.x, y: center.y, width: isActor ? 44 : box.width, height: isActor ? 84 : box.height, transform: original }];
 

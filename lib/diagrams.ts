@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-export const TYPES = ["class", "sequence", "state", "activity", "usecase", "component", "er"] as const;
+export const TYPES = ["class", "sequence", "state", "activity", "usecase", "component", "er", "der"] as const;
 export type DiagramType = typeof TYPES[number];
 export const TYPE_LABELS: Record<DiagramType, string> = {
   class: "Clases", sequence: "Secuencia", state: "Estados", activity: "Actividades",
-  usecase: "Casos de uso", component: "Componentes", er: "Entidad-relación",
+  usecase: "Casos de uso", component: "Componentes", er: "Entidad-relación", der: "DER (Chen)",
 };
 export const diagramInput = z.object({
   name: z.string().trim().min(1).max(100), type: z.enum(TYPES),
@@ -13,7 +13,11 @@ export const diagramInput = z.object({
   notes: z.string().max(10000).default(""),
 });
 export type DiagramInput = z.infer<typeof diagramInput>;
-export type Diagram = DiagramInput & { access?: "owner" | "edit" | "view"; id: string; revision: number; updatedAt: string };
+export type Diagram = DiagramInput & {
+  access?: "owner" | "edit" | "view"; id: string; revision: number; updatedAt: string;
+  /** Present on boards shared with the current user: the account that owns them. */
+  owner?: string; ownerName?: string; sharedProject?: boolean;
+};
 export const signature = (d: DiagramInput) => JSON.stringify([d.name, d.type, d.project, d.source, d.theme, d.notes]);
 
 export const TEMPLATES: { type: DiagramType; name: string; description: string; source: string }[] = [
@@ -147,6 +151,29 @@ DETALLE {
   int producto_id FK
   int cantidad
 }` },
+  { type: "der", name: "Pedidos (Chen)", description: "Entidades, relaciones y atributos en notación de Chen", source: `flowchart LR
+%% DER en notación de Chen: entidades [ ], relaciones { } y atributos ([ ])
+Cliente["Cliente"]:::derEntity
+Pedido["Pedido"]:::derEntity
+Articulo["Artículo"]:::derEntity
+Realiza{"Realiza"}:::derRelation
+%% der-ratio Realiza 1:N
+SeCompone{"Se compone"}:::derRelation
+%% der-ratio SeCompone N:M
+Cliente_DNI(["DNI"]):::derKey
+Pedido_Fecha(["Fecha"]):::derKey
+Articulo_NumSerie(["Núm Serie"]):::derKey
+SeCompone_Cantidad(["Cantidad"]):::derAttribute
+Cliente ---|"1"| Realiza
+Realiza ---|"*"| Pedido
+Pedido ---|"*"| SeCompone
+SeCompone ---|"*"| Articulo
+Cliente --- Cliente_DNI
+Pedido --- Pedido_Fecha
+Articulo --- Articulo_NumSerie
+SeCompone --- SeCompone_Cantidad
+%% uml-studio: {"positions":{"Cliente":{"x":150,"y":130},"Realiza":{"x":460,"y":130},"Pedido":{"x":770,"y":130},"Cliente_DNI":{"x":80,"y":225},"Pedido_Fecha":{"x":860,"y":40},"SeCompone":{"x":770,"y":320},"Articulo":{"x":460,"y":320},"Articulo_NumSerie":{"x":340,"y":420},"SeCompone_Cantidad":{"x":640,"y":430}},"lineWidth":2,"arrowScale":1.4,"labelSize":14,"routes":{}}
+` },
 ];
 
 export function classBlocks(source: string) {
