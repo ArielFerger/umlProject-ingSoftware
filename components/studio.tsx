@@ -72,7 +72,8 @@ export default function Studio() {
   const serverSnapshots = useRef(new Map<string, Diagram>());
   const [profile, setProfile] = useState<{ displayName: string; sharing: boolean } | null>(null);
   const [syncOffline, setSyncOffline] = useState(false);
-  const [presence, setPresence] = useState<PresenceEntry[]>([]);
+  // Tagged with its board so a list from the previous board is never shown on the next one.
+  const [presenceState, setPresenceState] = useState<{ id: string; entries: PresenceEntry[] }>({ id: "", entries: [] });
   const presenceSession = useRef("");
   const presenceBeat = useRef<() => void>(() => {});
   const [shareRequest, setShareRequest] = useState<{ id: string; scope: "board" | "project" }>({ id: "", scope: "board" });
@@ -115,7 +116,8 @@ export default function Studio() {
   const current = documents.find(d => d.id === selected);
   const canEdit = !recovering && current?.access !== "view";
   const isOwner = !current?.access || current.access === "owner";
-  const selectionRef = useRef(""); selectionRef.current = inspectedClass;
+  const selectionRef = useRef("");
+  const presence = useMemo(() => profile?.sharing && presenceState.id === current?.id ? presenceState.entries : [], [profile?.sharing, presenceState, current?.id]);
   const others = useMemo(() => Array.from(new Map(presence.filter(p => !p.self).map(p => [p.userId, p])).values()), [presence]);
   const remoteSelections = useMemo(() => presence.filter(p => !p.self && p.selection).map(p => ({ name: p.selection, color: presenceColor(p.userId), label: p.displayName })), [presence]);
   const cleanCurrentSource = useMemo(() => current ? cleanSource(current.source) : "", [current?.source]);
@@ -229,13 +231,13 @@ export default function Studio() {
 
   useEffect(() => {
     const id = current?.id;
-    if (!profile?.sharing || !id) { setPresence([]); return; }
+    if (!profile?.sharing || !id) return;
     presenceSession.current ||= crypto.randomUUID();
     let active = true;
     const send = (body: object, keepalive = false) => fetch("/api/presence", { method: "POST", keepalive, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, session: presenceSession.current, ...body }) });
     const beat = async () => {
       if (document.hidden) return;
-      try { const response = await send({ selection: selectionRef.current }); if (response.ok && active) setPresence(await response.json()); } catch { /* The next heartbeat retries. */ }
+      try { const response = await send({ selection: selectionRef.current }); if (response.ok && active) setPresenceState({ id, entries: await response.json() }); } catch { /* The next heartbeat retries. */ }
     };
     presenceBeat.current = () => void beat();
     void beat();
@@ -244,9 +246,9 @@ export default function Studio() {
     const visible = () => { if (!document.hidden) void beat(); };
     window.addEventListener("pagehide", leave);
     document.addEventListener("visibilitychange", visible);
-    return () => { active = false; clearInterval(timer); window.removeEventListener("pagehide", leave); document.removeEventListener("visibilitychange", visible); presenceBeat.current = () => {}; leave(); setPresence([]); };
+    return () => { active = false; clearInterval(timer); window.removeEventListener("pagehide", leave); document.removeEventListener("visibilitychange", visible); presenceBeat.current = () => {}; leave(); };
   }, [profile?.sharing, current?.id]);
-  useEffect(() => { const timer = setTimeout(() => presenceBeat.current(), 250); return () => clearTimeout(timer); }, [inspectedClass]);
+  useEffect(() => { selectionRef.current = inspectedClass; const timer = setTimeout(() => presenceBeat.current(), 250); return () => clearTimeout(timer); }, [inspectedClass]);
 
   useEffect(() => { void load(); if (window.innerWidth <= 800) setSideOpen(false); if (window.innerWidth <= 1100) setPropertiesOpen(false); }, [load]);
   useEffect(() => {

@@ -35,6 +35,7 @@ Las respuestas de opción múltiple y numéricas tienen corrección automática.
 
 Usá **Insertar** en el explorador o **+ Elemento** en el lienzo para crear elementos con identificador y texto visible. Cada tipo muestra sus opciones: actores y casos de uso, participantes, estados, actividades y decisiones, componentes y bases de datos, o entidades con atributos.
 
+- **Selección múltiple:** arrastrá sobre un espacio vacío del lienzo para dibujar un recuadro de selección, o usá Ctrl/⌘ + clic para sumar o quitar elementos uno por uno (Ctrl/⌘ + A selecciona todo). Arrastrá cualquiera de los seleccionados o usá las flechas para moverlos juntos; Supr los elimina con un solo Deshacer. Para recorrer el lienzo usá la mano, Espacio + arrastrar, el botón central o la rueda.
 - Arrastrá los elementos para ubicarlos. En secuencia, arrastrá horizontalmente los participantes para cambiar su orden; los mensajes mantienen su orden temporal.
 - Elegí **Conectar elementos**, seleccioná origen y destino, y completá el tipo y texto de la conexión. El menú del lienzo y el explorador también permiten crear conexiones por formulario.
 - Doble clic o click derecho sobre un elemento para editarlo, duplicarlo o eliminarlo. Seleccioná una conexión para editarla o eliminarla; sus elementos se conservan.

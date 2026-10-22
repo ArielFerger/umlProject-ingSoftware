@@ -25,14 +25,15 @@ export default function SharingDialog({ diagram, onClose, presence = [], initial
   const query = scope === "project" ? "?project=" + encodeURIComponent(diagram.project) : "?id=" + encodeURIComponent(diagram.id);
   const online = new Set(presence.filter(p => !p.self).map(p => p.userId));
   async function reload() { if (owner) setData(await request<Sharing>("GET", undefined, query)); }
-  useEffect(() => { let active=true; setBusy(true); setError(""); setLink(""); setCopied(false); setData({ members:[], invites:[] }); void (async()=>{try { if(owner) { const result=await request<Sharing>("GET",undefined,query);if(active)setData(result); }}catch(e){if(active)setError((e as Error).message);}finally{if(active)setBusy(false);}})();return()=>{active=false;}; },[query,owner]);
+  function changeScope(next: Scope) { if (next === scope) return; setScope(next); setBusy(true); setError(""); setLink(""); setCopied(false); setData({ members:[], invites:[] }); }
+  useEffect(() => { let active=true; void (async()=>{try { if(owner) { const result=await request<Sharing>("GET",undefined,query);if(active)setData(result); }}catch(e){if(active)setError((e as Error).message);}finally{if(active)setBusy(false);}})();return()=>{active=false;}; },[query,owner]);
   async function mutate(method:string, body:object) { setBusy(true);setError("");try { await request(method,{...target,...body});if(method==="DELETE"&&(body as {invite?:string}).invite===linkId){setLink("");setCopied(false);}await reload(); } catch(e){setError((e as Error).message);}finally{setBusy(false);} }
   async function create() { setBusy(true);setError("");setCopied(false);try { const result=await request("POST",{...target,role});setLink(`${location.origin}/join#${result.token}`);setLinkId(result.id);await reload(); }catch(e){setError((e as Error).message);}finally{setBusy(false);} }
   const others = presence.filter(p => !p.self);
   return <Modal title={scope === "project" ? "Compartir proyecto" : "Compartir tablero"} onClose={onClose}><div className="modal-body share-panel">
     {owner && <div className="segmented share-scope" role="tablist" aria-label="Qué compartir">
-      <button role="tab" aria-selected={scope==="board"} className={scope==="board"?"active":""} onClick={()=>setScope("board")}><Users size={15}/>Este tablero</button>
-      <button role="tab" aria-selected={scope==="project"} className={scope==="project"?"active":""} onClick={()=>setScope("project")}><Folder size={15}/>Proyecto completo</button>
+      <button role="tab" aria-selected={scope==="board"} className={scope==="board"?"active":""} onClick={()=>changeScope("board")}><Users size={15}/>Este tablero</button>
+      <button role="tab" aria-selected={scope==="project"} className={scope==="project"?"active":""} onClick={()=>changeScope("project")}><Folder size={15}/>Proyecto completo</button>
     </div>}
     <div className="share-heading">{scope === "project" ? <Folder size={24}/> : <Users size={24}/>}<div><strong>{scope === "project" ? diagram.project : diagram.name}</strong><p>{scope === "project" ? `Incluye ${data.diagrams ?? "todos los"} diagramas del proyecto y los que agregues después.` : "El mismo tablero, desde cualquier dispositivo."}</p></div></div>
     <section className="share-online" aria-live="polite"><h3>Conectados ahora</h3>
