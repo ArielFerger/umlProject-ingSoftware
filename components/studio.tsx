@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Avatars are served by the online gateway behind the session cookie, or are local data URLs; next/image cannot optimize them. */
 
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import { classMembers, setClassMembers } from "@/lib/class-actions";
 import ClassProperties from "./class-properties";
 import { browserStorage, studioRequest } from "@/lib/studio-request";
 import type { PresenceEntry } from "@/lib/presence";
+import ProfileDialog, { avatarUrl } from "./profile";
 
 const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database, der: Diamond };
 // Browsers refuse canvases beyond ~16k px per side or ~268 Mpx in total.
@@ -23,7 +25,7 @@ const PNG_SCALES = [{ value: 2, label: "2×" }, { value: 4, label: "4×" }, { va
 function pngScale(width: number, height: number, requested: number) {
   return Math.max(.5, Math.min(requested, 16000 / Math.max(width, height, 1), Math.sqrt(200_000_000 / Math.max(1, width * height))));
 }
-type ModalKind = "share" | "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
+type ModalKind = "profile" | "share" | "new" | "class" | "relation" | "guide" | "export" | "history" | "notes" | "delete" | "chat" | null;
 type Revision = { revision: number; createdAt: string; diagram: Diagram };
 
 class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
@@ -70,7 +72,7 @@ export default function Studio() {
   const [saveState, setSaveState] = useState<"saved" | "pending" | "saving" | "error">("saved");
   const saved = useRef(new Map<string, string>());
   const serverSnapshots = useRef(new Map<string, Diagram>());
-  const [profile, setProfile] = useState<{ displayName: string; sharing: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ owner?: string; displayName: string; sharing: boolean; color?: string; version?: number } | null>(null);
   const [syncOffline, setSyncOffline] = useState(false);
   // Tagged with its board so a list from the previous board is never shown on the next one.
   const [presenceState, setPresenceState] = useState<{ id: string; entries: PresenceEntry[] }>({ id: "", entries: [] });
@@ -119,7 +121,7 @@ export default function Studio() {
   const selectionRef = useRef("");
   const presence = useMemo(() => profile?.sharing && presenceState.id === current?.id ? presenceState.entries : [], [profile?.sharing, presenceState, current?.id]);
   const others = useMemo(() => Array.from(new Map(presence.filter(p => !p.self).map(p => [p.userId, p])).values()), [presence]);
-  const remoteSelections = useMemo(() => presence.filter(p => !p.self && p.selection).map(p => ({ name: p.selection, color: presenceColor(p.userId), label: p.displayName })), [presence]);
+  const remoteSelections = useMemo(() => presence.filter(p => !p.self && p.selection).map(p => ({ name: p.selection, color: p.color || presenceColor(p.userId), label: p.displayName })), [presence]);
   const cleanCurrentSource = useMemo(() => current ? cleanSource(current.source) : "", [current?.source]);
   const blocks = useMemo(() => current?.type === "class" ? classBlocks(cleanCurrentSource) : [], [current?.type, cleanCurrentSource]);
 
@@ -453,7 +455,7 @@ export default function Studio() {
           {saveState === "saving" ? <LoaderCircle size={14} className="spin" /> : saveState === "error" ? <CloudOff size={15} /> : browserStorage ? <Save size={15} /> : <Cloud size={15} />}
           {saveState === "saved" ? browserStorage ? "Guardado en este navegador" : profile?.sharing ? syncOffline ? "Reconectando…" : canEdit ? "Guardado · online" : "Solo lectura · online" : "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
         </span>
-        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button>{profile?.sharing && <form className="online-account" method="post" action="/auth/logout"><span>{profile.displayName}</span><button>Salir</button></form>}<button className="btn header-quiet chat-btn" onClick={() => { if (profile?.sharing && current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); else openModal("chat"); }}><MessageSquare size={16} /><span>{profile?.sharing ? "Exportar JSON" : browserStorage ? "Compartir JSON" : "Conectar con ChatGPT"}</span></button>
+        <span className="divider" /><button className="btn header-quiet studio-study-btn" aria-label="Estudio IS II" title="Abrir Estudio IS II" onClick={() => void goStudy()}><BookOpen size={16} /><span>Estudio IS II</span><span className="studio-study-short">Estudio</span></button>{profile?.sharing && profile.owner && <button type="button" className="online-account" title="Mi perfil" aria-label={`Mi perfil: ${profile.displayName}`} onClick={() => openModal("profile")}><span className="account-avatar" style={{ background: profile.color || presenceColor(profile.owner) }}><img alt="" src={avatarUrl(profile.owner, profile.version)} /></span><span>{profile.displayName}</span></button>}<button className="btn header-quiet chat-btn" onClick={() => { if (profile?.sharing && current) download(exportDocument(current), filename(current.name) + ".uml.json", "application/json"); else openModal("chat"); }}><MessageSquare size={16} /><span>{profile?.sharing ? "Exportar JSON" : browserStorage ? "Compartir JSON" : "Conectar con ChatGPT"}</span></button>
       </div>
     </header>
 
@@ -515,7 +517,7 @@ export default function Studio() {
             <input readOnly={!canEdit} className="name-input" aria-label="Nombre del diagrama" value={current.name} maxLength={100} onChange={e => edit({ name: e.target.value })} onBlur={() => { if (canEdit && !current.name.trim()) edit({ name: "Sin titulo" }); }} />
           </div>
           <div className="document-actions">{profile?.sharing && others.length > 0 && <div className="presence-stack" role="group" aria-label={`${others.length === 1 ? "1 persona conectada" : others.length + " personas conectadas"} a este tablero`}>
-              {others.slice(0, 4).map(p => <span key={p.userId} className="presence-avatar" style={{ background: presenceColor(p.userId) }} title={p.displayName + (p.selection ? ` · en ${p.selection}` : " · conectado")}>{initials(p.displayName)}</span>)}
+              {others.slice(0, 4).map(p => <span key={p.userId} className="presence-avatar" style={{ background: p.color || presenceColor(p.userId), borderColor: p.color || undefined }} title={p.displayName + (p.selection ? ` · en ${p.selection}` : " · conectado")}>{initials(p.displayName)}<img alt="" src={avatarUrl(p.userId)} onError={e => { e.currentTarget.hidden = true; }} /></span>)}
               {others.length > 4 && <span className="presence-avatar presence-more" title={others.slice(4).map(p => p.displayName).join(", ")}>+{others.length - 4}</span>}
               <span className="presence-label">{others.length === 1 ? others[0].displayName.split(" ")[0] + " está aquí" : others.length + " conectados"}</span>
             </div>}
@@ -585,6 +587,7 @@ export default function Studio() {
 
     <input type="file" className="file-input" accept=".json,.mmd,.mermaid,.txt" ref={importInput} onChange={e => { const file = e.target.files?.[0]; if (file) void importFile(file); e.currentTarget.value = ""; }} />
 
+    {modal === "profile" && <ProfileDialog onClose={() => setModal(null)} onSaved={saved => setProfile(current => current && { ...current, displayName: saved.displayName, color: saved.color, version: saved.version })} />}
     {modal === "share" && (() => { const doc = documents.find(d => d.id === shareRequest.id) || current; return doc ? <SharingDialog key={doc.id + shareRequest.scope} diagram={doc} initialScope={shareRequest.scope} presence={doc.id === current?.id ? presence : []} onClose={() => setModal(null)} /> : null; })()}
     {modal === "new" && <Modal title="Nuevo diagrama" wide onClose={() => setModal(null)}>
       <form onSubmit={e => { e.preventDefault(); void create({ name: newName, type: newType, project: newProject, source: useTemplate ? TEMPLATES.find(t => t.type === newType)!.source : EMPTY[newType], theme: "studio", notes: "" }, sharedOwnerFor(newProject)); }}>

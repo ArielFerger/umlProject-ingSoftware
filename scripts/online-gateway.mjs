@@ -4,12 +4,13 @@ import { randomBytes, randomUUID, createHash, scrypt as scryptCallback, timingSa
 import { promisify } from "node:util";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { ensureProfileColumns, handleProfile, profileColor } from "./online-profile.mjs";
 const scrypt = promisify(scryptCallback);
 const hash = value => createHash("sha256").update(value).digest("hex");
 const MONTH = 30 * 86400000;
 const safePath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && !/[\\\u0000-\u001f\u007f]/.test(value) ? value : "/";
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-const IDENTITY = ["oai-authenticated-user-id", "oai-authenticated-user-email", "oai-authenticated-user-full-name", "oai-authenticated-user-full-name-encoding", "x-uml-auth-provider", "forwarded", "x-forwarded-host", "x-forwarded-proto", "x-forwarded-for"];
+const IDENTITY = ["oai-authenticated-user-id", "oai-authenticated-user-email", "oai-authenticated-user-full-name", "oai-authenticated-user-full-name-encoding", "x-uml-auth-provider", "x-uml-user-color", "forwarded", "x-forwarded-host", "x-forwarded-proto", "x-forwarded-for"];
 async function formBody(request) {
   let text = "";
   for await (const chunk of request) { text += chunk; if (Buffer.byteLength(text) > 8192) throw new Error("Formulario demasiado grande."); }
@@ -30,6 +31,7 @@ export function createOnlineGateway({ upstreamPort = 8787, publicOrigin, databas
   db.exec(`CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL, password_hash TEXT NOT NULL, salt TEXT NOT NULL, created_at INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL);
     CREATE INDEX IF NOT EXISTS session_account ON sessions(account_id);`);
+  ensureProfileColumns(db);
   const attempts = new Map();
   let hashing = 0;
   const derive = async (password, salt) => {
@@ -49,7 +51,7 @@ export function createOnlineGateway({ upstreamPort = 8787, publicOrigin, databas
       const url = new URL(request.url, origin);
       if (!["GET", "HEAD", "OPTIONS"].includes(request.method) && request.headers.origin !== origin.origin) { json(403, { error: "La operación debe iniciarse desde UML Studio." }); return; }
       const rawToken = request.headers.cookie?.split(";").map(v => v.trim()).find(v => v.startsWith(COOKIE + "="))?.slice(COOKIE.length + 1);
-      const account = rawToken && /^[a-f0-9]{64}$/.test(rawToken) ? db.prepare("SELECT a.id, a.username, a.display_name FROM sessions s JOIN accounts a ON a.id = s.account_id WHERE s.token_hash = ? AND s.expires_at > ?").get(hash(rawToken), Date.now()) : null;
+      const account = rawToken && /^[a-f0-9]{64}$/.test(rawToken) ? db.prepare("SELECT a.id, a.username, a.display_name, a.color FROM sessions s JOIN accounts a ON a.id = s.account_id WHERE s.token_hash = ? AND s.expires_at > ?").get(hash(rawToken), Date.now()) : null;
       if (url.pathname === "/auth/logout" && request.method === "POST") {
         if (rawToken) db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(hash(rawToken));
         response.setHeader("Set-Cookie", `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${origin.protocol === "https:" ? "; Secure" : ""}`); redirect("/auth"); return;
@@ -75,7 +77,7 @@ export function createOnlineGateway({ upstreamPort = 8787, publicOrigin, databas
         if (register) {
           const salt = randomBytes(24).toString("hex"), passwordHash = (await derive(password, salt)).toString("hex");
           user = { id: `vps_${randomUUID()}`, username, display_name: displayName };
-          try { db.prepare("INSERT INTO accounts VALUES (?, ?, ?, ?, ?, ?)").run(user.id, username, displayName, passwordHash, salt, now); } catch { fail("unavailable"); return; }
+          try { db.prepare("INSERT INTO accounts (id, username, display_name, password_hash, salt, created_at) VALUES (?, ?, ?, ?, ?, ?)").run(user.id, username, displayName, passwordHash, salt, now); } catch { fail("unavailable"); return; }
         } else {
           user = db.prepare("SELECT * FROM accounts WHERE username = ?").get(username);
           const candidate = await derive(password, user?.salt || "0".repeat(48));
@@ -87,6 +89,7 @@ export function createOnlineGateway({ upstreamPort = 8787, publicOrigin, databas
         response.setHeader("Set-Cookie", `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MONTH / 1000}${origin.protocol === "https:" ? "; Secure" : ""}`);
         redirect(returnTo); return;
       }
+      if (await handleProfile({ request, response, url, account, db, derive, rawToken, json })) return;
       if (url.pathname === "/mcp") { json(404, { error: "El conector de Sites no está disponible en este servidor." }); return; }
       if (!account && !localHealth) {
         if (url.pathname.startsWith("/api/")) { json(401, { error: "Ingresá con tu cuenta para abrir tus tableros." }); return; }
@@ -100,6 +103,7 @@ export function createOnlineGateway({ upstreamPort = 8787, publicOrigin, databas
         "oai-authenticated-user-email": `${account?.username || "healthcheck"}@uml.local`,
         "oai-authenticated-user-full-name": encodeURIComponent(account?.display_name || "Salud del servidor"),
         "oai-authenticated-user-full-name-encoding": "percent-encoded-utf-8", "x-uml-auth-provider": "vps",
+        "x-uml-user-color": account ? profileColor(account) : "#1a647b",
       });
       const upstream = http.request({ hostname: "127.0.0.1", port: upstreamPort, path: localHealth ? "/api/diagrams?id=__healthcheck__" : request.url, method: localHealth ? "GET" : request.method, headers }, result => {
         if (localHealth) { result.resume(); json(result.statusCode === 404 ? 200 : 503, { status: result.statusCode === 404 ? "ok" : "unavailable", mode: "online" }); }
