@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "./nav-link";
 import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2, ChevronDown, Cloud, FileCode2, FolderPen, GitBranch, GitCommitHorizontal, Layers, Lightbulb, Play, Plus, RotateCcw, Shapes, Terminal, X, AlertCircle } from "lucide-react";
 import { changes, commandSuggestions, COMMAND_HELP, divergence, editFile, emptyRepo, GIT_EXERCISES, graphCommits, headTree, initialRepo, remoteUrl, runGit, teamCommit, validRepo, type GitRepo, type FileChange } from "@/lib/git-simulator";
 import ThemePicker from "./theme-picker";

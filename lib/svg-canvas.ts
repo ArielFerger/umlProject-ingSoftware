@@ -1,8 +1,9 @@
 import type { CanvasSettings, CanvasStroke, EdgeRoute, Point } from "./canvas";
 import { renderFrames } from "./svg-frames";
-import { colorClass, colorArrow } from "./svg-colors";
+import { colorClass, colorArrow, colorVisual } from "./svg-colors";
 import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint, polylineMidpoint } from "./edge-routing";
 import { shapeBoundary, type DerShape } from "./der";
+import { outlinePath, strokeOutline } from "./freehand";
 
 export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string; shape?: DerShape };
 export type EdgeGeometry = { id: string; routeKey?: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string; labelNear?: "start" | "end" };
@@ -409,7 +410,12 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
     return result;
   }
 
-  for (const [name, el] of cache.nodeEls) if (!el.hasAttribute("data-visual")) colorClass(el, settings.nodeColors && Object.hasOwn(settings.nodeColors, name) ? settings.nodeColors[name] : undefined);
+  for (const [name, el] of cache.nodeEls) {
+    const color = settings.nodeColors && Object.hasOwn(settings.nodeColors, name) ? settings.nodeColors[name] : undefined;
+    const visual = el.getAttribute("data-visual");
+    if (!visual) colorClass(el, color);
+    else if (visual !== "sequence") colorVisual(el, color);
+  }
 
   const result: Record<string, Point> = {};
   for (const node of model.nodes) {
@@ -467,23 +473,35 @@ export function strokePath(points: Point[]): string {
   return d + ` L ${last.x} ${last.y}`;
 }
 
+/** Ink strokes are filled outlines; strokes saved before the ink renderer stay centerlines. */
+function paintStroke(path: SVGPathElement, stroke: CanvasStroke) {
+  if (stroke.tool) {
+    path.setAttribute("d", outlinePath(strokeOutline(stroke.points, stroke.width || 2.5, stroke.tool)));
+    path.setAttribute("fill", stroke.color || "#1a647b");
+    path.setAttribute("fill-opacity", stroke.tool === "marker" ? ".38" : "1");
+    path.setAttribute("stroke", "none");
+    path.removeAttribute("stroke-width");
+  } else {
+    path.setAttribute("d", strokePath(stroke.points));
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", stroke.color || "#1a647b");
+    path.setAttribute("stroke-width", String(stroke.width || 2.5));
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+  }
+}
+
 export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [], activeStroke?: CanvasStroke | null) {
   let group = root.querySelector<SVGGElement>(".studio-drawings");
   if (activeStroke && group && group.dataset.baseCount === String(strokes.length)) {
-    const d = strokePath(activeStroke.points);
     let activePath = group.querySelector<SVGPathElement>('path[data-active-stroke="true"]');
     if (!activePath) {
       activePath = document.createElementNS(SVG_NS, "path");
-      activePath.setAttribute("fill", "none");
-      activePath.setAttribute("stroke-linecap", "round");
-      activePath.setAttribute("stroke-linejoin", "round");
       activePath.setAttribute("class", "studio-stroke-line");
       activePath.setAttribute("data-active-stroke", "true");
       group.appendChild(activePath);
     }
-    activePath.setAttribute("d", d);
-    activePath.setAttribute("stroke", activeStroke.color || "#1a647b");
-    activePath.setAttribute("stroke-width", String(activeStroke.width || 2.5));
+    paintStroke(activePath, activeStroke);
     return;
   }
 
@@ -492,18 +510,14 @@ export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [],
   if (!list.length) return;
   group = document.createElementNS(SVG_NS, "g");
   group.setAttribute("class", "studio-drawings");
+  // Strokes are hit-tested geometrically; letting clicks through keeps elements underneath selectable.
+  group.style.pointerEvents = "none";
   group.dataset.baseCount = String(strokes.length);
   for (let i = 0; i < list.length; i++) {
     const stroke = list[i];
-    const d = strokePath(stroke.points);
-    if (!d) continue;
+    if (!stroke.points.length) continue;
     const path = document.createElementNS(SVG_NS, "path");
-    path.setAttribute("d", d);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", stroke.color || "#1a647b");
-    path.setAttribute("stroke-width", String(stroke.width || 2.5));
-    path.setAttribute("stroke-linecap", "round");
-    path.setAttribute("stroke-linejoin", "round");
+    paintStroke(path, stroke);
     path.setAttribute("class", "studio-stroke-line");
     path.setAttribute("data-stroke-index", String(i));
     if (activeStroke && i === list.length - 1) path.setAttribute("data-active-stroke", "true");
@@ -512,9 +526,24 @@ export function renderStrokes(root: SVGSVGElement, strokes: CanvasStroke[] = [],
   (root.querySelector("g.root") || root).appendChild(group);
 }
 
+/** Dashed box around the selected pencil stroke; never exported. */
+export function renderStrokeSelection(root: SVGSVGElement, stroke: CanvasStroke | null, zoom = 1) {
+  root.querySelector(".studio-stroke-selection")?.remove();
+  if (!stroke?.points.length) return;
+  const pad = (stroke.width || 2.5) / 2 + 6 / zoom;
+  const xs = stroke.points.map(p => p.x), ys = stroke.points.map(p => p.y);
+  const rect = document.createElementNS(SVG_NS, "rect");
+  rect.setAttribute("class", "studio-stroke-selection");
+  rect.setAttribute("x", String(Math.min(...xs) - pad)); rect.setAttribute("y", String(Math.min(...ys) - pad));
+  rect.setAttribute("width", String(Math.max(...xs) - Math.min(...xs) + pad * 2)); rect.setAttribute("height", String(Math.max(...ys) - Math.min(...ys) + pad * 2));
+  rect.setAttribute("rx", String(4 / zoom));
+  rect.style.cssText = `fill:none;stroke:var(--accent,#1a647b);stroke-width:${1.5 / zoom}px;stroke-dasharray:${6 / zoom} ${4 / zoom};pointer-events:none`;
+  (root.querySelector("g.root") || root).appendChild(rect);
+}
+
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection,.studio-stroke-selection,.studio-note-controls").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });

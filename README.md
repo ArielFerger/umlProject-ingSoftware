@@ -35,6 +35,10 @@ Las respuestas de opción múltiple y numéricas tienen corrección automática.
 
 Usá **Insertar** en el explorador o **+ Elemento** en el lienzo para crear elementos con identificador y texto visible. Cada tipo muestra sus opciones: actores y casos de uso, participantes, estados, actividades y decisiones, componentes y bases de datos, o entidades con atributos.
 
+- **Lápiz estilo Miro:** trazos suavizados con grosor variable (usa la presión de una tableta o lápiz óptico; con mouse la simula según la velocidad) y extremos afinados, resaltador translúcido, 10 colores más uno a elección, cuatro grosores, Mayús para líneas rectas y borrador por trazo. Con Seleccionar, un clic sobre un trazo lo elige para moverlo, cambiarle el color o borrarlo. Atajos: P lápiz, M resaltador, E borrador.
+- **Textos y notas adhesivas:** T para un texto libre y K para una nota adhesiva; se escriben en el lugar, se editan con doble clic, se mueven arrastrando y tienen colores, tamaños S–XL, negrita, duplicar y convertir texto ↔ nota. Se exportan con el diagrama.
+- **Colores para cualquier elemento** (clases, DER, actividades, componentes, casos de uso, estados), también para varios a la vez.
+- Al crear un diagrama, elegís un **proyecto existente** (propios y compartidos con permiso de edición) o creás uno nuevo.
 - **Selección múltiple:** arrastrá sobre un espacio vacío del lienzo para dibujar un recuadro de selección, o usá Ctrl/⌘ + clic para sumar o quitar elementos uno por uno (Ctrl/⌘ + A selecciona todo). Arrastrá cualquiera de los seleccionados o usá las flechas para moverlos juntos; Supr los elimina con un solo Deshacer. Para recorrer el lienzo usá la mano, Espacio + arrastrar, el botón central o la rueda.
 - Arrastrá los elementos para ubicarlos. En secuencia, arrastrá horizontalmente los participantes para cambiar su orden; los mensajes mantienen su orden temporal.
 - Elegí **Conectar elementos**, seleccioná origen y destino, y completá el tipo y texto de la conexión. El menú del lienzo y el explorador también permiten crear conexiones por formulario.

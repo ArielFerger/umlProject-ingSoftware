@@ -28,6 +28,21 @@ export function colorClass(node: SVGGElement, color?: string) {
   node.querySelectorAll("text,tspan,.nodeLabel,.nodeLabel *").forEach(el => paint(el, color, { fill: ink, color: ink }));
 }
 
+/** Fills the outline of a non-class element (flowchart shapes, Chen shapes) and keeps its text readable. */
+export function colorVisual(node: SVGGElement, color?: string) {
+  if (node.hasAttribute("data-uml-actor")) {
+    node.querySelectorAll(".uml-actor-figure").forEach(el => paint(el, color, { stroke: color! }));
+    return;
+  }
+  const ink = color ? colorInk(color) : "";
+  const shapes = node.querySelectorAll(".der-shape:not(line)").length ? node.querySelectorAll(".der-shape:not(line)")
+    : node.querySelectorAll(":scope > rect:not(.studio-remote-selection rect), :scope > polygon, :scope > ellipse, :scope > circle, :scope > path, :scope > g:not(.label):not(.studio-remote-selection) > path, :scope > g:not(.label):not(.studio-remote-selection) > rect");
+  // Inner outlines of double shapes (weak entity, multivalued attribute) stay hollow.
+  shapes.forEach(el => { if ((el as SVGElement).style.fill === "none" && !originals.get(el)?.has("fill")) return; paint(el, color, { fill: color! }); });
+  node.querySelectorAll(".label text, .label tspan, :scope > text:not(.der-ratio), .nodeLabel, .nodeLabel *").forEach(el => paint(el, color, { fill: ink, color: ink }));
+  node.querySelectorAll(".der-key-underline").forEach(el => paint(el, color, { stroke: ink }));
+}
+
 const markerFills = new WeakMap<Element, boolean>();
 export function colorArrow(path: SVGPathElement, markers: SVGMarkerElement[], color?: string) {
   paint(path, color, { stroke: color! });

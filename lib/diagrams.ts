@@ -6,9 +6,11 @@ export const TYPE_LABELS: Record<DiagramType, string> = {
   class: "Clases", sequence: "Secuencia", state: "Estados", activity: "Actividades",
   usecase: "Casos de uso", component: "Componentes", er: "Entidad-relación", der: "DER (Chen)",
 };
+/** Mermaid text is capped by the renderer; the rest is board metadata (positions, ink, notes). */
+export const SOURCE_LIMIT = 250000;
 export const diagramInput = z.object({
   name: z.string().trim().min(1).max(100), type: z.enum(TYPES),
-  project: z.string().trim().min(1).max(80), source: z.string().min(1).max(80000),
+  project: z.string().trim().min(1).max(80), source: z.string().min(1).max(SOURCE_LIMIT),
   theme: z.enum(["studio", "neutral", "dark"]).default("studio"),
   notes: z.string().max(10000).default(""),
 });
