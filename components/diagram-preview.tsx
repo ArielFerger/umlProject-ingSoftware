@@ -15,6 +15,7 @@ import { sourceRelations, updateRelation, removeRelation, type SourceRelation } 
 import { NODE_KINDS, VISUAL_RELATIONS, visualNodes, visualRelations, setVisualNode, addVisualRelation, removeVisualNode, updateVisualRelation, removeVisualRelation, type VisualNode } from "@/lib/visual-diagrams";
 import { prepareVisualSource, measureVisualNodes, sequenceModel, reorderSequence } from "@/lib/visual-svg";
 import { zoomAt, snapPoint, gridSpacing } from "@/lib/canvas-navigation";
+import { chenLayout, derIdFromLabel, isDerRelationship } from "@/lib/der";
 
 let renderQueue: Promise<unknown> = Promise.resolve();
 
@@ -69,7 +70,9 @@ function pointNearStroke(pt: Point, stroke: CanvasStroke, radius: number) {
   return false;
 }
 
-export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable", focused, onFocusChange, onUndo, onRedo, canUndo = true, canRedo = true }: {
+export type RemoteSelection = { name: string; color: string; label: string };
+
+export default function DiagramPreview({ diagram, onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, selectedClass, onSelectionChange, inspectorOpen = false, insertRequest, initialFit = "readable", focused, onFocusChange, onUndo, onRedo, canUndo = true, canRedo = true, remoteSelections }: {
   diagram: Diagram; onRendered: (result: SvgResult | null) => void; onClassClick: (name: string) => void;
   onSettingsChange: (settings: CanvasSettings) => void;
   onConnect: (from: string, to: string, kind: RelationKind, positions: Record<string, Point>) => void;
@@ -86,6 +89,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  /** Elements other connected people have selected on this board. */
+  remoteSelections?: RemoteSelection[];
 }) {
   const { isDark } = useAppTheme();
   const dark = diagram.theme === "dark" || (diagram.theme === "studio" && isDark);
@@ -133,7 +138,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [context, setContext] = useState<{ x: number; y: number; name: string; point?: Point } | null>(null);
   const closeContext = useCallback(() => setContext(null), []);
   const [classForm, setClassForm] = useState<{ name: string; body: string; editing: boolean; point?: Point } | null>(null);
-  const [nodeForm, setNodeForm] = useState<(VisualNode & { editing: boolean; point?: Point }) | null>(null);
+  const [nodeForm, setNodeForm] = useState<(VisualNode & { editing: boolean; point?: Point; owner?: string }) | null>(null);
   const [connectionForm, setConnectionForm] = useState<{ from: string; to: string; kind: string; label: string } | null>(null);
   const [visualKind, setVisualKind] = useState("");
   const [deleteTarget, setDeleteTarget] = useState("");
@@ -148,6 +153,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   callbacks.current = { onRendered, onClassClick, onSettingsChange, onConnect, onGuide, onSourceChange, onSelectionChange, onFocusChange };
   const isClass = diagram.type === "class";
   const isSequence = diagram.type === "sequence";
+  const isDer = diagram.type === "der";
+  // Attribute placement around Chen entities, used where the user has not placed them.
+  const derGraph = useRef<{ kinds: Record<string, string>; edges: CanvasModel["edges"] }>({ kinds: {}, edges: [] });
+  const withLayout = (next: CanvasSettings): CanvasSettings => {
+    if (!isDer) return next;
+    const saved = next.positions, nodes = model.current.nodes.map(node => Object.hasOwn(saved, node.name) ? { ...node, ...saved[node.name] } : node);
+    return { ...next, positions: { ...chenLayout(nodes, derGraph.current.kinds, derGraph.current.edges, Object.keys(saved)), ...saved } };
+  };
+  const movingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const editable = !!onSourceChange;
   const nodesInSource = useMemo(() => visualNodes(content, diagram.type), [content, diagram.type]);
   const availableRelations = isClass ? RELATIONS : VISUAL_RELATIONS[diagram.type] || [];
@@ -173,6 +187,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     viewState.current = { zoom: nextZoom, pan: nextPan };
     if (art.current) {
       art.current.style.transform = `translate(-50%, -50%) translate(${nextPan.x}px, ${nextPan.y}px) scale(${nextZoom})`;
+      // A promoted layer is scaled as a bitmap; release it when the gesture
+      // settles so the browser redraws the vector diagram at the new zoom.
+      art.current.classList.add("view-moving");
+      clearTimeout(movingTimer.current);
+      movingTimer.current = setTimeout(() => art.current?.classList.remove("view-moving"), 180);
     }
     if (viewport.current) {
       const spacing = gridSpacing(nextZoom);
@@ -190,7 +209,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     }
   }
 
-  useEffect(() => () => { if (viewRaf.current) cancelAnimationFrame(viewRaf.current); }, []);
+  useEffect(() => () => { if (viewRaf.current) cancelAnimationFrame(viewRaf.current); clearTimeout(movingTimer.current); }, []);
 
   function activateTool(tool: ToolMode) {
     setMode(tool); setOrigin(""); setContext(null); setShowShortcuts(false);
@@ -245,7 +264,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       setConnectionForm({ from: nodesInSource[0].id, to: nodesInSource[1]?.id || nodesInSource[0].id, kind: activeKind, label: "" });
     } else {
       const kind = ({ node: "activity", decisión: "decision" } as Record<string,string>)[insertRequest.kind] || insertRequest.kind;
-      setNodeForm({ id: "", label: "", kind, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: viewportCenterPoint() });
+      setNodeForm({ id: "", label: "", kind, body: diagram.type === "er" ? "int id PK\nstring nombre" : "", editing: false, point: viewportCenterPoint(), owner: isDer && !["entity", "weak", "relationship", "identifying"].includes(kind) ? selectedNode || undefined : undefined });
     }
     // A request is a gesture, not a persistent editing mode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -323,6 +342,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
                 const id = el.querySelector("[data-id]")?.getAttribute("data-id");
                 if (id) labelsById.set(id, el);
               }
+              const derKinds = isDer ? Object.fromEntries(visualNodes(content, "der").map(node => [node.id, node.kind])) : {};
               edges = (data?.edges || []).map(edge => {
                 if (diagram.type === "er") { edge.start = edge.start?.match(/^entity-(.*)-\d+$/)?.[1] || edge.start; edge.end = edge.end?.match(/^entity-(.*)-\d+$/)?.[1] || edge.end; }
                 const path = pathsById.get(edge.id);
@@ -330,8 +350,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
                 const matrix = label?.transform.baseVal.consolidate()?.matrix;
                 let points: Point[] | undefined;
                 try { points = JSON.parse(atob(path?.getAttribute("data-points") || "")); } catch { /* Some Mermaid edges have no layout points. */ }
-                return { ...edge, points, labelPosition: matrix ? { x: matrix.e, y: matrix.f } : undefined };
+                const labelNear = !isDer ? undefined : isDerRelationship(derKinds[edge.start || ""]) ? "end" as const : isDerRelationship(derKinds[edge.end || ""]) ? "start" as const : undefined;
+                return { ...edge, points, labelPosition: matrix ? { x: matrix.e, y: matrix.f } : undefined, labelNear };
               });
+              derGraph.current = { kinds: derKinds, edges };
             }
           }
           model.current = { nodes, edges };
@@ -364,12 +386,12 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       });
     }, 220);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [content, diagram.theme, dark, diagram.id, diagram.type, isClass, isSequence]);
+  }, [content, diagram.theme, dark, diagram.id, diagram.type, isClass, isSequence, isDer]);
 
   useEffect(() => {
     const svg = root();
     if (!svg || busy || error || renderedId.current !== diagram.id) return;
-    if (!isSequence) positions.current = applyCanvas(svg, model.current, settings, dark);
+    if (!isSequence) positions.current = applyCanvas(svg, model.current, withLayout(settings), dark);
     else {
       positions.current = Object.fromEntries(model.current.nodes.map(n => [n.name, { x: n.x, y: n.y }]));
       svg.querySelectorAll<SVGGElement>('[data-class]').forEach(node => { node.setAttribute("tabindex", "0"); node.setAttribute("role", "button"); node.setAttribute("aria-label", "Participante " + node.getAttribute("data-class")); });
@@ -422,6 +444,28 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => {
     setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
   }, [diagram.id]);
+  useEffect(() => {
+    const svg = root();
+    if (!svg) return;
+    svg.querySelectorAll(".studio-remote-selection").forEach(el => el.remove());
+    if (busy || error) return;
+    const NS = "http://www.w3.org/2000/svg";
+    for (const remote of remoteSelections || []) {
+      const node = model.current.nodes.find(n => n.name === remote.name);
+      const element = node ? svg.getElementById(node.domId) as SVGGElement | null : null;
+      if (!element) continue;
+      const box = element.getBBox(), group = document.createElementNS(NS, "g");
+      group.setAttribute("class", "studio-remote-selection"); group.style.pointerEvents = "none";
+      const ring = document.createElementNS(NS, "rect");
+      for (const [key, value] of Object.entries({ x: box.x - 7, y: box.y - 7, width: box.width + 14, height: box.height + 14, rx: 9 })) ring.setAttribute(key, String(value));
+      ring.style.cssText = `fill:none;stroke:${remote.color};stroke-width:2.5px;stroke-dasharray:7 4;`;
+      const tag = document.createElementNS(NS, "text");
+      tag.setAttribute("x", String(box.x - 6)); tag.setAttribute("y", String(box.y - 12));
+      tag.style.cssText = `fill:${remote.color};font:700 12px 'Source Sans 3 Variable',sans-serif;paint-order:stroke;stroke:#fff;stroke-width:3px;`;
+      tag.textContent = remote.label;
+      group.appendChild(ring); group.appendChild(tag); element.appendChild(group);
+    }
+  }, [remoteSelections, result, busy, error]);
   useEffect(() => {
     const svg = root();
     svg?.querySelectorAll("[data-class]").forEach(node => {
@@ -550,7 +594,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }
   function showSettings(next: CanvasSettings, edgeId = selectedEdge, dirtyEdgeOnly = false) {
     const svg = root(); if (!svg) return;
-    positions.current = applyCanvas(svg, model.current, next, dark, undefined, dirtyEdgeOnly ? edgeId : undefined);
+    positions.current = applyCanvas(svg, model.current, withLayout(next), dark, undefined, dirtyEdgeOnly ? edgeId : undefined);
     edgeControls(svg, model.current, next, edgeId, viewState.current.zoom, !!callbacks.current.onSourceChange);
   }
   function addBend() {
@@ -579,14 +623,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (isSequence) { const geometry = model.current.nodes.find(n => n.name === name); const el = geometry && svg.getElementById(geometry.domId); if (el) el.setAttribute("transform", `translate(${point.x - geometry.x},0) ${geometry.transform}`); return; }
     positions.current[name] = point;
     const next = { ...settingsRef.current, positions: positions.current };
-    applyCanvas(svg, model.current, next, dark, name);
+    applyCanvas(svg, model.current, withLayout(next), dark, name);
   }
   function changeSettings(patch: Partial<CanvasSettings>) { if (callbacks.current.onSourceChange) callbacks.current.onSettingsChange({ ...settingsRef.current, ...patch }); }
   function setViewZoom(value: number) {
     const next = zoomAt(viewState.current, value);
     viewState.current = next; setZoom(next.zoom); setPan(next.pan);
   }
-  function changeZoom(delta: number) { setViewZoom(Math.round((viewState.current.zoom + delta) * 100) / 100); }
+  function changeZoom(delta: number) { setViewZoom(Math.round(viewState.current.zoom * (delta > 0 ? 1.25 : .8) * 100) / 100); }
 
   function undoStroke() {
     const current = settingsRef.current.strokes || [];
@@ -1037,7 +1081,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {edgeForm && <Modal title="Editar relación" onClose={() => setEdgeForm(null)}><form onSubmit={e => { e.preventDefault(); try { callbacks.current.onSourceChange?.(isClass ? updateRelation(diagram.source, edgeForm, edgeForm) : updateVisualRelation(diagram.source, diagram.type, edgeForm, edgeForm)); setEdgeForm(null); setSelectedEdge(""); setFeedback("Relación actualizada. Podés recuperar el cambio con Deshacer."); } catch (error) { setFormError((error as Error).message); } }}><div className="modal-body">
       <p><strong>{edgeForm.from}</strong> — <strong>{edgeForm.to}</strong></p>
       <label>Tipo de relación<select value={edgeForm.kind} onChange={e => setEdgeForm({ ...edgeForm, kind: e.target.value })}>{!availableRelations.some(r => r.value === edgeForm.kind) && <option value={edgeForm.kind}>{edgeForm.kind} (actual)</option>}{availableRelations.map(r => <option key={r.value} value={r.value}>{r.name}</option>)}</select></label>
-      <label>Etiqueta<input autoFocus maxLength={200} value={edgeForm.label} placeholder="Por ejemplo: realiza" onChange={e => setEdgeForm({ ...edgeForm, label: e.target.value })} /></label>
+      <label>{isDer ? "Cardinalidad" : "Etiqueta"}<input autoFocus maxLength={200} value={edgeForm.label} placeholder={isDer ? "1, N, (0,N), (1,1)" : "Por ejemplo: realiza"} onChange={e => setEdgeForm({ ...edgeForm, label: e.target.value })} /></label>
       {isClass && <div className="relation-cardinality"><label>Multiplicidad de {edgeForm.from}<input maxLength={30} placeholder="1" value={edgeForm.fromCard} onChange={e => setEdgeForm({ ...edgeForm, fromCard: e.target.value })} /></label><label>Multiplicidad de {edgeForm.to}<input maxLength={30} placeholder="0..*" value={edgeForm.toCard} onChange={e => setEdgeForm({ ...edgeForm, toCard: e.target.value })} /></label></div>}
       <p className="form-hint">Se conserva el código de las otras relaciones y la posición de los elementos.</p>
       {formError && <p className="form-error" role="alert">{formError}</p>}
@@ -1045,7 +1089,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {edgeDelete && <Modal title="Eliminar relación" onClose={() => setEdgeDelete(null)}><div className="modal-body"><p>Se quitará la relación entre <strong>{edgeDelete.from}</strong> y <strong>{edgeDelete.to}</strong>. Los elementos se conservan.</p><p>Podés recuperarla con Deshacer.</p>{formError && <p className="form-error" role="alert">{formError}</p>}</div><div className="modal-footer"><button className="btn" onClick={() => setEdgeDelete(null)}>Cancelar</button><button className="btn danger" onClick={() => { try { callbacks.current.onSourceChange?.(isClass ? removeRelation(diagram.source, edgeDelete) : removeVisualRelation(diagram.source, diagram.type, edgeDelete)); setEdgeDelete(null); setSelectedEdge(""); setFeedback("Relación eliminada. Podés recuperarla con Deshacer."); } catch (error) { setFormError((error as Error).message); } }}><Trash2 size={16} />Eliminar relación</button></div></Modal>}
     {nodeForm && <Modal title={nodeForm.editing ? "Editar elemento" : "Agregar elemento"} onClose={() => setNodeForm(null)}><form onSubmit={e => { e.preventDefault(); try {
       let source = setVisualNode(diagram.source, diagram.type, nodeForm, !nodeForm.editing);
-      if (!nodeForm.editing && !isSequence) {
+      if (isDer && !nodeForm.editing && nodeForm.owner && nodesInSource.some(n => n.id === nodeForm.owner)) source = addVisualRelation(source, "der", nodeForm.owner, nodeForm.id, "---", "");
+      // An attribute attached to its owner is placed around it by the Chen layout.
+      const orbit = isDer && !!nodeForm.owner && !["entity", "weak", "relationship", "identifying"].includes(nodeForm.kind);
+      if (!nodeForm.editing && !isSequence && !orbit) {
         const targetPt = roundPoint(nodeForm.point || viewportCenterPoint());
         const nextPositions = { ...positions.current, ...settingsRef.current.positions, [nodeForm.id]: targetPt };
         source = writeCanvas(source, { ...readCanvas(source), positions: nextPositions });
@@ -1054,10 +1101,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       callbacks.current.onSourceChange?.(source); pendingNode.current = nodeForm.id; setSelectedNode(nodeForm.id); setNodeForm(null); setFeedback("Elemento guardado. Podés recuperar el cambio con Deshacer.");
     } catch (error) { setFormError((error as Error).message); } }}><div className="modal-body">
       <label>Tipo de elemento<select aria-label="Tipo de elemento" value={nodeForm.kind} onChange={e => setNodeForm({ ...nodeForm, kind: e.target.value })}>{NODE_KINDS[diagram.type]?.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}</select></label>
-      <label>Identificador<input required autoFocus disabled={nodeForm.editing} maxLength={100} value={nodeForm.id} placeholder="Por ejemplo: Usuario" onChange={e => setNodeForm({ ...nodeForm, id: e.target.value })} /></label>
-      {diagram.type !== "er" && <label>Texto visible<input required maxLength={180} value={nodeForm.label} placeholder="Por ejemplo: Consultar pedidos" onChange={e => setNodeForm({ ...nodeForm, label: e.target.value })} /></label>}
+      {isDer && <>
+        <label>Nombre visible<input required data-autofocus maxLength={180} value={nodeForm.label} placeholder="Por ejemplo: Cliente, Realiza, DNI" onChange={e => { const label = e.target.value; const taken = nodesInSource.map(n => n.id); const ownerPrefix = nodeForm.owner && !["entity", "weak", "relationship", "identifying"].includes(nodeForm.kind) ? nodeForm.owner : ""; const automatic = !nodeForm.id || nodeForm.id === derIdFromLabel(nodeForm.label, taken, ownerPrefix); setNodeForm({ ...nodeForm, label, id: nodeForm.editing || !automatic ? nodeForm.id : derIdFromLabel(label, taken, ownerPrefix) }); }} /></label>
+        {isDerRelationship(nodeForm.kind) && <label>Cardinalidad de la relación<input maxLength={20} value={nodeForm.body} placeholder="1:N, N:M, 1:1 (opcional)" onChange={e => setNodeForm({ ...nodeForm, body: e.target.value })} /></label>}
+        {!nodeForm.editing && <label>Conectar con<select aria-label="Conectar con" value={nodeForm.owner || ""} onChange={e => setNodeForm({ ...nodeForm, owner: e.target.value || undefined })}><option value="">Sin conexión</option>{nodesInSource.map(n => <option key={n.id} value={n.id}>{n.label} ({n.id})</option>)}</select></label>}
+      </>}
+      <label>Identificador<input required autoFocus={!isDer} disabled={nodeForm.editing} maxLength={100} value={nodeForm.id} placeholder="Por ejemplo: Usuario" onChange={e => setNodeForm({ ...nodeForm, id: e.target.value })} /></label>
+      {diagram.type !== "er" && !isDer && <label>Texto visible<input required maxLength={180} value={nodeForm.label} placeholder="Por ejemplo: Consultar pedidos" onChange={e => setNodeForm({ ...nodeForm, label: e.target.value })} /></label>}
       {diagram.type === "er" && <><label>Atributos<textarea aria-label="Atributos" rows={8} className="mono" value={nodeForm.body} onChange={e => setNodeForm({ ...nodeForm, body: e.target.value })} /></label><p className="form-hint">Un atributo por línea: tipo, nombre y clave opcional. Ejemplo: int id PK.</p></>}
-      <p className="form-hint">El identificador conecta este elemento con el resto del diagrama. El código Mermaid se actualiza al guardar.</p>
+      <p className="form-hint">{isDer ? "Entidades en rectángulo, relaciones en rombo y atributos en elipse. La clave primaria se muestra subrayada." : "El identificador conecta este elemento con el resto del diagrama. El código Mermaid se actualiza al guardar."}</p>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setNodeForm(null)}>Cancelar</button><button className="btn primary"><Check size={16} />{nodeForm.editing ? "Aplicar cambios" : "Agregar elemento"}</button></div></form></Modal>}
     {connectionForm && <Modal title={isSequence ? "Agregar mensaje" : "Agregar conexión"} onClose={() => setConnectionForm(null)}><form onSubmit={e => { e.preventDefault(); try {
@@ -1066,7 +1118,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     } catch (error) { setFormError((error as Error).message); } }}><div className="modal-body">
       <div className="form-row">{(["from", "to"] as const).map(end => <label key={end}>{end === "from" ? "Origen" : "Destino"}<select aria-label={end === "from" ? "Origen" : "Destino"} value={connectionForm[end]} onChange={e => setConnectionForm({ ...connectionForm, [end]: e.target.value })}>{nodesInSource.map(n => <option key={n.id} value={n.id}>{n.label} ({n.id})</option>)}{diagram.type === "state" && <option value="[*]">Inicio / fin [*]</option>}</select></label>)}</div>
       <label>Tipo de conexión<select value={connectionForm.kind} onChange={e => setConnectionForm({ ...connectionForm, kind: e.target.value })}>{availableRelations.map(r => <option key={r.value} value={r.value}>{r.name}</option>)}</select></label>
-      <label>{isSequence ? "Texto del mensaje" : "Etiqueta"}<input autoFocus required={isSequence || diagram.type === "er"} maxLength={200} value={connectionForm.label} onChange={e => setConnectionForm({ ...connectionForm, label: e.target.value })} placeholder={isSequence ? "Por ejemplo: Solicitar pedido" : "Por ejemplo: Sí / No / confirmar"} /></label>
+      <label>{isSequence ? "Texto del mensaje" : isDer ? "Cardinalidad" : "Etiqueta"}<input autoFocus required={isSequence || diagram.type === "er"} maxLength={200} value={connectionForm.label} onChange={e => setConnectionForm({ ...connectionForm, label: e.target.value })} placeholder={isSequence ? "Por ejemplo: Solicitar pedido" : isDer ? "1, N, *, (0,N), (1,1) · vacío para atributos" : "Por ejemplo: Sí / No / confirmar"} /></label>
       {formError && <p className="form-error" role="alert">{formError}</p>}
     </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setConnectionForm(null)}>Cancelar</button><button className="btn primary"><Link2 size={16} />{isSequence ? "Agregar mensaje" : "Agregar conexión"}</button></div></form></Modal>}
     {classForm && <Modal title={classForm.editing ? "Editar clase" : "Agregar clase"} onClose={() => setClassForm(null)}><form onSubmit={e => { e.preventDefault(); saveClass(); }}><div className="modal-body">

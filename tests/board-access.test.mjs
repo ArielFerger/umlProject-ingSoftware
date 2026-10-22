@@ -29,9 +29,9 @@ test("editors can update but cannot own or delete; revocation applies immediatel
  await acceptInvite(db,"bob","Bob",invite.token);
  assert.equal((await boardAccess(db,"bob","board","edit")).access,"edit");
  await assert.rejects(boardAccess(db,"bob","board","owner"),e=>e.status===403);
- assert.equal(Number(sqlite.prepare(`UPDATE diagrams SET revision=revision+1 WHERE id=? AND ${EDIT_SQL}`).run("board","bob","bob").changes),1);
+ assert.equal(Number(sqlite.prepare(`UPDATE diagrams SET revision=revision+1 WHERE id=? AND ${EDIT_SQL}`).run("board","bob","bob","bob").changes),1);
  await changeMember(db,"alice","board","bob","view");
- assert.equal(Number(sqlite.prepare(`UPDATE diagrams SET revision=revision+1 WHERE id=? AND ${EDIT_SQL}`).run("board","bob","bob").changes),0);
+ assert.equal(Number(sqlite.prepare(`UPDATE diagrams SET revision=revision+1 WHERE id=? AND ${EDIT_SQL}`).run("board","bob","bob","bob").changes),0);
  await revokeAccess(db,"alice","board",{invite:invite.id});
  await assert.rejects(acceptInvite(db,"charlie","Charlie",invite.token),e=>e.status===404);
  await revokeAccess(db,"alice","board",{member:"bob"});

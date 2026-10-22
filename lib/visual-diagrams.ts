@@ -2,6 +2,8 @@ import { cleanSource, readCanvas, writeCanvas } from "./canvas.ts";
 
 import type { DiagramType } from "./diagrams.ts";
 
+import { DER_KINDS, DER_RELATIONS, derDeclaration, derKindFor, derRatios, isDerRelationship, removeDerRatio, setDerRatio } from "./der.ts";
+
 
 
 export type VisualNode = { id: string; label: string; kind: string; body: string };
@@ -22,6 +24,8 @@ export const NODE_KINDS: Record<string, { value: string; label: string }[]> = {
 
   er: [{ value: "entity", label: "Entidad" }],
 
+  der: DER_KINDS.map(({ value, label }) => ({ value, label })),
+
 };
 
 export const VISUAL_RELATIONS: Record<string, { value: string; name: string }[]> = {
@@ -35,6 +39,8 @@ export const VISUAL_RELATIONS: Record<string, { value: string; name: string }[]>
   state: [{ value: "-->", name: "Transición" }],
 
   sequence: [{ value: "->>", name: "Mensaje" }, { value: "-->>", name: "Respuesta" }, { value: "-)", name: "Mensaje asíncrono" }, { value: "--)", name: "Respuesta asíncrona" }, { value: "-x", name: "Mensaje perdido" }],
+
+  der: DER_RELATIONS,
 
   er: [{ value: "||--||", name: "Uno a uno" }, { value: "||--o{", name: "Uno a cero o muchos" }, { value: "||--|{", name: "Uno a uno o muchos" }, { value: "}o--o{", name: "Muchos a muchos" }, { value: "||..o{", name: "Uno a muchos, no identificadora" }],
 
@@ -76,11 +82,15 @@ export function visualNodes(source: string, type: DiagramType): VisualNode[] {
 
     const scope = content.slice(0, m.index).split("\n").reduce((depth, line) => /^\s*subgraph\b/.test(line) ? depth + 1 : /^\s*end\s*$/.test(line) ? Math.max(0, depth - 1) : depth, 0);
 
+    if (type === "der") { nodes.set(m[1], { id: m[1], label, kind: derKindFor(m[10], m[2]), body: "" }); continue; }
+
     const actor = m[10] === "umlActor" || (type === "usecase" && scope === 0 && m[2].startsWith("[") && !m[2].startsWith("[("));
 
     nodes.set(m[1], { id: m[1], label, kind: actor ? "actor" : m[3] != null ? (type === "usecase" ? "usecase" : "terminal") : m[4] != null ? "database" : m[7] != null ? "decision" : type === "component" ? "component" : "activity", body: "" });
 
   }
+
+  if (type === "der") for (const [id, ratio] of derRatios(content)) { const node = nodes.get(id); if (node && isDerRelationship(node.kind)) node.body = ratio; }
 
   for (const edge of visualRelations(source, type)) for (const id of [edge.from, edge.to]) if (id !== "[*]" && !nodes.has(id)) nodes.set(id, { id, label: id, kind: NODE_KINDS[type]?.[0]?.value || "state", body: "" });
 
@@ -94,15 +104,15 @@ export function visualRelations(source: string, type: DiagramType): VisualRelati
 
   const endpoint = `(${idPattern}?|\\[\\*\\])`;
 
-  const op = type === "er" ? "([|o}{]+(?:--|\\.\\.)[|o}{]+)" : type === "sequence" ? "(--?>>|--?\\)|--?x|--?>)" : "(-->|---|--|-\\.[^\\n]*?\\.->|-.->)";
+  const op = type === "er" ? "([|o}{]+(?:--|\\.\\.)[|o}{]+)" : type === "sequence" ? "(--?>>|--?\\)|--?x|--?>)" : "(-->|---|===|--|-\\.[^\\n]*?\\.->|-.->)";
 
   const re = new RegExp(`^\\s*${endpoint}\\s*${op}\\s*${endpoint}\\s*(?::\\s*(.*))?$`);
 
-  const flow = new RegExp(`^\\s*${endpoint}\\s*(-->|---|-.->)(?:\\|([^|]*)\\|)?\\s*${endpoint}\\s*$`);
+  const flow = new RegExp(`^\\s*${endpoint}\\s*(-->|---|===|-.->)(?:\\|([^|]*)\\|)?\\s*${endpoint}\\s*$`);
 
   cleanSource(source).split(/\r?\n/).forEach((text, line) => {
 
-    const normalized = ["activity", "component", "usecase"].includes(type) ? text.replace(flowNode, (_, id) => id) : text;
+    const normalized = ["activity", "component", "usecase", "der"].includes(type) ? text.replace(flowNode, (_, id) => id) : text;
 
     const m = normalized.match(re), f = normalized.match(flow);
 
@@ -133,6 +143,8 @@ function declaration(node: VisualNode, type: DiagramType) {
     return `${node.id} {\n${body.split(/\r?\n/).filter(Boolean).map(l => "  " + l.trim()).join("\n")}\n}`;
 
   }
+
+  if (type === "der") return derDeclaration(node.id, label, node.kind);
 
   if (node.kind === "actor") return `${node.id}["${label}"]:::umlActor`;
 
@@ -177,6 +189,8 @@ export function setVisualNode(source: string, type: DiagramType, node: VisualNod
     content = lines.join("\n");
 
   }
+
+  if (type === "der") content = setDerRatio(content, node.id, isDerRelationship(node.kind) ? node.body : "");
 
   return preserve(source, content);
 
@@ -238,17 +252,19 @@ export function removeVisualNode(source: string, type: DiagramType, id: string) 
 
   if (type === "er") content = content.replace(new RegExp(`^\\s*${id}\\s*\\{[^}]*\\}\\s*`, "m"), "");
 
+  if (type === "der") content = removeDerRatio(content, id);
+
   const token = new RegExp(`(^|[^\\w-])${id}([^\\w-]|$)`);
 
   const lines = content.split("\n").filter(line => {
 
-    const syntax = line.replace(/"[^"\n]*"/g, '""').split(/\s:\s|\|/)[0];
+    const syntax = line.replace(/"[^"\n]*"/g, '""').replace(/\|[^|\n]*\|(?=\s*[A-Za-z_])/g, " ").split(/\s:\s|\|/)[0];
 
     if (!token.test(syntax) || /^\s*%%/.test(line)) return true;
 
     // Complex inline chains, notes and composite states need source editing.
 
-    if ((line.match(/-->|---|-.->/g) || []).length > 1 || /^\s*(note|subgraph|classDef|class |style|click|state .*\{)/.test(line)) throw new Error("Este elemento participa en una declaración compuesta. Separala en líneas desde Código antes de eliminarlo.");
+    if ((line.match(/-->|---|===|-.->/g) || []).length > 1 || /^\s*(note|subgraph|classDef|class |style|click|state .*\{)/.test(line)) throw new Error("Este elemento participa en una declaración compuesta. Separala en líneas desde Código antes de eliminarlo.");
 
     return false;
 

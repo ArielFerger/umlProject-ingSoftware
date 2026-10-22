@@ -1,7 +1,7 @@
 import { getBinding } from "@/db";
 import { Diagram, DiagramInput, TEMPLATES } from "./diagrams";
 
-import { boardAccess, ACCESS_SQL, EDIT_SQL, StoreError } from "./board-access";
+import { boardAccess, projectRole, asUser, ACCESS_SQL, EDIT_SQL, ROLE_SQL, StoreError } from "./board-access";
 export { StoreError } from "./board-access";
 
 export function ownerFrom(request: Request) {
@@ -15,12 +15,14 @@ function fromRow(row: Record<string, unknown>): Diagram {
   return {
     id: row.id, name: row.name, type: row.type, project: row.project, source: row.source,
     theme: row.theme, notes: row.notes, access: row.access || "owner", revision: row.revision, updatedAt: row.updated_at,
+    ...(row.access && row.access !== "owner" ? { owner: row.owner, ...(row.owner_name ? { ownerName: row.owner_name, sharedProject: true } : {}) } : {}),
   } as Diagram;
 }
 
 export async function listDiagrams(owner: string): Promise<Diagram[]> {
   const db = getBinding();
-  let result = await db.prepare(`SELECT d.*, CASE WHEN d.owner = ? THEN 'owner' ELSE m.role END AS access FROM diagrams d LEFT JOIN diagram_members m ON m.diagram_id = d.id AND m.user_id = ? WHERE ${ACCESS_SQL} ORDER BY d.updated_at DESC`).bind(owner, owner, owner, owner).all();
+  const listing = `SELECT d.*, ${ROLE_SQL} FROM diagrams d WHERE ${ACCESS_SQL} ORDER BY d.updated_at DESC`;
+  let result = await db.prepare(listing).bind(...asUser(owner, 7)).all();
   const initialized = await db.prepare("SELECT owner FROM workspaces WHERE owner = ?").bind(owner).first();
   if (!initialized) {
     const now = new Date().toISOString();
@@ -28,7 +30,7 @@ export async function listDiagrams(owner: string): Promise<Diagram[]> {
       "INSERT OR IGNORE INTO diagrams (id, owner, name, type, project, source, theme, notes, revision, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).bind(`${owner}-example-${i}`, owner, t.name, t.type, "Mi primer proyecto", t.source, "studio", "", 1, now)),
     db.prepare("INSERT OR IGNORE INTO workspaces (owner, initialized_at) VALUES (?, ?)").bind(owner, now)]);
-    result = await db.prepare(`SELECT d.*, CASE WHEN d.owner = ? THEN 'owner' ELSE m.role END AS access FROM diagrams d LEFT JOIN diagram_members m ON m.diagram_id = d.id AND m.user_id = ? WHERE ${ACCESS_SQL} ORDER BY d.updated_at DESC`).bind(owner, owner, owner, owner).all();
+    result = await db.prepare(listing).bind(...asUser(owner, 7)).all();
   }
   return result.results.map(fromRow);
 }
@@ -37,11 +39,17 @@ export async function getDiagram(owner: string, id: string): Promise<Diagram> {
   return fromRow(await boardAccess(getBinding(), owner, id));
 }
 
-export async function createDiagram(owner: string, data: DiagramInput) {
-  const doc: Diagram = { ...data, id: crypto.randomUUID(), revision: 1, updatedAt: new Date().toISOString() };
+/** Editors of a shared project add diagrams on behalf of its owner, so everyone in the project sees them. */
+export async function createDiagram(user: string, data: DiagramInput, projectOwner?: string) {
+  let owner = user;
+  if (projectOwner && projectOwner !== user) {
+    if (await projectRole(getBinding(), user, projectOwner, data.project) !== "edit") throw new StoreError("Necesitás permiso de edición en el proyecto compartido para agregar diagramas.", 403);
+    owner = projectOwner;
+  }
+  const doc: Diagram = { ...data, id: crypto.randomUUID(), revision: 1, updatedAt: new Date().toISOString(), ...(owner !== user ? { access: "edit" as const, owner } : {}) };
   await getBinding().prepare("INSERT INTO diagrams (id, owner, name, type, project, source, theme, notes, revision, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(doc.id, owner, doc.name, doc.type, doc.project, doc.source, doc.theme, doc.notes, doc.revision, doc.updatedAt).run();
-  return doc;
+  return owner === user ? doc : getDiagram(user, doc.id);
 }
 
 export async function saveDiagram(owner: string, id: string, data: DiagramInput, expectedRevision: number) {
@@ -51,9 +59,10 @@ export async function saveDiagram(owner: string, id: string, data: DiagramInput,
   // Archive only the revision this write owns; the update uses the same compare-and-swap condition.
   const results = await db.batch([
     db.prepare(`INSERT OR IGNORE INTO revisions (id, diagram_id, revision, snapshot, created_at) SELECT id || '-' || revision, id, revision, json_object('id', id, 'name', name, 'type', type, 'project', project, 'source', source, 'theme', theme, 'notes', notes, 'revision', revision, 'updatedAt', updated_at), ? FROM diagrams WHERE id = ? AND ${EDIT_SQL} AND revision = ?`)
-      .bind(now, id, owner, owner, expectedRevision),
-    db.prepare(`UPDATE diagrams SET name = ?, type = ?, project = ?, source = ?, theme = ?, notes = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND ${EDIT_SQL} AND revision = ?`)
-      .bind(data.name, data.type, data.project, data.source, data.theme, data.notes, now, id, owner, owner, expectedRevision),
+      .bind(now, id, ...asUser(owner, 3), expectedRevision),
+    // Only the owner moves a board between projects; that would change who can reach it.
+    db.prepare(`UPDATE diagrams SET name = ?, type = ?, project = CASE WHEN owner = ? THEN ? ELSE project END, source = ?, theme = ?, notes = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND ${EDIT_SQL} AND revision = ?`)
+      .bind(data.name, data.type, owner, data.project, data.source, data.theme, data.notes, now, id, ...asUser(owner, 3), expectedRevision),
   ]);
   if (results[1].meta.changes !== 1) throw new StoreError("El diagrama cambio en otra ventana o en el chat. Descarga tu copia y recarga para ver la última versión.", 409);
   return getDiagram(owner, id);
