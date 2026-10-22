@@ -1,4 +1,4 @@
-import type { Diagram } from "./diagrams";
+import { SOURCE_LIMIT, type Diagram } from "./diagrams.ts";
 import { canvasSettings, cleanSource, readCanvas, writeCanvas } from "./canvas.ts";
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const CONFLICT = Symbol("conflict");
@@ -63,6 +63,9 @@ export function mergeSharedDiagram(base: Diagram, local: Diagram, remote: Diagra
   const frameLinks = record(b.frameLinks || {}, l.frameLinks || {}, r.frameLinks || {});
   if (!frames || !frameLinks) return null;
   merged.frames = frames; merged.frameLinks = frameLinks;
+  const notes = record(b.notes || {}, l.notes || {}, r.notes || {});
+  if (!notes) return null;
+  merged.notes = notes;
   for (const link of Object.values(frameLinks)) {
     if ([link.from, link.to].some(end => end.kind === "frame" && !Object.hasOwn(frames, end.id))) return null;
   }
@@ -80,5 +83,5 @@ export function mergeSharedDiagram(base: Diagram, local: Diagram, remote: Diagra
     merged.strokes = [...remoteStrokes, ...added];
   } else merged.strokes = strokes;
   const combined = writeCanvas(source, merged);
-  return combined.length <= 80000 ? { ...result, source: combined } : null;
+  return combined.length <= SOURCE_LIMIT ? { ...result, source: combined } : null;
 }

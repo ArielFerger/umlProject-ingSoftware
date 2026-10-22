@@ -1,9 +1,12 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon } from "lucide-react";
+import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon, Type, StickyNote, Highlighter } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
-import { CanvasModel, applyCanvas, measureClasses, exportCanvas, lazyExportCanvas, edgeControls, scaleEdgeControls, renderStrokes } from "@/lib/svg-canvas";
+import { CanvasModel, applyCanvas, measureClasses, exportCanvas, lazyExportCanvas, edgeControls, scaleEdgeControls, renderStrokes, renderStrokeSelection } from "@/lib/svg-canvas";
+import { simplify, straightLine, streamline, type InkPoint, type InkTool } from "@/lib/freehand";
+import { SOURCE_LIMIT } from "@/lib/diagrams";
+import CanvasNotes from "./canvas-notes";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasFrames from "./canvas-frames";
@@ -20,9 +23,9 @@ import { chenLayout, derIdFromLabel, isDerRelationship } from "@/lib/der";
 let renderQueue: Promise<unknown> = Promise.resolve();
 
 export type SvgResult = { svg: string; width: number; height: number; center?: Point };
-type ToolMode = "move" | "hand" | "place" | "connect" | "draw" | "erase";
+type ToolMode = "move" | "hand" | "place" | "connect" | "draw" | "erase" | "text" | "sticky";
 type Drag = {
-  kind: "node" | "pan" | "edge" | "draw" | "erase" | "marquee";
+  kind: "node" | "pan" | "edge" | "draw" | "erase" | "marquee" | "stroke";
   name?: string;
   x: number;
   y: number;
@@ -39,22 +42,35 @@ type Drag = {
   group?: { name: string; start: Point }[];
   /** Selection box: elements already selected when it started with Ctrl/⌘ or Shift. */
   additive?: string[];
+  /** Pencil: pointer positions before smoothing, and the stroke being moved. */
+  raw?: InkPoint[];
+  strokeIndex?: number;
 };
 
 const PEN_COLORS = [
+  { value: "#1f2937", label: "Negro" },
   { value: "#1a647b", label: "Petróleo" },
-  { value: "#253b48", label: "Grafito" },
-  { value: "#a63d43", label: "Rojo" },
-  { value: "#276e62", label: "Verde" },
-  { value: "#97521e", label: "Naranja" },
-  { value: "#2a638a", label: "Azul" },
+  { value: "#2563eb", label: "Azul" },
+  { value: "#7c3aed", label: "Violeta" },
+  { value: "#db2777", label: "Rosa" },
+  { value: "#dc2626", label: "Rojo" },
+  { value: "#ea580c", label: "Naranja" },
+  { value: "#eab308", label: "Amarillo" },
+  { value: "#16a34a", label: "Verde" },
+  { value: "#ffffff", label: "Blanco" },
 ] as const;
+const PEN_SIZES: Record<InkTool, number[]> = { pen: [2, 3.5, 6, 10], marker: [12, 20, 32] };
 
 function roundPoint(p: Point): Point {
   return {
     x: Math.max(-19000, Math.min(19000, Math.round(p.x * 10) / 10)),
     y: Math.max(-19000, Math.min(19000, Math.round(p.y * 10) / 10)),
   };
+}
+
+/** Pointer capture fails when the pointer already ended (or never was active); dragging still works without it. */
+function capturePointer(e: React.PointerEvent<Element>) {
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* No active pointer with that id. */ }
 }
 
 function distanceToSegment(p: Point, a: Point, b: Point) {
@@ -117,8 +133,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [showGrid, setShowGrid] = useState(true);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [penColor, setPenColor] = useState<string>("#1a647b");
-  const [penWidth, setPenWidth] = useState<number>(3);
+  const [penColor, setPenColor] = useState<string>("#1f2937");
+  const [penTool, setPenTool] = useState<InkTool>("pen");
+  const [penSizes, setPenSizes] = useState<Record<InkTool, number>>({ pen: 3.5, marker: 20 });
+  const penWidth = penSizes[penTool];
+  const [selectedStroke, setSelectedStroke] = useState(-1);
   const [localFocus, setLocalFocus] = useState(false);
   const isFocused = focused ?? localFocus;
   const [relationKind, setRelationKind] = useState<RelationKind>("-->");
@@ -222,7 +241,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => () => { if (viewRaf.current) cancelAnimationFrame(viewRaf.current); clearTimeout(movingTimer.current); }, []);
 
   function activateTool(tool: ToolMode) {
-    setMode(tool); setOrigin(""); setContext(null); setShowShortcuts(false);
+    setMode(tool); setOrigin(""); setContext(null); setShowShortcuts(false); if (tool !== "move") setSelectedStroke(-1);
     viewport.current?.focus({ preventScroll: true });
   }
 
@@ -265,6 +284,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => {
     if (!insertRequest || !onSourceChange) return;
     setFormError("");
+    // Text and sticky notes are board tools: the next click places them.
+    if (insertRequest.kind === "text" || insertRequest.kind === "sticky") { activateTool(insertRequest.kind); setFeedback(insertRequest.kind === "text" ? "Hacé clic en el tablero para escribir un texto." : "Hacé clic en el tablero para pegar una nota adhesiva."); return; }
     if (isClass) {
       if (insertRequest.kind === "class") openClass("", undefined);
       return;
@@ -454,7 +475,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   }, [result, settings, busy, error, diagram.theme, dark, diagram.id, fit, isClass, isSequence, initialFit, content, withLayout]);
 
   useEffect(() => {
-    setGroup([]); setMarquee(null); setDeleteGroup([]);
+    setGroup([]); setMarquee(null); setDeleteGroup([]); setSelectedStroke(-1);
     setMode("move"); setOrigin(""); setSelectedNode(""); setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; setEdgeForm(null); setEdgeDelete(null); setContext(null); setClassForm(null); setNodeForm(null); setConnectionForm(null); setVisualKind(""); setDeleteTarget(""); setFeedback(""); pendingLink.current = null; pendingNode.current = ""; prevViewCenter.current = null; hadSize.current = false;
   }, [diagram.id]);
   useEffect(() => {
@@ -632,6 +653,35 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       }
     }
   }
+  const strokeChoice = selectedStroke >= 0 ? settings.strokes?.[selectedStroke] : undefined;
+  useEffect(() => {
+    const svg = root();
+    if (svg && !busy && !error) renderStrokeSelection(svg, mode === "move" ? strokeChoice || null : null, viewState.current.zoom);
+  }, [strokeChoice, result, busy, error, mode, zoom]);
+  /** Topmost pencil stroke under a board point, or -1. */
+  function strokeAt(pt: Point) {
+    const strokes = settingsRef.current.strokes || [];
+    for (let i = strokes.length - 1; i >= 0; i--) if (pointNearStroke(pt, strokes[i], 7 / Math.max(.2, viewState.current.zoom))) return i;
+    return -1;
+  }
+  /** Writes pencil changes unless they would exceed the size a board can store. */
+  function commitStrokes(next: CanvasStroke[]) {
+    const candidate = { ...settingsRef.current, strokes: next.length ? next : undefined };
+    if (writeCanvas(diagram.source, candidate).length > SOURCE_LIMIT) { setFeedback("El tablero llegó a su tamaño máximo: borrá algunos trazos para seguir dibujando."); const svg = root(); if (svg) renderStrokes(svg, settingsRef.current.strokes); return false; }
+    changeSettings({ strokes: candidate.strokes });
+    return true;
+  }
+  function inkPoint(e: React.PointerEvent): InkPoint {
+    const pt = roundPoint(clientPoint(e.clientX, e.clientY));
+    // Only pens report real pressure; a mouse always reads 0.5 while pressed.
+    return e.pointerType === "pen" && e.pressure > 0 ? { ...pt, p: Math.round(e.pressure * 100) / 100 } : pt;
+  }
+  function colorSelection(color?: string) {
+    const colors = { ...settingsRef.current.nodeColors };
+    for (const name of multi ? selectedGroup : selection ? [selection] : []) { if (color) colors[name] = color; else delete colors[name]; }
+    changeSettings({ nodeColors: colors });
+  }
+
   /** Ctrl/⌘ + click: add or remove one element from the selection. */
   function toggleInGroup(name: string) {
     const base = multi ? selectedGroup : selection ? [selection] : [];
@@ -647,7 +697,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     setSelectedNode(names.at(-1) || "");
     if (names.length > 1) setFeedback(`${names.length} elementos seleccionados. Arrastrá cualquiera para moverlos juntos.`);
   }
-  function clearSelection() { setGroup([]); setSelectedNode(""); setSelectedEdge(""); }
+  function clearSelection() { setGroup([]); setSelectedNode(""); setSelectedEdge(""); setSelectedStroke(-1); }
   /** Elements whose box touches the screen rectangle drawn with the selection box. */
   function namesInside(x1: number, y1: number, x2: number, y2: number) {
     const a = clientPoint(Math.min(x1, x2), Math.min(y1, y2)), b = clientPoint(Math.max(x1, x2), Math.max(y1, y2));
@@ -816,7 +866,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (e.key === "Escape") {
       e.preventDefault();
       if (showShortcuts) setShowShortcuts(false);
-      else if (mode !== "move" || selection || selectedEdge || multi) {
+      else if (mode !== "move" || selection || selectedEdge || multi || selectedStroke >= 0) {
         activateTool("move"); clearSelection();
       } else if (isFocused) toggleFocus(false);
       return;
@@ -842,7 +892,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (key === "0") { e.preventDefault(); setViewZoom(1); return; }
     if (key === "+" || key === "=" || key === "-") { e.preventDefault(); changeZoom(key === "-" ? -.1 : .1); return; }
     if (!onSourceChange) return;
-    const tools: Record<string, ToolMode> = { c: "connect", p: "draw", e: "erase" };
+    if (selectedStroke >= 0 && strokeChoice && (key === "delete" || key === "backspace")) { e.preventDefault(); commitStrokes((settings.strokes || []).filter((_, i) => i !== selectedStroke)); setSelectedStroke(-1); return; }
+    const tools: Record<string, ToolMode> = { c: "connect", p: "draw", e: "erase", t: "text", k: "sticky" };
+    if (key === "m") { e.preventDefault(); setPenTool("marker"); activateTool("draw"); return; }
     if (tools[key]) { e.preventDefault(); activateTool(tools[key]); return; }
     if (key === "n") { e.preventDefault(); if (isSequence) openClass(); else activateTool("place"); return; }
     if (key === "s" && !isSequence) { e.preventDefault(); setSnapToGrid(v => !v); return; }
@@ -850,7 +902,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     if (selection && (key === "delete" || key === "backspace")) { e.preventDefault(); setFormError(""); setDeleteTarget(selection); }
   }
 
-  const modeLabel = { move: "Seleccionar", hand: "Mover lienzo", place: isClass ? "Nueva clase" : "Nuevo elemento", connect: "Conectar", draw: "Lápiz", erase: "Borrador" }[spaceHeld ? "hand" : mode];
+  const modeLabel = { move: "Seleccionar", hand: "Mover lienzo", place: isClass ? "Nueva clase" : "Nuevo elemento", connect: "Conectar", draw: penTool === "marker" ? "Resaltador" : "Lápiz", erase: "Borrador", text: "Texto", sticky: "Nota adhesiva" }[spaceHeld ? "hand" : mode];
   const cellSize = gridSpacing(zoom);
 
   return <div className={"diagram-preview-shell board-shell" + (dark ? " board-dark" : "") + (isFocused ? " is-focused" : "")} onKeyDown={canvasShortcut}
@@ -875,28 +927,37 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     {showShortcuts && <section className="board-shortcuts" aria-label="Atajos de teclado">
       <header><strong>Tu lienzo, a mano</strong><button className="icon-btn" aria-label="Cerrar atajos" onClick={() => setShowShortcuts(false)}><X size={16} /></button></header>
       <p>Usá los atajos con el foco en el tablero.</p>
-      <dl>{[["Seleccionar", "V"], ["Mano", "H"], ["Mano temporal", "Espacio"], ...(onSourceChange ? [["Añadir elemento", "N"], ["Conectar", "C"], ["Lápiz / borrador", "P / E"], ["Selección múltiple", "Arrastrar en vacío"], ["Sumar / quitar de la selección", "Ctrl/⌘ clic"], ["Seleccionar todo", "Ctrl/⌘ A"]] : []), ["Ajustar / 100%", "1 / 0"], ["Cuadrícula", "G"], ["Modo foco", "F"], ...(onUndo ? [["Deshacer / rehacer", "Ctrl/⌘ Z / ⇧ Z"]] : [])].map(([label, key]) => <div key={label}><dt>{label}</dt><dd><kbd>{key}</kbd></dd></div>)}</dl>
+      <dl>{[["Seleccionar", "V"], ["Mano", "H"], ["Mano temporal", "Espacio"], ...(onSourceChange ? [["Añadir elemento", "N"], ["Conectar", "C"], ["Lápiz / resaltador / borrador", "P / M / E"], ["Texto / nota adhesiva", "T / K"], ["Selección múltiple", "Arrastrar en vacío"], ["Sumar / quitar de la selección", "Ctrl/⌘ clic"], ["Seleccionar todo", "Ctrl/⌘ A"]] : []), ["Ajustar / 100%", "1 / 0"], ["Cuadrícula", "G"], ["Modo foco", "F"], ...(onUndo ? [["Deshacer / rehacer", "Ctrl/⌘ Z / ⇧ Z"]] : [])].map(([label, key]) => <div key={label}><dt>{label}</dt><dd><kbd>{key}</kbd></dd></div>)}</dl>
       <footer>Rueda para zoom · Mayús + rueda para desplazar · Esc para cancelar</footer>
     </section>}
     {mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><select aria-label="Relación rápida" value={activeKind} onChange={e => { if (isClass) setRelationKind(e.target.value as RelationKind); else setVisualKind(e.target.value); setOrigin(""); }}>{availableRelations.map(item => <option key={item.value} value={item.value}>{item.name}</option>)}</select>{isClass && <button className="icon-btn" title="Guía de relaciones UML" aria-label="Guía de relaciones UML" onClick={() => callbacks.current.onGuide(relationKind)}><BookOpen size={16} /></button>}<span>{origin ? origin + " → elegí el destino" : "Elegí el origen y después el destino"}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
-    {(mode === "draw" || mode === "erase") && onSourceChange && <div className="connection-prompt pencil-prompt" role="toolbar" aria-label="Opciones del lápiz">
-      <Pencil size={14} />
-      <span>{mode === "draw" ? "Lápiz activo · dibujá sobre el lienzo" : "Borrador activo · tocá o arrastrá sobre un trazo"}</span>
-      <div className="pencil-swatches" role="group" aria-label="Color del lápiz">
-        {PEN_COLORS.map(c => <button key={c.value} type="button" className={"pencil-swatch" + (penColor === c.value && mode === "draw" ? " active" : "")} style={{ backgroundColor: c.value }} title={`Color ${c.label}`} aria-label={`Color ${c.label}`} aria-pressed={penColor === c.value} onClick={() => { setPenColor(c.value); setMode("draw"); }} />)}
+    {(mode === "draw" || mode === "erase") && onSourceChange && <div className="ink-toolbar" role="toolbar" aria-label="Opciones del lápiz" onPointerDown={e => e.stopPropagation()}>
+      <div className="ink-tools" role="group" aria-label="Herramienta">
+        <button type="button" className={"ink-tool" + (mode === "draw" && penTool === "pen" ? " active" : "")} aria-pressed={mode === "draw" && penTool === "pen"} title="Lápiz (P)" onClick={() => { setPenTool("pen"); setMode("draw"); }}><Pencil size={17} /><span>Lápiz</span></button>
+        <button type="button" className={"ink-tool" + (mode === "draw" && penTool === "marker" ? " active" : "")} aria-pressed={mode === "draw" && penTool === "marker"} title="Resaltador (M)" onClick={() => { setPenTool("marker"); setMode("draw"); }}><Highlighter size={17} /><span>Resaltador</span></button>
+        <button type="button" className={"ink-tool" + (mode === "erase" ? " active" : "")} aria-pressed={mode === "erase"} title="Borrador (E)" disabled={!settings.strokes?.length} onClick={() => setMode("erase")}><Eraser size={17} /><span>Borrador</span></button>
       </div>
-      <label className="pencil-size-label">Grosor
-        <select aria-label="Grosor del lápiz" value={penWidth} onChange={e => { setPenWidth(Number(e.target.value)); setMode("draw"); }}>
-          <option value={2}>Fino (2 px)</option>
-          <option value={3}>Medio (3 px)</option>
-          <option value={5}>Grueso (5 px)</option>
-          <option value={8}>Marcador (8 px)</option>
-        </select>
-      </label>
-      <button type="button" className={"icon-btn " + (mode === "erase" ? "active" : "")} title="Borrador de trazos" aria-label="Activar borrador" disabled={!settings.strokes?.length} onClick={() => setMode(m => m === "erase" ? "draw" : "erase")}><Eraser size={15} /></button>
-      <button type="button" className="icon-btn" title="Deshacer último trazo" aria-label="Deshacer último trazo" disabled={!settings.strokes?.length} onClick={undoStroke}><Undo2 size={15} /></button>
-      <button type="button" className="icon-btn" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos" disabled={!settings.strokes?.length} onClick={clearStrokes}><Trash2 size={15} /></button>
-      <button type="button" className="icon-btn" title="Salir del modo lápiz" aria-label="Salir del modo lápiz" onClick={() => setMode("move")}><X size={14} /></button>
+      <span className="board-control-divider" />
+      <div className="ink-swatches" role="group" aria-label="Color">
+        {PEN_COLORS.map(c => <button key={c.value} type="button" className={"ink-swatch" + (penColor === c.value ? " active" : "")} style={{ backgroundColor: c.value }} title={c.label} aria-label={`Color ${c.label}`} aria-pressed={penColor === c.value} onClick={() => { setPenColor(c.value); setMode("draw"); }} />)}
+        <label className={"ink-swatch ink-custom" + (!PEN_COLORS.some(c => c.value === penColor) ? " active" : "")} title="Otro color"><input type="color" aria-label="Otro color" value={penColor} onChange={e => { setPenColor(e.target.value); setMode("draw"); }} /></label>
+      </div>
+      <span className="board-control-divider" />
+      <div className="ink-sizes" role="group" aria-label="Grosor">
+        {PEN_SIZES[penTool].map(size => <button key={size} type="button" className={"ink-size" + (penWidth === size ? " active" : "")} aria-pressed={penWidth === size} title={`${size} px`} aria-label={`Grosor ${size} píxeles`} onClick={() => { setPenSizes(current => ({ ...current, [penTool]: size })); setMode("draw"); }}><span style={{ width: Math.min(22, size + 2), height: Math.min(22, size + 2), background: penColor, opacity: penTool === "marker" ? .45 : 1 }} /></button>)}
+      </div>
+      <span className="board-control-divider" />
+      <button type="button" className="icon-btn" title="Deshacer último trazo" aria-label="Deshacer último trazo" disabled={!settings.strokes?.length} onClick={undoStroke}><Undo2 size={16} /></button>
+      <button type="button" className="icon-btn" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos" disabled={!settings.strokes?.length} onClick={clearStrokes}><Trash2 size={16} /></button>
+      <button type="button" className="icon-btn" title="Listo (V)" aria-label="Salir del modo lápiz" onClick={() => activateTool("move")}><Check size={16} /></button>
+      <span className="ink-hint">{mode === "erase" ? "Tocá o arrastrá sobre un trazo para borrarlo" : "Mantené Mayús para una línea recta"}</span>
+    </div>}
+    {strokeChoice && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label="Trazo seleccionado" onPointerDown={e => e.stopPropagation()}>
+      <strong>{strokeChoice.tool === "marker" ? <Highlighter size={15} /> : <Pencil size={15} />}Trazo</strong><span className="board-control-divider" />
+      <div className="ink-swatches" role="group" aria-label="Color del trazo">{PEN_COLORS.map(c => <button key={c.value} type="button" className={"ink-swatch" + (strokeChoice.color === c.value ? " active" : "")} style={{ backgroundColor: c.value }} title={c.label} aria-label={`Color ${c.label}`} onClick={() => commitStrokes((settings.strokes || []).map((stroke, i) => i === selectedStroke ? { ...stroke, color: c.value } : stroke))} />)}</div>
+      <span className="node-selection-hint">Arrastralo para moverlo</span>
+      <button className="icon-btn board-delete" title="Eliminar trazo (Supr)" aria-label="Eliminar trazo" onClick={() => { commitStrokes((settings.strokes || []).filter((_, i) => i !== selectedStroke)); setSelectedStroke(-1); }}><Trash2 size={16} /></button>
+      <button className="icon-btn" title="Deseleccionar (Esc)" aria-label="Deseleccionar trazo" onClick={() => setSelectedStroke(-1)}><X size={15} /></button>
     </div>}
     {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
       <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
@@ -918,6 +979,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     </div>}
     <div className="canvas-stage">
       {isClass && <CanvasFrames key={diagram.id} settings={settings} renderKey={result} addRequest={frameRequest} zoom={zoom} active={mode === "move" && !spaceHeld && !busy && !error} otherSelection={selection || selectedEdge} root={root} nodes={() => model.current.nodes} point={clientPoint} preview={next => showSettings(next)} commit={onSourceChange ? next => callbacks.current.onSourceChange && callbacks.current.onSettingsChange(next) : undefined} select={() => { setSelectedNode(""); setSelectedEdge(""); }} />}
+      <CanvasNotes key={"notes-" + diagram.id} settings={settings} renderKey={result} zoom={zoom} dark={dark} active={mode === "move" && !spaceHeld && !busy && !error} placing={mode === "text" || mode === "sticky" ? mode : null}
+        root={root} viewport={() => viewport.current} point={clientPoint} commit={onSourceChange ? next => callbacks.current.onSettingsChange(next) : undefined}
+        onPlaced={() => setMode("move")} onSelect={() => { clearSelection(); }} />
       <aside className="draw-side-toolbar" role="toolbar" aria-label="Herramientas del lienzo" aria-orientation="vertical">
         <button className={"icon-btn board-tool " + (mode === "move" && !spaceHeld ? "active" : "")} data-tooltip="Seleccionar · V" title="Seleccionar y mover (V)" aria-label="Seleccionar y mover" aria-pressed={mode === "move"} onClick={() => activateTool("move")}><MousePointer2 size={20} /></button>
         <button className={"icon-btn board-tool " + (mode === "hand" || spaceHeld ? "active" : "")} data-tooltip="Mano · H / Espacio" title="Mover lienzo (H o mantener Espacio)" aria-label="Mover lienzo" aria-pressed={mode === "hand" || spaceHeld} onClick={() => activateTool("hand")}><Hand size={20} /></button>
@@ -927,8 +991,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           <button className={"icon-btn board-tool " + (mode === "connect" ? "active" : "")} data-tooltip="Conectar · C" title="Conectar elementos (C)" aria-label="Conectar elementos" aria-pressed={mode === "connect"} disabled={busy || !!error} onClick={() => activateTool(mode === "connect" ? "move" : "connect")}><Link2 size={20} /></button>
           <span className="draw-toolbar-divider" />
           {isClass && <button className="icon-btn board-tool" data-tooltip="Marco de módulo" title="Crear marco de módulo" aria-label="Crear marco de módulo" disabled={busy || !!error} onClick={() => { activateTool("move"); setSelectedNode(""); setSelectedEdge(""); setFrameRequest(value => value + 1); }}><FrameIcon size={20} /></button>}
-          <button className={"icon-btn board-tool " + (mode === "draw" ? "active" : "")} data-tooltip="Lápiz · P" title="Lápiz (P)" aria-label="Lápiz" aria-pressed={mode === "draw"} disabled={busy || !!error} onClick={() => activateTool(mode === "draw" ? "move" : "draw")}><Pencil size={20} /></button>
+          <button className={"icon-btn board-tool " + (mode === "draw" ? "active" : "")} data-tooltip="Lápiz · P" title="Lápiz (P)" aria-label="Lápiz" aria-pressed={mode === "draw"} disabled={busy || !!error} onClick={() => { if (mode !== "draw") setPenTool("pen"); activateTool(mode === "draw" ? "move" : "draw"); }}><Pencil size={20} /></button>
           <button className={"icon-btn board-tool " + (mode === "erase" ? "active" : "")} data-tooltip="Borrador · E" title="Borrador (E)" aria-label="Borrador" aria-pressed={mode === "erase"} disabled={busy || !!error} onClick={() => activateTool(mode === "erase" ? "move" : "erase")}><Eraser size={20} /></button>
+          <button className={"icon-btn board-tool " + (mode === "text" ? "active" : "")} data-tooltip="Texto · T" title="Texto (T)" aria-label="Agregar texto" aria-pressed={mode === "text"} disabled={busy || !!error} onClick={() => activateTool(mode === "text" ? "move" : "text")}><Type size={20} /></button>
+          <button className={"icon-btn board-tool " + (mode === "sticky" ? "active" : "")} data-tooltip="Nota adhesiva · K" title="Nota adhesiva (K)" aria-label="Agregar nota adhesiva" aria-pressed={mode === "sticky"} disabled={busy || !!error} onClick={() => activateTool(mode === "sticky" ? "move" : "sticky")}><StickyNote size={20} /></button>
           <span className="draw-toolbar-divider" />
           <button className="icon-btn board-tool" data-tooltip="Ordenar elementos" title="Ordenar automáticamente" aria-label="Ordenar automáticamente" disabled={busy || !!error || isSequence} onClick={arrange}><LayoutGrid size={20} /></button>
 
@@ -940,20 +1006,21 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       </div>}
       {multi && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label="Acciones de la selección">
         <strong>{selectedGroup.length} elementos</strong><span className="board-control-divider" />
+        {!isSequence && <CanvasColors label="Color de la selección" value={selectedGroup.every(name => settings.nodeColors?.[name] && settings.nodeColors[name] === settings.nodeColors?.[selectedGroup[0]]) ? settings.nodeColors?.[selectedGroup[0]] : undefined} onChange={colorSelection} />}
         <span className="node-selection-hint">Arrastrá o usá las flechas para moverlos</span>
         <button className="icon-btn board-delete" title="Eliminar selección (Supr)" aria-label="Eliminar elementos seleccionados" onClick={() => { setFormError(""); setDeleteGroup(selectedGroup); }}><Trash2 size={16} /></button>
         <button className="icon-btn" title="Deseleccionar (Esc)" aria-label="Deseleccionar todo" onClick={clearSelection}><X size={15} /></button>
       </div>}
       {!multi && selection && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label={"Acciones de " + selection}>
         <strong>{selection}</strong><span className="board-control-divider" />
-        {isClass && <CanvasColors label="Color de clase" value={settings.nodeColors && Object.hasOwn(settings.nodeColors, selection) ? settings.nodeColors[selection] : undefined} onChange={color => changeColor("nodeColors", selection, color)} />}
+        {!isSequence && <CanvasColors label={isClass ? "Color de clase" : "Color del elemento"} value={settings.nodeColors && Object.hasOwn(settings.nodeColors, selection) ? settings.nodeColors[selection] : undefined} onChange={color => changeColor("nodeColors", selection, color)} />}
         <button className="icon-btn" title="Editar elemento" aria-label="Editar elemento seleccionado" onClick={() => openClass(selection)}><Pencil size={16} /></button>
         <button className="icon-btn" title="Duplicar elemento" aria-label="Duplicar elemento seleccionado" onClick={() => copyClass(selection)}><Copy size={16} /></button>
         <button className="icon-btn" title="Conectar desde aquí" aria-label="Conectar elemento seleccionado" onClick={() => { activateTool("connect"); setOrigin(selection); }}><Link2 size={16} /></button>
         <button className="icon-btn board-delete" title="Eliminar elemento" aria-label="Eliminar elemento seleccionado" onClick={() => { setFormError(""); setDeleteTarget(selection); }}><Trash2 size={16} /></button>
         <button className="icon-btn" title="Deseleccionar" aria-label="Deseleccionar elemento" onClick={() => setSelectedNode("")}><X size={15} /></button>
       </div>}
-      <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting " : "") + (mode === "place" ? "placing " : "") + (mode === "draw" ? "drawing " : "") + (mode === "erase" ? "erasing " : "") + (mode === "hand" || spaceHeld ? "hand-tool " : "") + (panning ? "is-panning" : "")} ref={viewport} tabIndex={0}
+      <div className={"diagram-viewport " + (dark ? "canvas-dark " : "") + (mode === "connect" ? "connecting " : "") + (mode === "place" ? "placing " : "") + (mode === "text" || mode === "sticky" ? "placing-note " : "") + (mode === "draw" ? "drawing " : "") + (mode === "erase" ? "erasing " : "") + (mode === "hand" || spaceHeld ? "hand-tool " : "") + (panning ? "is-panning" : "")} ref={viewport} tabIndex={0}
         style={{ backgroundImage: showGrid ? undefined : "none", backgroundSize: `${cellSize}px ${cellSize}px`, backgroundPosition: `calc(50% + ${pan.x - (result?.center?.x || 0) * zoom}px) calc(50% + ${pan.y - (result?.center?.y || 0) * zoom}px)` }} aria-label={"Lienzo de " + diagram.name}
         onFocusCapture={event => { const name = (event.target as Element).closest("[data-class]")?.getAttribute("data-class"); if (name) setSelectedNode(name); }}
         onContextMenu={e => { e.preventDefault(); drag.current = null; const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id"); if (edgeId) { selectEdge(edgeId); return; } const node = (e.target as Element).closest("[data-class]"); const box = (node || e.currentTarget).getBoundingClientRect(); const pt = roundPoint(clientPoint(e.clientX || box.x + box.width / 2, e.clientY || box.y + box.height / 2)); openContext(e.clientX || box.x + Math.min(box.width / 2, 180), e.clientY || box.y + Math.min(box.height / 2, 160), node?.getAttribute("data-class") || "", pt); }}
@@ -964,16 +1031,16 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (e.button === 1 || mode === "hand" || spaceHeld) {
             e.preventDefault(); e.currentTarget.focus({ preventScroll: true });
             drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: viewState.current.pan, moved: false, navigationOnly: true };
-            setPanning(true); e.currentTarget.setPointerCapture(e.pointerId); return;
+            setPanning(true); capturePointer(e); return;
           }
           if (!(e.target as Element).closest("[data-class],[data-edge-id]")) e.currentTarget.focus({ preventScroll: true });
           if (mode === "draw" && onSourceChange && !busy && !error) {
             e.preventDefault();
-            const pt = roundPoint(clientPoint(e.clientX, e.clientY));
-            drag.current = { kind: "draw", x: e.clientX, y: e.clientY, start: pt, moved: false, points: [pt] };
+            const pt = inkPoint(e);
+            drag.current = { kind: "draw", x: e.clientX, y: e.clientY, start: pt, moved: false, points: [pt], raw: [pt] };
             const svg = root();
-            if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: [pt], color: penColor, width: penWidth });
-            e.currentTarget.setPointerCapture(e.pointerId);
+            if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: [pt], color: penColor, width: penWidth, tool: penTool });
+            capturePointer(e);
             return;
           }
           if (mode === "erase" && onSourceChange && !busy && !error) {
@@ -984,7 +1051,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             const erased = filtered.length !== currentStrokes.length;
             drag.current = { kind: "erase", x: e.clientX, y: e.clientY, start: pt, moved: false, strokes: filtered, erased };
             if (erased) { const svg = root(); if (svg) renderStrokes(svg, filtered); }
-            e.currentTarget.setPointerCapture(e.pointerId);
+            capturePointer(e);
             return;
           }
           const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
@@ -992,7 +1059,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (edgeId && handle && onSourceChange && !busy && !error) {
             e.preventDefault();
             drag.current = { kind: "edge", edgeId, handle: handle.getAttribute("data-handle")!, x: e.clientX, y: e.clientY, start: clientPoint(e.clientX, e.clientY), moved: false };
-            e.currentTarget.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
           }
           if (edgeId && mode !== "place") { e.preventDefault(); selectEdge(edgeId); Array.from(root()?.querySelectorAll<SVGElement>(".studio-edge-target") || []).find(el => el.getAttribute("data-edge-id") === edgeId)?.focus({ preventScroll: true }); return; }
           const node = (e.target as Element).closest("[data-class]");
@@ -1005,25 +1072,38 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             setSelectedNode(name);
             drag.current = { kind: "node", name, x: e.clientX, y: e.clientY, start: positions.current[name] || { x: 0, y: 0 }, moved: false,
               group: together ? selectedGroup.map(member => ({ name: member, start: positions.current[member] || { x: 0, y: 0 } })) : undefined };
+          } else if (mode === "move" && onSourceChange && !busy && !error && strokeAt(clientPoint(e.clientX, e.clientY)) >= 0) {
+            const index = strokeAt(clientPoint(e.clientX, e.clientY));
+            clearSelection(); setSelectedStroke(index);
+            drag.current = { kind: "stroke", x: e.clientX, y: e.clientY, start: { x: 0, y: 0 }, moved: false, strokeIndex: index };
           } else if (mode === "move" && e.pointerType !== "touch" && onSourceChange && !isSequence && !busy && !error) {
             // Dragging on empty board draws a selection box; the hand tool, Space and the middle button still pan.
             drag.current = { kind: "marquee", x: e.clientX, y: e.clientY, start: { x: 0, y: 0 }, moved: false, additive: additive || e.shiftKey ? (multi ? selectedGroup : selection ? [selection] : []) : [] };
           } else { drag.current = { kind: "pan", x: e.clientX, y: e.clientY, start: viewState.current.pan, moved: false }; setPanning(true); }
-          e.currentTarget.setPointerCapture(e.pointerId);
+          capturePointer(e);
         }}
         onPointerMove={e => {
           if (!drag.current) { updateHoveredEdge((e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id") || ""); return; }
           const d = drag.current; if (!d) return;
           const dx = e.clientX - d.x, dy = e.clientY - d.y;
           if (Math.abs(dx) + Math.abs(dy) > 5) d.moved = true;
-          if (d.kind === "draw" && d.points) {
-            const pt = roundPoint(clientPoint(e.clientX, e.clientY));
-            const last = d.points[d.points.length - 1];
-            if (Math.hypot(pt.x - last.x, pt.y - last.y) >= 1.5 / Math.max(.2, viewState.current.zoom) && d.points.length < 1500) {
-              d.points.push(pt);
-              const svg = root();
-              if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: d.points, color: penColor, width: penWidth });
-            }
+          if (d.kind === "draw" && d.points && d.raw) {
+            const pt = inkPoint(e), last = d.raw[d.raw.length - 1];
+            if (e.shiftKey) d.points = straightLine(d.raw[0], pt);
+            else if (Math.hypot(pt.x - last.x, pt.y - last.y) >= 1.2 / Math.max(.2, viewState.current.zoom) && d.raw.length < 4000) {
+              // Each point moves part of the way toward the pointer; the ink catches up on release.
+              d.raw.push(pt); d.points.push(streamline(d.points.at(-1)!, pt));
+            } else return;
+            const svg = root();
+            if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: d.points, color: penColor, width: penWidth, tool: penTool });
+            return;
+          }
+          if (d.kind === "stroke" && d.strokeIndex !== undefined && d.moved) {
+            const strokes = settingsRef.current.strokes || [], zoomNow = viewState.current.zoom;
+            const moved = strokes.map((stroke, i) => i !== d.strokeIndex ? stroke : { ...stroke, points: stroke.points.map(p => ({ ...p, x: Math.round((p.x + dx / zoomNow) * 10) / 10, y: Math.round((p.y + dy / zoomNow) * 10) / 10 })) });
+            d.strokes = moved;
+            const svg = root();
+            if (svg) { renderStrokes(svg, moved); renderStrokeSelection(svg, moved[d.strokeIndex], zoomNow); }
             return;
           }
           if (d.kind === "erase") {
@@ -1058,11 +1138,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
           if (!d || d.navigationOnly) return;
           if (d.kind === "draw" && d.points?.length) {
-            const stroke: CanvasStroke = { points: d.points, color: penColor, width: penWidth };
+            const finished = e.shiftKey || !d.raw || d.raw.length < 2 ? d.points : [...d.points, d.raw.at(-1)!];
+            const points = simplify(finished, .45 / Math.max(.2, viewState.current.zoom)).slice(0, 1500);
+            const stroke: CanvasStroke = { points, color: penColor, width: penWidth, tool: penTool };
             const nextStrokes = [...(settingsRef.current.strokes || []).slice(-299), stroke];
-            changeSettings({ strokes: nextStrokes });
-            const svg = root();
-            if (svg) renderStrokes(svg, nextStrokes);
+            if (commitStrokes(nextStrokes)) { const svg = root(); if (svg) renderStrokes(svg, nextStrokes); }
+            return;
+          }
+          if (d.kind === "stroke") {
+            if (d.moved && d.strokes) commitStrokes(d.strokes);
             return;
           }
           if (d.kind === "erase") {
@@ -1152,7 +1236,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           dangerouslySetInnerHTML={markup} />}
         {busy && <div className="canvas-loading"><LoaderCircle size={16} className="spin" />Renderizando</div>}
         {error && <div className="error-panel" role="alert"><AlertCircle size={19} /><div><strong>Revisa la sintaxis</strong><pre>{error.slice(0, 1600)}</pre></div></div>}
-        {!busy && !error && <span className="canvas-caption"><span className="board-mode-dot" />{modeLabel}<span className="canvas-context-hint">{snapToGrid && onSourceChange && !isSequence ? "Ajuste a 20 px · Alt para mover libremente" : mode === "hand" || spaceHeld ? "Arrastrá para recorrer el tablero" : onSourceChange && !isSequence ? "Arrastrá en vacío para seleccionar varios · Espacio + arrastrar para navegar" : "Espacio + arrastrar para navegar · doble clic para editar"}</span></span>}
+        {!busy && !error && <span className="canvas-caption"><span className="board-mode-dot" />{modeLabel}<span className="canvas-context-hint">{mode === "hand" || spaceHeld ? "Arrastrá para recorrer el tablero"
+          : mode === "draw" ? "Dibujá con el mouse o un lápiz · Mayús para una línea recta · V para terminar"
+          : mode === "erase" ? "Tocá o arrastrá sobre un trazo para borrarlo"
+          : mode === "text" || mode === "sticky" ? "Hacé clic donde quieras escribir · doble clic para editar después"
+          : mode === "connect" ? "Elegí el origen y después el destino"
+          : snapToGrid && onSourceChange && !isSequence ? "Ajuste a 20 px · Alt para mover libremente"
+          : onSourceChange && !isSequence ? "Arrastrá en vacío para seleccionar varios · Espacio + arrastrar para navegar" : "Espacio + arrastrar para navegar · doble clic para editar"}</span></span>}
         {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
         <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
           <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>

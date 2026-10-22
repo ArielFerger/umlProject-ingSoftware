@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { frameSettings, frameLinkSettings } from "./frames.ts";
+import { noteSettings, MAX_NOTES } from "./notes.ts";
 
 const PREFIX = "%% uml-studio: ";
 const point = z.object({ x: z.number().finite().min(-20000).max(20000), y: z.number().finite().min(-20000).max(20000) });
@@ -9,10 +10,14 @@ export const edgeRouteSettings = z.object({
   from: anchor.optional(), to: anchor.optional(),
   points: z.array(point).max(20).default([]),
 });
+// `p` is pen pressure (0–1) when the stroke was drawn with a stylus.
+const inkPoint = point.extend({ p: z.number().min(0).max(1).optional() });
 export const strokeSettings = z.object({
-  points: z.array(point).min(1).max(1500),
+  points: z.array(inkPoint).min(1).max(1500),
   color: z.string().regex(/^#[0-9a-fA-F]{3,8}$/).default("#1a647b"),
-  width: z.number().min(1).max(16).default(2.5),
+  width: z.number().min(1).max(48).default(2.5),
+  // Strokes without a tool predate the ink renderer and keep their original look.
+  tool: z.enum(["pen", "marker"]).optional(),
 });
 export type EdgeRoute = z.infer<typeof edgeRouteSettings>;
 export type EdgeAnchor = z.infer<typeof anchor>;
@@ -28,6 +33,7 @@ export const canvasSettings = z.object({
   strokes: z.array(strokeSettings).max(300).optional(),
   frames: z.record(frameSettings).refine(value => Object.keys(value).length <= 40).optional(),
   frameLinks: z.record(frameLinkSettings).refine(value => Object.keys(value).length <= 100).optional(),
+  notes: z.record(noteSettings).refine(value => Object.keys(value).length <= MAX_NOTES).optional(),
 });
 export type CanvasSettings = z.infer<typeof canvasSettings>;
 export type Point = z.infer<typeof point>;
@@ -40,7 +46,7 @@ export function readCanvas(source: string): CanvasSettings {
     const parsed = canvasSettings.safeParse(JSON.parse(line.trimStart().slice(PREFIX.length)));
     if (!parsed.success) return { ...DEFAULT_CANVAS, positions: {} };
     if (!parsed.data.strokes?.length) delete parsed.data.strokes;
-    for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks"] as const) if (!Object.keys(parsed.data[key] || {}).length) delete parsed.data[key];
+    for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks", "notes"] as const) if (!Object.keys(parsed.data[key] || {}).length) delete parsed.data[key];
     return parsed.data;
   } catch { return { ...DEFAULT_CANVAS, positions: {} }; }
 }
@@ -50,7 +56,7 @@ export function cleanSource(source: string) {
 export function writeCanvas(source: string, settings: CanvasSettings) {
   const parsed = canvasSettings.parse(settings);
   if (!parsed.strokes?.length) delete parsed.strokes;
-  for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks"] as const) if (!Object.keys(parsed[key] || {}).length) delete parsed[key];
+  for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks", "notes"] as const) if (!Object.keys(parsed[key] || {}).length) delete parsed[key];
   return cleanSource(source) + "\n" + PREFIX + JSON.stringify(parsed) + "\n";
 }
 

@@ -2,9 +2,9 @@
 /* eslint-disable @next/next/no-img-element -- Avatars are served by the online gateway behind the session cookie, or are local data URLs; next/image cannot optimize them. */
 
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
-import Link from "next/link";
+import Link from "./nav-link";
 import ThemePicker from "./theme-picker";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users, Diamond, ExternalLink, ImageDown } from "lucide-react";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users, Diamond, ExternalLink, ImageDown, Square, KeyRound, Ellipse, CircleDashed, UserRound, Layers, Type, ArrowRightLeft, Split, RectangleHorizontal, MessageSquareText, Component } from "lucide-react";
 import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
@@ -20,6 +20,12 @@ import type { PresenceEntry } from "@/lib/presence";
 import ProfileDialog, { avatarUrl } from "./profile";
 
 const ICONS = { class: Boxes, sequence: ListTree, state: CircleDot, activity: Workflow, usecase: Shapes, component: Network, er: Database, der: Diamond };
+const TOOL_ICONS: Record<string, typeof Shapes> = {
+  entity: Square, weak: Layers, relationship: Diamond, identifying: Diamond, attribute: Ellipse, key: KeyRound, multivalued: Ellipse, derived: CircleDashed,
+  erlink: ArrowRightLeft, flow: ArrowRightLeft, message: ArrowRightLeft, transition: ArrowRightLeft,
+  actor: UserRound, participant: RectangleHorizontal, usecase: Ellipse, state: RectangleHorizontal, composite: Layers,
+  node: RectangleHorizontal, decisión: Diamond, alternative: Split, loop: RefreshCw, component: Component, database: Database,
+};
 // Browsers refuse canvases beyond ~16k px per side or ~268 Mpx in total.
 const PNG_SCALES = [{ value: 2, label: "2×" }, { value: 4, label: "4×" }, { value: 6, label: "6×" }, { value: 8, label: "8×" }];
 function pngScale(width: number, height: number, requested: number) {
@@ -50,6 +56,12 @@ function presenceColor(userId: string) { let hash = 0; for (const char of userId
 function initials(name: string) { return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]!.toUpperCase()).join("") || "?"; }
 /** Boards from another account are grouped by owner too, so equal project names never merge. */
 function projectKey(d: Diagram) { return d.owner ? `${d.owner}\u0000${d.project}` : d.project; }
+/** Projects a new diagram can go into: your own, and shared ones where you can edit. */
+function projectChoicesFrom(documents: Diagram[]) {
+  const groups = new Map<string, Diagram>();
+  for (const d of documents) if (!d.owner || (d.sharedProject && d.access === "edit")) groups.set(projectKey(d), groups.get(projectKey(d)) || d);
+  return [...groups].map(([key, d]) => ({ key, project: d.project, owner: d.owner, label: d.owner ? `${d.project} · de ${d.ownerName || "otra cuenta"}` : d.project })).sort((a, b) => Number(!!a.owner) - Number(!!b.owner) || a.project.localeCompare(b.project, "es"));
+}
 function filename(name: string) { return name.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-") || "diagrama"; }
 function IconButton({ title, children, onClick, disabled = false, active }: { title: string; children: ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
   return <button type="button" className={"icon-btn " + (active ? "active" : "")} title={title} aria-label={title} aria-pressed={active} onClick={onClick} disabled={disabled}>{children}</button>;
@@ -99,6 +111,8 @@ export default function Studio() {
   const [newType, setNewType] = useState<DiagramType>("class");
   const [newName, setNewName] = useState("Nuevo diagrama");
   const [newProject, setNewProject] = useState("Mi primer proyecto");
+  // Existing project chosen in "Nuevo diagrama" (its group key), or "" to type a new one.
+  const [newProjectKey, setNewProjectKey] = useState("");
   const [useTemplate, setUseTemplate] = useState(true);
   const [className, setClassName] = useState("NuevaClase");
   const [insertRequest, setInsertRequest] = useState<{ serial: number; kind: string }>();
@@ -118,6 +132,7 @@ export default function Studio() {
   const current = documents.find(d => d.id === selected);
   const canEdit = !recovering && current?.access !== "view";
   const isOwner = !current?.access || current.access === "owner";
+
   const selectionRef = useRef("");
   const presence = useMemo(() => profile?.sharing && presenceState.id === current?.id ? presenceState.entries : [], [profile?.sharing, presenceState, current?.id]);
   const others = useMemo(() => Array.from(new Map(presence.filter(p => !p.self).map(p => [p.userId, p])).values()), [presence]);
@@ -291,7 +306,9 @@ export default function Studio() {
   }
   function openModal(kind: ModalKind) { setFormError(""); setModal(kind); }
   function beginNew() {
-    setNewProject(current?.project || "Mi primer proyecto"); setNewName("Nuevo diagrama"); setNewType("class"); setUseTemplate(true); openModal("new");
+    const choices = projectChoicesFrom(docsRef.current);
+    const preferred = current && choices.find(choice => choice.key === projectKey(current)) || choices[0];
+    setNewProjectKey(preferred?.key || ""); setNewProject(preferred ? "" : "Mi primer proyecto"); setNewName("Nuevo diagrama"); setNewType("class"); setUseTemplate(true); openModal("new");
   }
   async function choose(id: string) { if (await saveAll()) { setSvg(null); setSelected(id); setInspectedClass(""); setNotice(""); if (window.innerWidth <= 800) setSideOpen(false); } }
   async function create(data: DiagramInput, projectOwner?: string) {
@@ -362,7 +379,7 @@ export default function Studio() {
   }
   async function importFile(file: File) {
     try {
-      if (file.size > 150000) throw new Error("El archivo es demasiado grande (máximo 150 KB).");
+      if (file.size > 300000) throw new Error("El archivo es demasiado grande (máximo 300 KB).");
       const text = await file.text();
       if (file.name.endsWith(".json")) {
         const parsed = JSON.parse(text);
@@ -425,15 +442,16 @@ export default function Studio() {
     if (snippets[kind]) editor.current?.insert(snippets[kind]);
   }
 
-  const projects = Array.from(new Set(documents.map(d => d.project)));
   const projectGroups = Array.from(new Map(documents.map(d => [projectKey(d), d])).entries());
+  const projectOptions = projectChoicesFrom(documents);
+  const chosenProject = projectOptions.find(choice => choice.key === newProjectKey);
   // Editors of a shared project add new diagrams to the owner's project.
   const sharedOwnerFor = (project: string) => current?.sharedProject && current.access === "edit" && current.owner && current.project === project ? current.owner : undefined;
   const filtered = documents.filter(d => (d.name + " " + d.project + " " + TYPE_LABELS[d.type]).toLowerCase().includes(search.toLowerCase()));
   const tools = current?.type === "sequence" ? [["participant", "Participante"], ["actor", "Actor"], ["message", "Mensaje"], ["alternative", "Alternativa"], ["loop", "Bucle"]]
     : current?.type === "state" ? [["state", "Estado"], ["transition", "Transición"], ["composite", "Estado compuesto"]]
     : current?.type === "er" ? [["entity", "Entidad"], ["erlink", "Relación"]]
-    : current?.type === "der" ? [["entity", "Entidad"], ["weak", "Entidad débil"], ["relationship", "Relación (rombo)"], ["attribute", "Atributo"], ["key", "Atributo clave"], ["multivalued", "Multivaluado"], ["derived", "Derivado"], ["flow", "Conexión"]]
+    : current?.type === "der" ? [["entity", "Entidad"], ["weak", "Débil", "Entidad débil"], ["relationship", "Relación", "Relación (rombo)"], ["attribute", "Atributo"], ["key", "Clave", "Atributo clave"], ["multivalued", "Multivalor", "Atributo multivaluado"], ["derived", "Derivado", "Atributo derivado"], ["flow", "Conexión"]]
     : current?.type === "usecase" ? [["actor", "Actor"], ["usecase", "Caso de uso"], ["flow", "Relación"]]
     : current?.type === "component" ? [["component", "Componente"], ["database", "Base de datos"], ["flow", "Conexion"]]
     : [["node", "Actividad"], ["decisión", "Decisión"], ["flow", "Conexion"]];
@@ -442,7 +460,12 @@ export default function Studio() {
   const selectedBlock = blocks.find(block => block.name === inspectedClass);
   const selectedBody = useMemo(() => selectedBlock && propertiesOpen ? classMembers(cleanCurrentSource, selectedBlock.name) : "", [cleanCurrentSource, propertiesOpen, selectedBlock]);
   const openNotes = () => { if (current && canEdit) { setNotes(current.notes); setNewProject(current.project); openModal("notes"); } };
-  const goStudy = async () => { if (await saveAll()) { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); window.location.assign("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); } };
+  // Save before leaving; when saving fails, ask instead of silently staying on the page.
+  const leaveTo = async (path: string) => {
+    if (await saveAll() || window.confirm("No se pudieron guardar los últimos cambios. ¿Salir de todos modos? Podés quedarte y usar «Descargar borrador».")) window.location.assign(path);
+  };
+  const goStudy = () => { const exercise = new URLSearchParams(window.location.search).get("ejercicio"); void leaveTo("/estudio" + (exercise ? "?ejercicio=" + encodeURIComponent(exercise) : "")); };
+  const goGit = (event: React.MouseEvent) => { if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return; event.preventDefault(); void leaveTo("/git"); };
   const selectForInspection = (name: string) => { setInspectedClass(name); };
 
   return <main className={"studio " + (!sideOpen ? "sidebar-hidden " : "") + (!propertiesOpen ? "properties-hidden " : "") + (canvasFocused ? "canvas-focused-mode" : "")}>
@@ -450,7 +473,7 @@ export default function Studio() {
       <Link className="brand" href="/" aria-label="UML Studio, inicio"><GitBranch size={24} /><span>UML<span className="brand-light"> Studio</span></span></Link>
       <div className="header-meta"><span className="workspace-label">Espacio de trabajo</span></div>
       <div className="header-actions">
-        <ThemePicker /><Link href="/git" className="btn header-quiet header-git-link" aria-label="Laboratorio Git"><GitBranch size={16} /><span>Git Lab</span></Link>
+        <ThemePicker /><Link href="/git" onClick={goGit} className="btn header-quiet header-git-link" aria-label="Laboratorio Git"><GitBranch size={16} /><span>Git Lab</span></Link>
         <span className={"save-status " + saveState} aria-live="polite">
           {saveState === "saving" ? <LoaderCircle size={14} className="spin" /> : saveState === "error" ? <CloudOff size={15} /> : browserStorage ? <Save size={15} /> : <Cloud size={15} />}
           {saveState === "saved" ? browserStorage ? "Guardado en este navegador" : profile?.sharing ? syncOffline ? "Reconectando…" : canEdit ? "Guardado · online" : "Solo lectura · online" : "Guardado" : saveState === "pending" ? "Cambios pendientes" : saveState === "saving" ? "Guardando" : "Sin guardar"}
@@ -465,7 +488,7 @@ export default function Studio() {
       <IconButton title="Notas del diagrama" disabled={!current} onClick={openNotes}><StickyNote size={20} /></IconButton>
       <span className="rail-divider" />
       <IconButton title="Estudio IS II" onClick={() => void goStudy()}><BookOpen size={20} /></IconButton>
-      <Link href="/git" className="icon-btn" aria-label="Laboratorio Git" title="Laboratorio Git"><GitBranch size={20} /></Link>
+      <Link href="/git" onClick={goGit} className="icon-btn" aria-label="Laboratorio Git" title="Laboratorio Git"><GitBranch size={20} /></Link>
       <div className="rail-bottom"><IconButton title="Guía de relaciones UML" onClick={() => openModal("guide")}><HelpCircle size={20} /></IconButton></div>
     </nav>
 
@@ -499,8 +522,11 @@ export default function Studio() {
         {current.type === "class" ? <>
           <button disabled={!canEdit} className="sidebar-tool" onClick={() => beginClass()}><Boxes size={17} /><span>Clase</span><Plus size={13} /></button>
           <button disabled={!canEdit} className="sidebar-tool" onClick={beginRelation}><Link2 size={17} /><span>Relación</span><Plus size={13} /></button>
-        </> : tools.map(([kind, label]) => <button disabled={!canEdit} className="sidebar-tool" key={kind} onClick={() => insertSnippet(kind)}><Shapes size={17} /><span>{label}</span><Plus size={13} /></button>)}
-        <button disabled={!canEdit} className="sidebar-tool" onClick={() => insertSnippet("note")}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
+        </> : tools.map(([kind, label, title]) => { const Icon = TOOL_ICONS[kind] || Shapes; return <button disabled={!canEdit} className="sidebar-tool" key={kind} title={title || label} onClick={() => insertSnippet(kind)}><Icon size={17} /><span>{label}</span><Plus size={13} /></button>; })}
+        <span className="toolbox-divider" />
+        <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Texto libre en el tablero (T)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "text" })}><Type size={17} /><span>Texto</span><Plus size={13} /></button>
+        <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Nota adhesiva (K)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "sticky" })}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
+        <button disabled={!canEdit} className="sidebar-tool" onClick={() => insertSnippet("note")} title="Comentario dentro del código Mermaid"><MessageSquareText size={17} /><span>Comentario</span><Plus size={13} /></button>
       </section>}
       <div className="sidebar-bottom"><button className="sidebar-action" onClick={() => importInput.current?.click()} disabled={loading || !!loadError}><Upload size={16} />Importar archivo</button>
         <button className="sidebar-action" onClick={beginNew} disabled={loading || !!loadError}><LayoutTemplate size={16} />Plantillas</button>
@@ -590,12 +616,13 @@ export default function Studio() {
     {modal === "profile" && <ProfileDialog onClose={() => setModal(null)} onSaved={saved => setProfile(current => current && { ...current, displayName: saved.displayName, color: saved.color, version: saved.version })} />}
     {modal === "share" && (() => { const doc = documents.find(d => d.id === shareRequest.id) || current; return doc ? <SharingDialog key={doc.id + shareRequest.scope} diagram={doc} initialScope={shareRequest.scope} presence={doc.id === current?.id ? presence : []} onClose={() => setModal(null)} /> : null; })()}
     {modal === "new" && <Modal title="Nuevo diagrama" wide onClose={() => setModal(null)}>
-      <form onSubmit={e => { e.preventDefault(); void create({ name: newName, type: newType, project: newProject, source: useTemplate ? TEMPLATES.find(t => t.type === newType)!.source : EMPTY[newType], theme: "studio", notes: "" }, sharedOwnerFor(newProject)); }}>
-        <div className="modal-body"><div className="form-row"><label>Nombre<input autoFocus required maxLength={100} value={newName} onChange={e => setNewName(e.target.value)} /></label><label>Proyecto<input required maxLength={80} list="projects" value={newProject} onChange={e => setNewProject(e.target.value)} /><datalist id="projects">{projects.map(p => <option key={p} value={p} />)}</datalist></label></div>
+      <form onSubmit={e => { e.preventDefault(); void create({ name: newName, type: newType, project: chosenProject ? chosenProject.project : newProject.trim(), source: useTemplate ? TEMPLATES.find(t => t.type === newType)!.source : EMPTY[newType], theme: "studio", notes: "" }, chosenProject?.owner); }}>
+        <div className="modal-body"><div className="form-row"><label>Nombre<input autoFocus required maxLength={100} value={newName} onChange={e => setNewName(e.target.value)} /></label><label>Proyecto<select aria-label="Proyecto" value={newProjectKey} onChange={e => setNewProjectKey(e.target.value)}>{projectOptions.map(choice => <option key={choice.key} value={choice.key}>{choice.label}</option>)}<option value="">+ Nuevo proyecto…</option></select></label></div>
+          {!chosenProject && <label>Nombre del nuevo proyecto<input required autoFocus={projectOptions.length > 0} maxLength={80} placeholder="Por ejemplo: Base de datos del TP" value={newProject} onChange={e => setNewProject(e.target.value)} /></label>}
           <div className="template-grid">{TEMPLATES.map(template => { const Icon = ICONS[template.type]; return <label key={template.type} className={"template-option " + (newType === template.type ? "chosen" : "")}><input type="radio" name="diagram-type" value={template.type} checked={newType === template.type} onChange={() => setNewType(template.type)} /><Icon size={24} /><strong>{TYPE_LABELS[template.type]}</strong><span>{template.description}</span>{newType === template.type && <Check size={15} className="template-check" />}</label>; })}</div>
           <label className="checkbox-label"><input type="checkbox" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} />Empezar con un ejemplo</label>
           {newType === "usecase" || newType === "component" ? <p className="form-hint">Representacion con nodos y conexiones Mermaid.</p> : newType === "der" ? <p className="form-hint">Notación de Chen: entidades en rectángulo, relaciones en rombo, atributos en elipse y claves subrayadas. Las cardinalidades se escriben en cada conexión.</p> : null}
-          {sharedOwnerFor(newProject) && <p className="form-hint">Se agregará al proyecto compartido de {current?.ownerName || "su propietario"}; todos sus participantes lo verán.</p>}
+          {chosenProject?.owner && <p className="form-hint">Se agregará al proyecto compartido «{chosenProject.project}»; todos sus participantes lo verán.</p>}
           {formError && <p className="form-error" role="alert">{formError}</p>}
         </div><div className="modal-footer"><button type="button" className="btn" onClick={() => setModal(null)}>Cancelar</button><button className="btn primary" disabled={working}>{working ? <LoaderCircle size={16} className="spin" /> : <Plus size={16} />}Crear diagrama</button></div>
       </form>

@@ -109,13 +109,6 @@ input, textarea, .cm-content { caret-color: var(--accent); }
 .draw-toolbar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .canvas-tools .canvas-focus-btn { min-height: 30px; padding: 0 10px; font-size: 13px; }
 .canvas-tools .canvas-focus-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.pencil-prompt { flex-wrap: wrap; gap: 10px; padding: 4px 12px; }
-.pencil-swatches { display: inline-flex; align-items: center; gap: 5px; }
-.pencil-swatch { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--line); padding: 0; transition: transform var(--motion-fast); }
-.pencil-swatch:hover { transform: scale(1.12); }
-.pencil-swatch.active { box-shadow: 0 0 0 2px var(--accent); transform: scale(1.15); }
-.pencil-size-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink); }
-.pencil-size-label select { width: auto; height: 26px; padding: 2px 20px 2px 6px; font-size: 12px; }
 .diagram-viewport.placing, .diagram-viewport.drawing { cursor: crosshair; }
 .diagram-viewport.erasing { cursor: cell; }
 .erasing .studio-stroke-hit { cursor: pointer; }
@@ -162,11 +155,6 @@ input, textarea, .cm-content { caret-color: var(--accent); }
 .board-shell .connection-prompt > span { white-space: normal; min-width: 120px; font-size: 12px; }
 .board-shell .connection-prompt > svg { color: var(--accent); }
 .board-shell .connection-prompt select { width: auto; max-width: 170px; }
-.board-shell .pencil-prompt { gap: 12px; }
-.board-shell .pencil-prompt > span { flex-basis: 100%; order: 2; color: var(--muted); }
-.board-shell .pencil-swatches { gap: 9px; }
-.board-shell .pencil-swatch { width: 23px; height: 23px; }
-.board-shell .pencil-size-label { gap: 8px; }
 .board-shell .node-selection { display: flex; align-items: center; flex-wrap: wrap; }
 .node-selection strong { font-size: 13px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 5px; }
 .board-delete:hover:not(:disabled) { color: var(--danger); background: var(--error-soft); }
@@ -205,14 +193,11 @@ input, textarea, .cm-content { caret-color: var(--accent); }
   .board-shell .error-panel { left: 62px; }
   .board-shell .canvas-caption { left: 12px; }
   .board-shell .zoom-toolbar { right: 10px; }
-  .board-shell .pencil-prompt > span { display: none; }
 }
 @container (max-width: 390px) {
   .board-heading { display: none; }
   .board-shell .canvas-tools { left: 10px; right: auto; }
   .board-shell .canvas-caption { display: none; }
-  .board-shell .pencil-swatches { gap: 7px; }
-  .board-shell .pencil-size-label { width: 100%; }
 }
 @media (max-height: 680px) {
   .board-shell .draw-side-toolbar { gap: 1px; top: 66px; }
@@ -343,3 +328,47 @@ fieldset.properties-content { border:0; margin:0; min-width:0; }
 .profile-password form .btn { justify-self: start; }
 .profile-footer { justify-content: space-between; }
 .profile-footer form { margin: 0; }
+
+/* Pencil (Miro-style ink toolbar) */
+.board-shell .ink-toolbar { position: absolute; z-index: 3; top: 76px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px; width: max-content; max-width: calc(100% - 120px); padding: 6px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: var(--board-shadow); }
+.ink-tools { display: flex; gap: 2px; padding: 2px; border-radius: 10px; background: var(--hover); }
+.ink-tool { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 600; }
+.ink-tool:hover:not(:disabled) { background: var(--paper); }
+.ink-tool.active { background: var(--paper); color: var(--accent); box-shadow: 0 1px 3px #20344022; }
+.ink-tool:disabled { opacity: .45; }
+.ink-swatches { display: flex; align-items: center; gap: 5px; }
+.ink-swatch { position: relative; width: 22px; height: 22px; flex: 0 0 22px; padding: 0; border: 0; border-radius: 50%; box-shadow: inset 0 0 0 1px #0f172a26; cursor: pointer; transition: transform .12s cubic-bezier(.16,1,.3,1); }
+.ink-swatch:hover { transform: scale(1.12); }
+.ink-swatch.active { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent); }
+.ink-custom { overflow: hidden; background: conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #6366f1, #d946ef, #ef4444); }
+.ink-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.ink-sizes { display: flex; align-items: center; gap: 2px; }
+.ink-size { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; }
+.ink-size > span { display: block; border-radius: 50%; box-shadow: inset 0 0 0 1px #0f172a1f; }
+.ink-size:hover { background: var(--hover); }
+.ink-size.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.ink-hint { flex-basis: 100%; text-align: center; font-size: 11px; color: var(--muted); }
+.node-selection strong:has(svg) { display: inline-flex; align-items: center; gap: 5px; }
+.node-selection .ink-swatch { width: 20px; height: 20px; flex-basis: 20px; }
+@media (prefers-reduced-motion: reduce) { .ink-swatch { transition: none; } }
+@container (max-width: 700px) { .ink-tool span { display: none; } .board-shell .ink-toolbar { max-width: calc(100% - 80px); } }
+
+/* Text and sticky notes */
+.diagram-viewport.placing-note, .board-shell .diagram-viewport.placing-note .diagram-art * { cursor: text !important; }
+.note-editor { position: fixed; z-index: 30; box-sizing: border-box; margin: 0; border: 1.5px solid var(--accent); border-radius: 6px; outline: none; resize: none; overflow: hidden; font-family: 'Source Sans 3 Variable', 'Source Sans 3', sans-serif; white-space: pre-wrap; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); field-sizing: content; }
+.note-editor:not(.is-sticky) { background: color-mix(in srgb, var(--paper) 88%, transparent) !important; }
+.note-editor.is-sticky { box-shadow: 0 6px 18px #0f172a29, 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+.note-swatches { display: flex; align-items: center; gap: 5px; }
+.note-sizes button { min-width: 30px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 700; }
+.note-sizes button.active { background: var(--paper); color: var(--accent); box-shadow: 0 1px 3px #20344022; }
+.note-panel .icon-btn.active { background: var(--accent-soft); color: var(--accent); }
+.studio-notes [data-note-id]:focus-visible { outline: none; }
+.studio-notes [data-note-id]:focus-visible > rect:nth-child(2) { stroke: var(--accent); stroke-width: 2px; stroke-opacity: 1; }
+.toolbox-divider { display: block; height: 1px; margin: 6px 4px; background: var(--line); }
+/* Compact two-column toolbox so the diagram list keeps its room. */
+.toolbox { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 4px; max-height: 42vh; overflow-y: auto; }
+.toolbox > .toolbox-heading, .toolbox > .toolbox-divider { grid-column: 1 / -1; }
+.toolbox .sidebar-tool { gap: 7px; min-height: 32px; padding: 6px 7px; font-size: 12.5px; min-width: 0; }
+.toolbox .sidebar-tool > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toolbox .sidebar-tool > svg:last-child { display: none; }
+.toolbox .toolbox-divider { margin: 4px 2px; }
