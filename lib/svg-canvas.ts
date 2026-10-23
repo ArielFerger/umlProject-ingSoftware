@@ -4,9 +4,11 @@ import { colorClass, colorArrow, colorVisual } from "./svg-colors";
 import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint, polylineMidpoint } from "./edge-routing";
 import { shapeBoundary, type DerShape } from "./der";
 import { outlinePath, strokeOutline } from "./freehand";
+import { clipToOutline } from "./activity";
 
 /** `cx`/`cy`: center in the node's own coordinates, the origin for size changes. */
-export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string; shape?: DerShape; cx?: number; cy?: number };
+/** `chen`: Chen notation, whose lines are straight and stop at the outline. */
+export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string; shape?: DerShape; cx?: number; cy?: number; chen?: boolean };
 export type EdgeGeometry = { id: string; routeKey?: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string; labelNear?: "start" | "end" };
 export type CanvasModel = { nodes: ClassGeometry[]; edges: EdgeGeometry[] };
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -82,9 +84,12 @@ function cachedMarkerGap(markers: Map<string, MarkerCache>, ref: string | null, 
   return (start ? info.baseRefX - info.min : info.max - info.baseRefX) * scale;
 }
 
-function layoutRoute(edge: EdgeGeometry, startGap: number, endGap: number) {
-  const points = edge.points?.map(point => ({ ...point }));
+function layoutRoute(edge: EdgeGeometry, startGap: number, endGap: number, a?: ClassGeometry, b?: ClassGeometry) {
+  let points = edge.points?.map(point => ({ ...point }));
   if (!points || points.length < 2) return null;
+  // Mermaid aims at bounding boxes; diamonds and circles need the line to reach their outline.
+  if (b?.shape && b.shape !== "rect") points = clipToOutline(points, b);
+  if (a?.shape && a.shape !== "rect") points = clipToOutline([...points].reverse(), a).reverse();
   const first = points[0], last = points[points.length - 1];
   const from = normalize(first, points[1]), to = normalize(last, points[points.length - 2]);
   first.x += from.x * startGap; first.y += from.y * startGap;
@@ -233,7 +238,7 @@ function buildDomCache(root: SVGSVGElement, model: CanvasModel): CanvasDomCache 
     const count = pairCounts.get(pair) || 0;
     pairCounts.set(pair, count + 1);
     const actorEdge = !!(nodeEls.get(a.name)?.hasAttribute("data-uml-actor") || nodeEls.get(b.name)?.hasAttribute("data-uml-actor"));
-    const shaped = !!(a.shape || b.shape);
+    const shaped = !!(a.chen || b.chen);
     let double: SVGPathElement | null = null;
     if (shaped && path.classList.contains("edge-thickness-thick")) {
       double = document.createElementNS(SVG_NS, "path");
@@ -352,7 +357,7 @@ function updateEdgeEntry(entry: CachedEdgeEntry, cache: CanvasDomCache, settings
   const endGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-end"), settings.arrowScale, false);
   const atLayout = Math.abs(a.x - originalA.x) < .1 && Math.abs(a.y - originalA.y) < .1 && Math.abs(b.x - originalB.x) < .1 && Math.abs(b.y - originalB.y) < .1 && a.width === originalA.width && b.width === originalB.width;
   const geometry = (entry.shaped && !custom?.points.length && !custom?.from && !custom?.to ? shapedRoute(a, b) : null)
-    || (!custom && atLayout && !actorEdge ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, parallelOffset);
+    || (!custom && atLayout && !actorEdge ? layoutRoute(edge, startGap, endGap, a, b) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, parallelOffset);
   path.setAttribute("d", geometry.path);
   hit.setAttribute("d", geometry.path);
   if (entry.double) {
@@ -546,7 +551,7 @@ export function renderStrokeSelection(root: SVGSVGElement, stroke: CanvasStroke 
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection,.studio-stroke-selection,.studio-note-controls,.studio-resize-handle").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection,.studio-stroke-selection,.studio-note-controls,.studio-resize-handle,.studio-image-controls").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });

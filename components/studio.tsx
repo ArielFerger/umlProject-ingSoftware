@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import Link from "./nav-link";
 import ThemePicker from "./theme-picker";
-import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users, Diamond, ExternalLink, ImageDown, Square, KeyRound, Ellipse, CircleDashed, UserRound, Layers, Type, ArrowRightLeft, Split, RectangleHorizontal, MessageSquareText, Component } from "lucide-react";
+import { Braces, GitBranch, Plus, Search, Folder, ChevronDown, ChevronRight, FileCode2, Upload, Download, Copy, Trash2, History, Undo2, Redo2, Code2, Eye, Columns2, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Check, Cloud, CloudOff, LoaderCircle, Shapes, Boxes, Workflow, Network, Database, ListTree, CircleDot, Link2, StickyNote, RefreshCw, Printer, X, MessageSquare, LayoutTemplate, Save, BookOpen, MousePointer2, SlidersHorizontal, Keyboard, HelpCircle, LockKeyhole, Maximize2, Minimize2, Users, Diamond, ExternalLink, ImageDown, Square, KeyRound, Ellipse, CircleDashed, UserRound, Layers, Type, ArrowRightLeft, Split, RectangleHorizontal, MessageSquareText, Component, Disc, CircleX, GitFork, GitMerge, ImagePlus } from "lucide-react";
 import { Diagram, DiagramInput, DiagramType, TYPE_LABELS, TEMPLATES, classBlocks, diagramInput, exportDocument, signature } from "@/lib/diagrams";
 import CodeEditor, { EditorHandle } from "./code-editor";
 import DiagramPreview, { SvgResult } from "./diagram-preview";
@@ -24,7 +24,7 @@ const TOOL_ICONS: Record<string, typeof Shapes> = {
   entity: Square, weak: Layers, relationship: Diamond, identifying: Diamond, attribute: Ellipse, key: KeyRound, multivalued: Ellipse, derived: CircleDashed,
   erlink: ArrowRightLeft, flow: ArrowRightLeft, message: ArrowRightLeft, transition: ArrowRightLeft,
   actor: UserRound, participant: RectangleHorizontal, usecase: Ellipse, state: RectangleHorizontal, composite: Layers,
-  node: RectangleHorizontal, decisión: Diamond, alternative: Split, loop: RefreshCw, component: Component, database: Database,
+  node: RectangleHorizontal, decisión: Diamond, alternative: Split, start: Disc, end: CircleDot, fork: GitFork, join: GitMerge, merge: Diamond, flowEnd: CircleX, loop: RefreshCw, component: Component, database: Database,
 };
 // Browsers refuse canvases beyond ~16k px per side or ~268 Mpx in total.
 const PNG_SCALES = [{ value: 2, label: "2×" }, { value: 4, label: "4×" }, { value: 6, label: "6×" }, { value: 8, label: "8×" }];
@@ -69,7 +69,7 @@ function IconButton({ title, children, onClick, disabled = false, active }: { ti
 
 const EMPTY: Record<DiagramType, string> = {
   class: "classDiagram\ndirection TB\n", sequence: "sequenceDiagram\n", state: "stateDiagram-v2\n[*] --> Inicio\n",
-  activity: "flowchart TD\nInicio([Inicio])\n", usecase: "flowchart LR\n", component: "flowchart LR\n", er: "erDiagram\n",
+  activity: "flowchart TD\nInicio((\"Inicio\")):::actStart\n", usecase: "flowchart LR\n", component: "flowchart LR\n", er: "erDiagram\n",
   der: "flowchart LR\n%% DER en notación de Chen: entidades [ ], relaciones { } y atributos ([ ])\n",
 };
 
@@ -426,7 +426,7 @@ export default function Studio() {
   }
   function insertSnippet(kind: string) {
     if (!current) return;
-    if (current.type !== "class" && ["participant", "actor", "message", "state", "transition", "node", "decisión", "flow", "usecase", "component", "database", "entity", "erlink", "weak", "relationship", "identifying", "attribute", "key", "multivalued", "derived"].includes(kind)) { setInsertRequest({ serial: Date.now(), kind }); return; }
+    if (current.type !== "class" && ["participant", "actor", "message", "state", "transition", "node", "decisión", "flow", "usecase", "component", "database", "entity", "erlink", "weak", "relationship", "identifying", "attribute", "key", "multivalued", "derived", "start", "end", "fork", "join", "merge", "flowEnd"].includes(kind)) { setInsertRequest({ serial: Date.now(), kind }); return; }
     const suffix = Math.floor(Date.now() % 100000);
     const id = "Elemento" + suffix;
     const snippets: Record<string, string> = {
@@ -456,7 +456,7 @@ export default function Studio() {
     : current?.type === "der" ? [["entity", "Entidad"], ["weak", "Débil", "Entidad débil"], ["relationship", "Relación", "Relación (rombo)"], ["attribute", "Atributo"], ["key", "Clave", "Atributo clave"], ["multivalued", "Multivalor", "Atributo multivaluado"], ["derived", "Derivado", "Atributo derivado"], ["flow", "Conexión"]]
     : current?.type === "usecase" ? [["actor", "Actor"], ["usecase", "Caso de uso"], ["flow", "Relación"]]
     : current?.type === "component" ? [["component", "Componente"], ["database", "Base de datos"], ["flow", "Conexion"]]
-    : [["node", "Actividad"], ["decisión", "Decisión"], ["flow", "Conexion"]];
+    : [["node", "Acción"], ["decisión", "Decisión"], ["start", "Inicial", "Nodo inicial"], ["end", "Final", "Nodo final"], ["fork", "Fork", "Bifurcación (fork)"], ["join", "Join", "Unión (join)"], ["merge", "Fusión", "Fusión (merge)"], ["flowEnd", "Fin de flujo"], ["flow", "Conexión"]];
 
   const canvasSettings = useMemo(() => current && propertiesOpen ? readCanvas(current.source) : null, [current?.source, propertiesOpen]);
   const selectedBlock = blocks.find(block => block.name === inspectedClass);
@@ -528,6 +528,7 @@ export default function Studio() {
         </> : tools.map(([kind, label, title]) => { const Icon = TOOL_ICONS[kind] || Shapes; return <button disabled={!canEdit} className="sidebar-tool" key={kind} title={title || label} onClick={() => insertSnippet(kind)}><Icon size={17} /><span>{label}</span><Plus size={13} /></button>; })}
         <span className="toolbox-divider" />
         <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Texto libre en el tablero (T)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "text" })}><Type size={17} /><span>Texto</span><Plus size={13} /></button>
+        <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Imagen (también podés arrastrarla o pegarla en el lienzo)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "image" })}><ImagePlus size={17} /><span>Imagen</span><Plus size={13} /></button>
         <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Nota adhesiva (K)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "sticky" })}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
         <button disabled={!canEdit} className="sidebar-tool" onClick={() => insertSnippet("note")} title="Comentario dentro del código Mermaid"><MessageSquareText size={17} /><span>Comentario</span><Plus size={13} /></button>
         </>}

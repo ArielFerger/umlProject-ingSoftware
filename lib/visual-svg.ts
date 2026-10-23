@@ -6,6 +6,8 @@ import { visualNodes, visualRelations } from "./visual-diagrams.ts";
 
 import { derInfo, type DerShape } from "./der.ts";
 
+import { activityDeclaration, controlLayoutLabel, flowDirection, isControlNode } from "./activity.ts";
+
 const NS = "http://www.w3.org/2000/svg";
 
 type RenderNode = { id: string; domId?: string; label?: string; isGroup?: boolean };
@@ -13,6 +15,26 @@ type RenderNode = { id: string; domId?: string; label?: string; isGroup?: boolea
 
 
 export function prepareVisualSource(source: string, type: DiagramType) {
+
+  if (type === "activity") {
+
+    // Control nodes are redrawn; Mermaid only lays out an invisible label of the right size.
+
+    const direction = flowDirection(source);
+
+    let prepared = source;
+
+    for (const node of visualNodes(source, type).filter(n => isControlNode(n.kind))) {
+
+      const declaration = new RegExp(`\\b${node.id}(\\(\\([^\\n]*?\\)\\)|\\[[^\\n]*?\\]|\\{[^\\n]*?\\})(:::[\\w-]+)?`, "g");
+
+      prepared = prepared.replace(declaration, activityDeclaration(node.id, controlLayoutLabel(node.kind, direction), node.kind));
+
+    }
+
+    return prepared;
+
+  }
 
   if (type !== "usecase") return source;
 
@@ -128,11 +150,104 @@ function drawDerNode(group: SVGGElement, kind: string, ratio: string): { cx: num
 
 }
 
+/** Bounding box of a descendant in the node group's coordinates, including the descendant's own transform. */
+function boxInGroup(element: SVGGraphicsElement, group: SVGGElement) {
+  const b = element.getBBox(), matrix = group.getCTM()?.inverse().multiply(element.getCTM()!);
+  if (!matrix) return b;
+  const corners = [[b.x, b.y], [b.x + b.width, b.y], [b.x, b.y + b.height], [b.x + b.width, b.y + b.height]].map(([x, y]) => new DOMPoint(x, y).matrixTransform(matrix));
+  const xs = corners.map(p => p.x), ys = corners.map(p => p.y);
+  return { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+}
+
+/** Replaces a control node's outline with its UML symbol; returns the symbol geometry. */
+function drawActivityNode(group: SVGGElement, kind: string, direction: "vertical" | "horizontal"): { cx: number; cy: number; width: number; height: number; shape: DerShape } {
+
+  const label = group.querySelector<SVGGraphicsElement>(".label");
+
+  const ink = (() => { const text = group.querySelector("text"); const fill = text ? getComputedStyle(text).fill : ""; return fill && fill !== "none" ? fill : "#243c48"; })();
+
+  const paper = (() => { const shape = group.querySelector("polygon,rect,circle,path"); const fill = shape ? getComputedStyle(shape).fill : ""; return fill && fill !== "none" ? fill : "#ffffff"; })();
+
+  const box = group.getBBox(), cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+
+  if (kind === "merge") {
+
+    // Keep Mermaid's diamond, without text, at a compact size.
+
+    label?.remove();
+
+    const polygon = group.querySelector<SVGPolygonElement>("polygon");
+
+    const bounds = polygon ? boxInGroup(polygon, group) : group.getBBox();
+
+    return { cx: bounds.x + bounds.width / 2, cy: bounds.y + bounds.height / 2, width: bounds.width, height: bounds.height, shape: "diamond" };
+
+  }
+
+  for (const child of Array.from(group.children)) child.remove();
+
+  const shapes: SVGElement[] = [];
+
+  let width = 26, height = 26, shape: DerShape = "ellipse";
+
+  if (kind === "fork" || kind === "join") {
+
+    shape = "rect";
+
+    [width, height] = direction === "vertical" ? [Math.max(110, box.width), 8] : [8, Math.max(90, box.height)];
+
+    shapes.push(svgElement("rect", { x: cx - width / 2, y: cy - height / 2, width, height, rx: 2, style: `fill:${ink};stroke:none` }));
+
+  } else if (kind === "start") {
+
+    shapes.push(svgElement("circle", { cx, cy, r: 12, style: `fill:${ink};stroke:none` }));
+
+    width = height = 24;
+
+  } else if (kind === "end") {
+
+    shapes.push(svgElement("circle", { cx, cy, r: 13, style: `fill:${paper};stroke:${ink};stroke-width:2px` }));
+
+    shapes.push(svgElement("circle", { cx, cy, r: 8, style: `fill:${ink};stroke:none` }));
+
+  } else {
+
+    shapes.push(svgElement("circle", { cx, cy, r: 13, style: `fill:${paper};stroke:${ink};stroke-width:2px` }));
+
+    shapes.push(svgElement("path", { d: `M ${cx - 8} ${cy - 8} L ${cx + 8} ${cy + 8} M ${cx + 8} ${cy - 8} L ${cx - 8} ${cy + 8}`, style: `fill:none;stroke:${ink};stroke-width:2px` }));
+
+  }
+
+  // A transparent hit area keeps small symbols easy to grab and select.
+
+  shapes.unshift(svgElement("rect", { x: cx - Math.max(width, 30) / 2, y: cy - Math.max(height, 30) / 2, width: Math.max(width, 30), height: Math.max(height, 30), class: "act-hit", style: "fill:transparent;stroke:none" }));
+
+  for (const element of shapes) { element.classList.add("act-shape"); group.appendChild(element); }
+
+  return { cx, cy, width, height, shape };
+
+}
+
 export function measureVisualNodes(root: SVGSVGElement, data: RenderNode[], source: string, type: DiagramType): ClassGeometry[] {
 
   const definitions = visualNodes(source, type);
 
-  const groups = type === "sequence" ? Array.from(root.querySelectorAll<SVGGElement>('g[data-et="participant"]')).filter((g, i, a) => a.findIndex(n => n.getAttribute("data-id") === g.getAttribute("data-id")) === i) : Array.from(root.querySelectorAll<SVGGElement>("g.node"));
+  // Mermaid draws each participant twice: the top box (data-et="participant")
+  // is the element; the bottom box, marked only by `name`, becomes a clickable
+  // twin that follows it together with the lifeline.
+  const participants = type === "sequence" ? Array.from(root.querySelectorAll<SVGGElement>('g[data-et="participant"]')) : [];
+  const groups = type === "sequence" ? participants.filter((g, i) => participants.findIndex(other => other.getAttribute("data-id") === g.getAttribute("data-id")) === i) : Array.from(root.querySelectorAll<SVGGElement>("g.node"));
+  for (const main of groups.filter(() => type === "sequence")) {
+    const id = main.getAttribute("data-id") || "", name = CSS.escape(id);
+    const twins = [...root.querySelectorAll<SVGGElement>(`rect.actor-bottom[name="${name}"]`)].map(rect => rect.parentElement as unknown as SVGGElement)
+      .concat([...root.querySelectorAll<SVGGElement>(`g[name="${name}"]:not([data-et])`)]);
+    for (const twin of twins) {
+      if (!twin || twin === main || twin.closest('[data-et="participant"]')) continue;
+      twin.setAttribute("data-class", id); twin.setAttribute("data-visual", "sequence"); twin.setAttribute("data-twin", "true");
+      twin.setAttribute("data-orig-transform", twin.getAttribute("transform") || "");
+    }
+  }
+  if (type === "sequence") for (const line of root.querySelectorAll<SVGElement>('[data-et="life-line"]')) line.setAttribute("data-orig-transform", line.getAttribute("transform") || "");
 
   return groups.flatMap((group, i) => {
 
@@ -177,7 +292,13 @@ export function measureVisualNodes(root: SVGSVGElement, data: RenderNode[], sour
 
     if (!group.id) group.id = "studio-participant-" + i;
 
-    const der = type === "der" ? drawDerNode(group, definitions.find(n => n.id === name)?.kind || "entity", definitions.find(n => n.id === name)?.body || "") : null;
+    const kind = definitions.find(n => n.id === name)?.kind;
+
+    const der = type === "der" ? drawDerNode(group, kind || "entity", definitions.find(n => n.id === name)?.body || "")
+
+      : type === "activity" && isControlNode(kind) ? drawActivityNode(group, kind!, flowDirection(source))
+
+      : kind === "decision" && group.querySelector("polygon") ? (() => { const b = boxInGroup(group.querySelector<SVGPolygonElement>("polygon")!, group); return { cx: b.x + b.width / 2, cy: b.y + b.height / 2, width: b.width, height: b.height, shape: "diamond" as const }; })() : null;
 
     const box = group.getBBox();
 
@@ -189,7 +310,7 @@ export function measureVisualNodes(root: SVGSVGElement, data: RenderNode[], sour
 
     group.setAttribute("data-class", name); group.setAttribute("data-visual", type);
 
-    if (der) { group.setAttribute("data-der-shape", der.shape); return [{ name, domId: group.id, x: center.x, y: center.y, width: der.width, height: der.height, transform: original, shape: der.shape, cx: der.cx, cy: der.cy }]; }
+    if (der) { if (type === "der") group.setAttribute("data-der-shape", der.shape); return [{ name, domId: group.id, x: center.x, y: center.y, width: der.width, height: der.height, transform: original, shape: der.shape, cx: der.cx, cy: der.cy, chen: type === "der" }]; }
 
     return [{ name, domId: group.id, x: center.x, y: center.y, width: isActor ? 44 : box.width, height: isActor ? 84 : box.height, transform: original, cx: isActor ? 0 : box.x + box.width / 2, cy: isActor ? 0 : box.y + box.height / 2 }];
 

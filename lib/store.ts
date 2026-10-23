@@ -35,6 +35,12 @@ export async function listDiagrams(owner: string): Promise<Diagram[]> {
   return result.results.map(fromRow);
 }
 
+/** What the 2-second sync poll compares: no sources, so a large board is not read on every poll. */
+export async function listVersions(owner: string) {
+  const result = await getBinding().prepare(`SELECT d.id, d.revision, ${ROLE_SQL} FROM diagrams d WHERE ${ACCESS_SQL}`).bind(...asUser(owner, 7)).all<{ id: string; revision: number; access: Diagram["access"] }>();
+  return result.results.map(row => ({ id: row.id, revision: row.revision, access: row.access }));
+}
+
 export async function getDiagram(owner: string, id: string): Promise<Diagram> {
   return fromRow(await boardAccess(getBinding(), owner, id));
 }

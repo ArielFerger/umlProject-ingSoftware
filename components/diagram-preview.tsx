@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon, Type, StickyNote, Highlighter, ArrowLeftRight, Route, MoveDiagonal2 } from "lucide-react";
+import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon, Type, StickyNote, Highlighter, ArrowLeftRight, Route, MoveDiagonal2, ImagePlus } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
 import { CanvasModel, applyCanvas, measureClasses, exportCanvas, lazyExportCanvas, edgeControls, scaleEdgeControls, renderStrokes, renderStrokeSelection } from "@/lib/svg-canvas";
@@ -8,6 +8,8 @@ import { simplify, straightLine, streamline, type InkPoint, type InkTool } from 
 import { SOURCE_LIMIT } from "@/lib/diagrams";
 import CanvasNotes from "./canvas-notes";
 import ColorButton from "./color-button";
+import CanvasImages, { type ImageRequest } from "./canvas-images";
+import { browserStorage } from "@/lib/studio-request";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasFrames from "./canvas-frames";
@@ -19,8 +21,30 @@ import { NODE_KINDS, VISUAL_RELATIONS, visualNodes, visualRelations, setVisualNo
 import { prepareVisualSource, measureVisualNodes, sequenceModel, reorderSequence } from "@/lib/visual-svg";
 import { zoomAt, snapPoint, gridSpacing } from "@/lib/canvas-navigation";
 import { chenLayout, derIdFromLabel, isDerRelationship } from "@/lib/der";
+import { ACTIVITY_KINDS, isControlNode } from "@/lib/activity";
 
 let renderQueue: Promise<unknown> = Promise.resolve();
+
+/**
+ * Finished renders (measured SVG plus geometry), keyed by everything that
+ * affects them. Reopening a diagram or undoing to a state seen before skips
+ * Mermaid, the slowest step. Entries are copied on use, never shared.
+ */
+type RenderSnapshot = { svg: string; width: number; height: number; center: Point; nodes: CanvasModel["nodes"]; edges: CanvasModel["edges"]; derKinds: Record<string, string> };
+const renderCache = new Map<string, RenderSnapshot>();
+const RENDER_CACHE_SIZE = 24;
+function cachedRender(key: string) {
+  const hit = renderCache.get(key);
+  if (hit) { renderCache.delete(key); renderCache.set(key, hit); }
+  return hit;
+}
+function storeRender(key: string, snapshot: RenderSnapshot) {
+  renderCache.set(key, snapshot);
+  while (renderCache.size > RENDER_CACHE_SIZE) renderCache.delete(renderCache.keys().next().value!);
+}
+// Start downloading the renderer as soon as a board mounts, not on its first render.
+let mermaidModule: Promise<typeof import("mermaid")> | null = null;
+const loadMermaid = () => (mermaidModule ??= import("mermaid"));
 
 export type SvgResult = { svg: string; width: number; height: number; center?: Point };
 type ToolMode = "move" | "hand" | "place" | "connect" | "draw" | "erase" | "text" | "sticky";
@@ -151,7 +175,8 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [frameRequest, setFrameRequest] = useState(0);
   const hoveredEdgeRef = useRef("");
   const prevSelectedEdgeRef = useRef("");
-  const viewRaf = useRef<number>(0);
+  const viewCommit = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const zoomLabel = useRef<HTMLButtonElement>(null);
   const [edgeForm, setEdgeForm] = useState<(SourceRelation & { edgeId: string }) | null>(null);
   const [edgeDelete, setEdgeDelete] = useState<SourceRelation | null>(null);
   const drag = useRef<Drag | null>(null);
@@ -168,6 +193,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const [connectionForm, setConnectionForm] = useState<{ from: string; to: string; kind: string; label: string } | null>(null);
   const [visualKind, setVisualKind] = useState("");
   const [deleteTarget, setDeleteTarget] = useState("");
+  const [imageRequest, setImageRequest] = useState<ImageRequest>();
+  const imageInput = useRef<HTMLInputElement>(null);
+  /** First picture in a drop or paste, if any. */
+  const pictureIn = (files?: FileList | null) => Array.from(files || []).find(file => /^image\/(png|jpeg|webp|gif)$/.test(file.type));
   // Multiple selection (two or more elements); a single selection keeps using selectedNode.
   const [group, setGroup] = useState<string[]>([]);
   const [marquee, setMarquee] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
@@ -232,16 +261,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       viewport.current.style.backgroundSize = `${spacing}px ${spacing}px`;
       viewport.current.style.backgroundPosition = `calc(50% + ${nextPan.x - cx * nextZoom}px) calc(50% + ${nextPan.y - cy * nextZoom}px)`;
     }
-    if (!viewRaf.current) {
-      viewRaf.current = requestAnimationFrame(() => {
-        viewRaf.current = 0;
-        setZoom(viewState.current.zoom);
-        setPan(viewState.current.pan);
-      });
-    }
+    // The DOM already shows the new view; React state (and every control that
+    // depends on it) catches up once the gesture pauses instead of every frame.
+    if (zoomLabel.current) zoomLabel.current.textContent = `${Math.round(nextZoom * 100)}%`;
+    clearTimeout(viewCommit.current);
+    viewCommit.current = setTimeout(() => { setZoom(viewState.current.zoom); setPan(viewState.current.pan); }, 120);
   }
 
-  useEffect(() => () => { if (viewRaf.current) cancelAnimationFrame(viewRaf.current); clearTimeout(movingTimer.current); }, []);
+  useEffect(() => () => { clearTimeout(viewCommit.current); clearTimeout(movingTimer.current); }, []);
 
   function activateTool(tool: ToolMode) {
     setMode(tool); setOrigin(""); setContext(null); setShowShortcuts(false); if (tool !== "move") setSelectedStroke(-1);
@@ -287,10 +314,24 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   useEffect(() => {
     if (!insertRequest || !onSourceChange) return;
     setFormError("");
+    if (insertRequest.kind === "image") { imageInput.current?.click(); return; }
     // Text and sticky notes are board tools: the next click places them.
     if (insertRequest.kind === "text" || insertRequest.kind === "sticky") { activateTool(insertRequest.kind); setFeedback(insertRequest.kind === "text" ? "Hacé clic en el tablero para escribir un texto." : "Hacé clic en el tablero para pegar una nota adhesiva."); return; }
     if (isClass) {
       if (insertRequest.kind === "class") openClass("", undefined);
+      return;
+    }
+    // Activity control nodes need no text: they are placed at once with a generated name.
+    if (diagram.type === "activity" && isControlNode(insertRequest.kind)) {
+      const info = ACTIVITY_KINDS.find(k => k.value === insertRequest.kind)!, taken = nodesInSource.map(n => n.id);
+      const base = info.defaultLabel!.normalize("NFD").replace(/[^A-Za-z]/g, "") || "Nodo";
+      let id = base, n = 2; while (taken.includes(id)) id = base + n++;
+      try {
+        let source = setVisualNode(diagram.source, "activity", { id, label: info.defaultLabel!, kind: info.value, body: "" }, true);
+        source = writeCanvas(source, { ...readCanvas(source), positions: { ...positions.current, ...settingsRef.current.positions, [id]: viewportCenterPoint() } });
+        callbacks.current.onSourceChange?.(source); pendingNode.current = id; setSelectedNode(id);
+        setFeedback(`${info.label} agregado. Conectalo con C o desde su barra.`);
+      } catch (e) { setFeedback((e as Error).message); }
       return;
     }
     if (["message", "transition", "flow", "erlink"].includes(insertRequest.kind)) {
@@ -317,9 +358,49 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     setPan(nextPan);
   }, []);
 
+  useEffect(() => { void loadMermaid(); }, []);
+
   useEffect(() => {
     let cancelled = false;
     setBusy(true); setError(""); callbacks.current.onRendered(null);
+    const cacheKey = JSON.stringify([diagram.type, diagram.theme, dark, diagram.name, content]);
+    /** Applies a render, fresh or cached, to this board. */
+    const apply = (snapshot: RenderSnapshot) => {
+      const nodes = snapshot.nodes.map(node => ({ ...node }));
+      const edges = snapshot.edges.map(edge => ({ ...edge, points: edge.points?.map(point => ({ ...point })) }));
+      if (isDer) derGraph.current = { kinds: snapshot.derKinds, edges };
+      model.current = { nodes, edges };
+      const sourceLines = isClass ? null : content.split("\n");
+      const relations: SourceRelation[] = isClass ? sourceRelations(content) : visualRelations(content, diagram.type).map(r => ({ ...r, raw: sourceLines![r.line], fromCard: "", toCard: "", indent: "", comment: "" }));
+      const relationsByPair = new Map<string, SourceRelation[]>();
+      for (const r of relations) {
+        const key = `${r.from}\0${r.to}`;
+        const list = relationsByPair.get(key) || [];
+        list.push(r);
+        relationsByPair.set(key, list);
+      }
+      const pairIndex = new Map<string, number>();
+      relationSources.current = new Map(edges.flatMap(edge => {
+        const key = `${edge.start}\0${edge.end}`;
+        const idx = pairIndex.get(key) || 0;
+        const relation = relationsByPair.get(key)?.[idx];
+        if (!relation) return [];
+        pairIndex.set(key, idx + 1);
+        edge.routeKey = relationRouteKey(relation.from, relation.to, idx);
+        return [[edge.id, relation] as const];
+      }));
+      renderedId.current = diagram.id;
+      renderedContent.current = content;
+      setResult({ svg: snapshot.svg, width: snapshot.width, height: snapshot.height, center: snapshot.center });
+      setBusy(false);
+    };
+    const cached = cachedRender(cacheKey);
+    // Mermaid ids must stay unique in the page: skip the cache if that SVG is already shown elsewhere.
+    const cachedId = cached?.svg.match(/<svg[^>]*?\sid="([^"]+)"/)?.[1];
+    if (cached && !(cachedId && document.getElementById(cachedId))) {
+      const timer = setTimeout(() => { if (!cancelled) apply(cached); }, 0);
+      return () => { cancelled = true; clearTimeout(timer); };
+    }
     const timer = setTimeout(() => {
       renderQueue = renderQueue.catch(() => {}).then(async () => {
         if (cancelled) return;
@@ -327,12 +408,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         staging.style.cssText = "position:fixed;left:-20000px;top:0;visibility:hidden;";
         document.body.appendChild(staging);
         try {
-          const mermaid = (await import("mermaid")).default;
+          const mermaid = (await loadMermaid()).default;
           if (isClass) await document.fonts.load("14px 'IBM Plex Mono'");
           mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false, theme: dark ? "dark" : "base",
             fontFamily: "Source Sans 3 Variable, sans-serif", suppressErrorRendering: true,
             themeCSS: isClass ? ".members-group text, .methods-group text { font-family: 'IBM Plex Mono', monospace; font-size: 14px; } .label-group text { font-family: 'Source Sans 3 Variable', sans-serif; font-size: 17px; font-weight: 650; } .divider path { stroke-width: 1px; }" : "",
-            themeVariables: dark ? { fontSize: "15px", primaryColor: "#243b47", primaryTextColor: "#e4edf1", primaryBorderColor: "#84b6c4", lineColor: "#96b5c0", mainBkg: "#243b47" } : {
+            themeVariables: dark ? { fontSize: "15px", primaryColor: "#243b47", primaryTextColor: "#e4edf1", primaryBorderColor: "#84b6c4", lineColor: "#96b5c0", mainBkg: "#243b47", sequenceNumberColor: "#14202a" } : {
+              // Autonumber digits sit on the signal-colored circle; Mermaid's derived color was unreadable.
+              sequenceNumberColor: "#ffffff",
               fontSize: "15px", primaryColor: diagram.theme === "neutral" ? "#f4f6f8" : "#edf5f7",
               primaryTextColor: "#243c48", primaryBorderColor: "#759ca9", lineColor: "#5d7b88",
               secondaryColor: "#eff2f8", tertiaryColor: "#f7f2e6", background: "#ffffff",
@@ -363,6 +446,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           const data = db.getData?.();
           const nodes = isClass ? measureClasses(live) : measureVisualNodes(live, data?.nodes || [], content, diagram.type);
           let edges: CanvasModel["edges"] = [];
+          let derKinds: Record<string, string> = {};
           if (nodes.length) {
             if (isSequence) {
               edges = sequenceModel(live, content);
@@ -376,7 +460,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
                 const id = el.querySelector("[data-id]")?.getAttribute("data-id");
                 if (id) labelsById.set(id, el);
               }
-              const derKinds = isDer ? Object.fromEntries(visualNodes(content, "der").map(node => [node.id, node.kind])) : {};
+              derKinds = isDer ? Object.fromEntries(visualNodes(content, "der").map(node => [node.id, node.kind])) : {};
               edges = (data?.edges || []).map(edge => {
                 if (diagram.type === "er") { edge.start = edge.start?.match(/^entity-(.*)-\d+$/)?.[1] || edge.start; edge.end = edge.end?.match(/^entity-(.*)-\d+$/)?.[1] || edge.end; }
                 const path = pathsById.get(edge.id);
@@ -387,40 +471,19 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
                 const labelNear = !isDer ? undefined : isDerRelationship(derKinds[edge.start || ""]) ? "end" as const : isDerRelationship(derKinds[edge.end || ""]) ? "start" as const : undefined;
                 return { ...edge, points, labelPosition: matrix ? { x: matrix.e, y: matrix.f } : undefined, labelNear };
               });
-              derGraph.current = { kinds: derKinds, edges };
             }
           }
-          model.current = { nodes, edges };
-          const sourceLines = isClass ? null : content.split("\n");
-          const relations: SourceRelation[] = isClass ? sourceRelations(content) : visualRelations(content, diagram.type).map(r => ({ ...r, raw: sourceLines![r.line], fromCard: "", toCard: "", indent: "", comment: "" }));
-          const relationsByPair = new Map<string, SourceRelation[]>();
-          for (const r of relations) {
-            const key = `${r.from}\0${r.to}`;
-            const list = relationsByPair.get(key) || [];
-            list.push(r);
-            relationsByPair.set(key, list);
-          }
-          const pairIndex = new Map<string, number>();
-          relationSources.current = new Map(edges.flatMap(edge => {
-            const key = `${edge.start}\0${edge.end}`;
-            const idx = pairIndex.get(key) || 0;
-            const relation = relationsByPair.get(key)?.[idx];
-            if (!relation) return [];
-            pairIndex.set(key, idx + 1);
-            edge.routeKey = relationRouteKey(relation.from, relation.to, idx);
-            return [[edge.id, relation] as const];
-          }));
-          renderedId.current = diagram.id;
-          renderedContent.current = content;
-          setResult({ svg: new XMLSerializer().serializeToString(live), width, height, center });
-          setBusy(false);
+          if (isDer) derGraph.current = { kinds: derKinds, edges };
+          const snapshot: RenderSnapshot = { svg: new XMLSerializer().serializeToString(live), width, height, center, nodes, edges, derKinds };
+          storeRender(cacheKey, snapshot);
+          if (!cancelled) apply(snapshot);
         } catch (e) {
           if (!cancelled) { setError(e instanceof Error ? e.message : "Revisa la sintaxis del diagrama."); setBusy(false); }
         } finally { staging.remove(); }
       });
     }, 220);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [content, diagram.theme, dark, diagram.id, diagram.type, isClass, isSequence, isDer]);
+  }, [content, diagram.theme, dark, diagram.id, diagram.type, diagram.name, isClass, isSequence, isDer]);
 
   useEffect(() => {
     const svg = root();
@@ -772,7 +835,14 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   function placeClass(name: string, point: Point) {
     const svg = root();
     if (!svg) return;
-    if (isSequence) { const geometry = model.current.nodes.find(n => n.name === name); const el = geometry && svg.getElementById(geometry.domId); if (el) el.setAttribute("transform", `translate(${point.x - geometry.x},0) ${geometry.transform}`); return; }
+    if (isSequence) {
+      // The participant's both boxes and its lifeline move together while dragging.
+      const geometry = model.current.nodes.find(n => n.name === name); if (!geometry) return;
+      const dx = point.x - geometry.x, main = svg.getElementById(geometry.domId);
+      main?.setAttribute("transform", `translate(${dx},0) ${geometry.transform}`);
+      svg.querySelectorAll<SVGElement>(`[data-twin][data-class="${CSS.escape(name)}"], [data-et="life-line"][data-id="${CSS.escape(name)}"]`).forEach(el => el.setAttribute("transform", `translate(${dx},0) ${el.dataset.origTransform || ""}`));
+      return;
+    }
     positions.current[name] = point;
     const next = { ...settingsRef.current, positions: positions.current };
     applyCanvas(svg, model.current, withLayout(next), dark, name);
@@ -958,7 +1028,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
   const cellSize = gridSpacing(zoom);
 
   return <div className={"diagram-preview-shell board-shell" + (dark ? " board-dark" : "") + (isFocused ? " is-focused" : "")} onKeyDown={canvasShortcut}
-    onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget)) setSpaceHeld(false); }}>
+    onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget)) setSpaceHeld(false); }}
+    onPaste={e => { if (!onSourceChange || (e.target as Element).closest("input,textarea,[contenteditable=true]")) return; const file = pictureIn(e.clipboardData.files); if (file) { e.preventDefault(); setImageRequest({ serial: Date.now(), file }); } }}
+    onDragOver={e => { if (onSourceChange && Array.from(e.dataTransfer.items).some(item => item.kind === "file")) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }}
+    onDrop={e => { const file = pictureIn(e.dataTransfer.files); if (!onSourceChange || !file) return; e.preventDefault(); setImageRequest({ serial: Date.now(), file, point: roundPoint(clientPoint(e.clientX, e.clientY)) }); }}>
     <div className="board-heading"><Shapes size={18} /><div><strong>{diagram.name}</strong><span>{onSourceChange ? "Tablero UML" : "Solo lectura"} · {modeLabel}</span></div></div>
     <div className="canvas-tools" role="toolbar" aria-label="Vista del tablero">
       <button className={"icon-btn " + (showGrid ? "active" : "")} title="Mostrar cuadrícula (G)" aria-label="Mostrar cuadrícula" aria-pressed={showGrid} onClick={() => setShowGrid(v => !v)}><Grid2X2 size={17} /></button>
@@ -1042,6 +1115,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <CanvasNotes key={"notes-" + diagram.id} settings={settings} renderKey={result} zoom={zoom} dark={dark} active={mode === "move" && !spaceHeld && !busy && !error} placing={mode === "text" || mode === "sticky" ? mode : null}
         root={root} viewport={() => viewport.current} point={clientPoint} commit={onSourceChange ? next => callbacks.current.onSettingsChange(next) : undefined}
         onPlaced={() => setMode("move")} onSelect={() => { clearSelection(); }} />
+      <CanvasImages key={"images-" + diagram.id} settings={settings} renderKey={result} zoom={zoom} active={mode === "move" && !spaceHeld && !busy && !error} board={diagram.id} inline={browserStorage}
+        root={root} viewport={() => viewport.current} point={clientPoint} center={viewportCenterPoint} commit={onSourceChange ? next => callbacks.current.onSettingsChange(next) : undefined}
+        onSelect={() => clearSelection()} onMessage={setFeedback} request={imageRequest} />
+      {onSourceChange && <input ref={imageInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="file-input" onChange={e => { const file = pictureIn(e.target.files); e.currentTarget.value = ""; if (file) setImageRequest({ serial: Date.now(), file }); }} />}
       <aside className="draw-side-toolbar" role="toolbar" aria-label="Herramientas del lienzo" aria-orientation="vertical">
         <button className={"icon-btn board-tool " + (mode === "move" && !spaceHeld ? "active" : "")} data-tooltip="Seleccionar · V" title="Seleccionar y mover (V)" aria-label="Seleccionar y mover" aria-pressed={mode === "move"} onClick={() => activateTool("move")}><MousePointer2 size={20} /></button>
         <button className={"icon-btn board-tool " + (mode === "hand" || spaceHeld ? "active" : "")} data-tooltip="Mano · H / Espacio" title="Mover lienzo (H o mantener Espacio)" aria-label="Mover lienzo" aria-pressed={mode === "hand" || spaceHeld} onClick={() => activateTool("hand")}><Hand size={20} /></button>
@@ -1055,6 +1132,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           <button className={"icon-btn board-tool " + (mode === "erase" ? "active" : "")} data-tooltip="Borrador · E" title="Borrador (E)" aria-label="Borrador" aria-pressed={mode === "erase"} disabled={busy || !!error} onClick={() => activateTool(mode === "erase" ? "move" : "erase")}><Eraser size={20} /></button>
           <button className={"icon-btn board-tool " + (mode === "text" ? "active" : "")} data-tooltip="Texto · T" title="Texto (T)" aria-label="Agregar texto" aria-pressed={mode === "text"} disabled={busy || !!error} onClick={() => activateTool(mode === "text" ? "move" : "text")}><Type size={20} /></button>
           <button className={"icon-btn board-tool " + (mode === "sticky" ? "active" : "")} data-tooltip="Nota adhesiva · K" title="Nota adhesiva (K)" aria-label="Agregar nota adhesiva" aria-pressed={mode === "sticky"} disabled={busy || !!error} onClick={() => activateTool(mode === "sticky" ? "move" : "sticky")}><StickyNote size={20} /></button>
+          <button className="icon-btn board-tool" data-tooltip="Imagen · arrastrá o pegá" title="Agregar imagen (también podés arrastrarla o pegarla con Ctrl+V)" aria-label="Agregar imagen" disabled={busy || !!error} onClick={() => imageInput.current?.click()}><ImagePlus size={20} /></button>
           <span className="draw-toolbar-divider" />
           <button className="icon-btn board-tool" data-tooltip="Ordenar elementos" title="Ordenar automáticamente" aria-label="Ordenar automáticamente" disabled={busy || !!error || isSequence} onClick={arrange}><LayoutGrid size={20} /></button>
 
@@ -1336,7 +1414,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
         {feedback && <div className="canvas-feedback" role="status"><span>{feedback}</span><button className="icon-btn" aria-label="Cerrar mensaje del lienzo" onClick={() => setFeedback("")}><X size={14} /></button></div>}
         <div className="zoom-toolbar" onPointerDown={e => e.stopPropagation()}>
           <button className="icon-btn" aria-label="Alejar" title="Alejar" onClick={() => changeZoom(-.1)}><Minus size={16} /></button>
-          <button className="zoom-value" aria-label="Restablecer zoom al 100%" title="Restablecer zoom al 100% (0)" onClick={() => setViewZoom(1)}>{Math.round(zoom * 100)}%</button>
+          <button ref={zoomLabel} className="zoom-value" aria-label="Restablecer zoom al 100%" title="Restablecer zoom al 100% (0)" onClick={() => setViewZoom(1)}>{Math.round(zoom * 100)}%</button>
           <button className="icon-btn" aria-label="Acercar" title="Acercar" onClick={() => changeZoom(.1)}><Plus size={16} /></button>
           <i /><button className="icon-btn" aria-label="Ajustar al lienzo" title="Ajustar al lienzo" onClick={() => fit()}><Scan size={17} /></button>
         </div>
