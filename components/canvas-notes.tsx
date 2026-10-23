@@ -65,6 +65,7 @@ export default function CanvasNotes(props: Props) {
     created.current = "";
   }
 
+  // Redraw only when what the layer shows changes, not on every board render (zoom and pan frames included).
   useEffect(() => {
     draw();
     // A note that was just placed fades in once.
@@ -73,7 +74,7 @@ export default function CanvasNotes(props: Props) {
       const group = svg.querySelector(`[data-note-id="${CSS.escape(id)}"]`);
       if (group) { fadeIn.current = ""; if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: "cubic-bezier(.16,1,.3,1)" }); }
     }
-  });
+  }, [props.settings.notes, props.renderKey, selected, editing, props.zoom, props.dark, props.active, editable]);
   useEffect(() => { if (editing) requestAnimationFrame(() => { editor.current?.focus(); editor.current?.select(); }); }, [editing]);
 
   useEffect(() => {

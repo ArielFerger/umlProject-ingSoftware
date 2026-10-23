@@ -1,5 +1,5 @@
 import { diagramInput } from "@/lib/diagrams";
-import { createDiagram, deleteDiagram, getDiagram, getHistory, listDiagrams, ownerFrom, saveDiagram, StoreError } from "@/lib/store";
+import { createDiagram, deleteDiagram, getDiagram, getHistory, listDiagrams, listVersions, ownerFrom, saveDiagram, StoreError } from "@/lib/store";
 import { z } from "zod";
 
 const updateInput = diagramInput.extend({ id: z.string().min(1).max(300), revision: z.number().int().positive() });
@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     const owner = ownerFrom(request);
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
+    if (!id && url.searchParams.has("versions")) return Response.json(await listVersions(owner), { headers: { "Cache-Control": "no-store" } });
     const result = id ? (url.searchParams.has("history") ? await getHistory(owner, id) : await getDiagram(owner, id)) : await listDiagrams(owner);
-    if (!id && url.searchParams.has("versions")) return Response.json((result as Awaited<ReturnType<typeof listDiagrams>>).map(d => ({ id: d.id, revision: d.revision, access: d.access })), { headers: { "Cache-Control": "no-store" } });
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return errorResponse(e); }
 }

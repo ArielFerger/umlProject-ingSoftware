@@ -85,17 +85,33 @@ Enviado --> Entregado: recibir
 Confirmado --> Cancelado: cancelar
 Entregado --> [*]
 Cancelado --> [*]` },
-  { type: "activity", name: "Proceso de compra", description: "Decisiones y flujo de actividades", source: `flowchart TD
-Inicio([Inicio]) --> Carrito[Revisar carrito]
-Carrito --> Stock{Stock disponible?}
-Stock -->|Si| Datos[Completar datos]
-Stock -->|No| Aviso[Mostrar faltantes]
+  { type: "activity", name: "Proceso de compra", description: "Acciones, decisiones, fork y join", source: `flowchart TD
+Inicio(("Inicio")):::actStart
+Carrito("Revisar carrito")
+Stock{"¿Stock disponible?"}
+Aviso("Mostrar faltantes")
+Datos("Completar datos")
+Fork1["Fork"]:::actFork
+Pago("Procesar pago")
+Reserva("Reservar stock")
+Join1["Join"]:::actJoin
+Resultado{"¿Pago aprobado?"}
+Confirmar("Confirmar pedido")
+Fin(("Fin")):::actEnd
+Inicio --> Carrito
+Carrito --> Stock
+Stock -->|"[sí]"| Datos
+Stock -->|"[no]"| Aviso
 Aviso --> Carrito
-Datos --> Pago[Procesar pago]
-Pago --> Resultado{Pago aprobado?}
-Resultado -->|Si| Confirmar[Confirmar pedido]
-Resultado -->|No| Pago
-Confirmar --> Fin([Fin])` },
+Datos --> Fork1
+Fork1 --> Pago
+Fork1 --> Reserva
+Pago --> Join1
+Reserva --> Join1
+Join1 --> Resultado
+Resultado -->|"[sí]"| Confirmar
+Resultado -->|"[no]"| Datos
+Confirmar --> Fin` },
   { type: "usecase", name: "Portal de clientes", description: "Actores y casos de uso", source: `flowchart LR
 Cliente["Cliente"]:::umlActor
 Admin["Administrador"]:::umlActor

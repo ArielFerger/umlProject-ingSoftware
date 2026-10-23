@@ -1,6 +1,7 @@
 import type { Point, EdgeAnchor, EdgeRoute } from "./canvas.ts";
+import { shapeExtent } from "./der.ts";
 
-export type RectNode = Point & { name: string; width: number; height: number };
+export type RectNode = Point & { name: string; width: number; height: number; shape?: "rect" | "diamond" | "ellipse" };
 export const DEFAULT_ROUTE: EdgeRoute = { shape: "curved", points: [] };
 const normals = { top: { x: 0, y: -1 }, right: { x: 1, y: 0 }, bottom: { x: 0, y: 1 }, left: { x: -1, y: 0 } };
 const distance = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y);
@@ -9,8 +10,12 @@ const unit = (a: Point, b: Point) => { const length = distance(a, b) || 1; retur
 
 export function anchorPoint(node: RectNode, anchor: EdgeAnchor): Point {
   const vertical = anchor.side === "left" || anchor.side === "right";
-  return vertical ? { x: node.x + normals[anchor.side].x * node.width / 2, y: node.y + (anchor.offset - .5) * node.height }
+  const onBox = vertical ? { x: node.x + normals[anchor.side].x * node.width / 2, y: node.y + (anchor.offset - .5) * node.height }
     : { x: node.x + (anchor.offset - .5) * node.width, y: node.y + normals[anchor.side].y * node.height / 2 };
+  if (node.shape !== "diamond" && node.shape !== "ellipse") return onBox;
+  // A point on the bounding box lies outside a diamond or circle: bring it onto the outline.
+  const angle = Math.atan2(onBox.y - node.y, onBox.x - node.x), r = shapeExtent(node, angle);
+  return { x: node.x + Math.cos(angle) * r, y: node.y + Math.sin(angle) * r };
 }
 // Project onto the nearest side, retaining any position along that side.
 export function nearestAnchor(node: RectNode, cursor: Point): EdgeAnchor {
@@ -25,6 +30,8 @@ export function nearestAnchor(node: RectNode, cursor: Point): EdgeAnchor {
 }
 function automaticAnchor(node: RectNode, toward: Point): EdgeAnchor {
   const dx = toward.x - node.x, dy = toward.y - node.y;
+  // Only the middle of each side touches a diamond or a circle: use its vertices.
+  if (node.shape === "diamond" || node.shape === "ellipse") return { side: Math.abs(dx) / node.width > Math.abs(dy) / node.height ? (dx > 0 ? "right" : "left") : (dy > 0 ? "bottom" : "top"), offset: .5 };
   const t = Math.min(node.width / 2 / (Math.abs(dx) || .001), node.height / 2 / (Math.abs(dy) || .001));
   return nearestAnchor(node, { x: node.x + dx * t, y: node.y + dy * t });
 }

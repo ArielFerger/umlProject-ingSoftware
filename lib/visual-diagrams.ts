@@ -6,6 +6,8 @@ import { remapRelationSettings } from "./relation-actions.ts";
 
 import type { DiagramType } from "./diagrams.ts";
 
+import { ACTIVITY_KINDS, activityDeclaration, activityKindForClass } from "./activity.ts";
+
 import { DER_KINDS, DER_RELATIONS, derDeclaration, derKindFor, derRatios, isDerRelationship, removeDerRatio, setDerRatio } from "./der.ts";
 
 
@@ -18,7 +20,7 @@ export const NODE_KINDS: Record<string, { value: string; label: string }[]> = {
 
   usecase: [{ value: "actor", label: "Actor" }, { value: "usecase", label: "Caso de uso" }],
 
-  activity: [{ value: "activity", label: "Actividad" }, { value: "decision", label: "Decisión" }, { value: "terminal", label: "Inicio / fin" }],
+  activity: ACTIVITY_KINDS.map(({ value, label }) => ({ value, label })),
 
   component: [{ value: "component", label: "Componente" }, { value: "database", label: "Base de datos" }],
 
@@ -52,7 +54,8 @@ export const VISUAL_RELATIONS: Record<string, { value: string; name: string }[]>
 
 const idPattern = "[A-Za-z_][\\w-]*";
 
-const flowNode = new RegExp(`\\b(${idPattern})(\\(\\[([^\\n]*?)\\]\\)|\\[\\(([^\\n]*?)\\)\\]|\\[\\[([^\\n]*?)\\]\\]|\\[([^\\n]*?)\\]|\\{([^\\n]*?)\\}|\\(([^\\n]*?)\\))(:::([\\w-]+))?`, "g");
+// Groups: 3 stadium ([ ]), 4 database [( )], 5 subroutine [[ ]], 6 rect [ ], 7 rhombus { }, 8 circle (( )), 9 rounded ( ), 11 class.
+const flowNode = new RegExp(`\\b(${idPattern})(\\(\\[([^\\n]*?)\\]\\)|\\[\\(([^\\n]*?)\\)\\]|\\[\\[([^\\n]*?)\\]\\]|\\[([^\\n]*?)\\]|\\{([^\\n]*?)\\}|\\(\\(([^\\n]*?)\\)\\)|\\(([^\\n]*?)\\))(:::([\\w-]+))?`, "g");
 
 const unquote = (s: string) => s.trim().replace(/^"|"$/g, "");
 
@@ -82,15 +85,19 @@ export function visualNodes(source: string, type: DiagramType): VisualNode[] {
 
     if (/^\s*subgraph\b/.test(prefix)) continue;
 
-    const label = unquote(m[3] ?? m[4] ?? m[5] ?? m[6] ?? m[7] ?? m[8] ?? m[1]);
+    const label = unquote(m[3] ?? m[4] ?? m[5] ?? m[6] ?? m[7] ?? m[8] ?? m[9] ?? m[1]);
 
     const scope = content.slice(0, m.index).split("\n").reduce((depth, line) => /^\s*subgraph\b/.test(line) ? depth + 1 : /^\s*end\s*$/.test(line) ? Math.max(0, depth - 1) : depth, 0);
 
-    if (type === "der") { nodes.set(m[1], { id: m[1], label, kind: derKindFor(m[10], m[2]), body: "" }); continue; }
+    if (type === "der") { nodes.set(m[1], { id: m[1], label, kind: derKindFor(m[11], m[2]), body: "" }); continue; }
 
-    const actor = m[10] === "umlActor" || (type === "usecase" && scope === 0 && m[2].startsWith("[") && !m[2].startsWith("[("));
+    const control = type === "activity" ? activityKindForClass(m[11]) : undefined;
 
-    nodes.set(m[1], { id: m[1], label, kind: actor ? "actor" : m[3] != null ? (type === "usecase" ? "usecase" : "terminal") : m[4] != null ? "database" : m[7] != null ? "decision" : type === "component" ? "component" : "activity", body: "" });
+    if (control) { nodes.set(m[1], { id: m[1], label, kind: control, body: "" }); continue; }
+
+    const actor = m[11] === "umlActor" || (type === "usecase" && scope === 0 && m[2].startsWith("[") && !m[2].startsWith("[("));
+
+    nodes.set(m[1], { id: m[1], label, kind: actor ? "actor" : m[3] != null ? (type === "usecase" ? "usecase" : "terminal") : m[4] != null ? "database" : m[7] != null ? "decision" : m[8] != null && type === "activity" ? "start" : type === "component" ? "component" : "activity", body: "" });
 
   }
 
@@ -149,6 +156,8 @@ function declaration(node: VisualNode, type: DiagramType) {
   }
 
   if (type === "der") return derDeclaration(node.id, label, node.kind);
+
+  if (type === "activity") return activityDeclaration(node.id, label, node.kind);
 
   if (node.kind === "actor") return `${node.id}["${label}"]:::umlActor`;
 

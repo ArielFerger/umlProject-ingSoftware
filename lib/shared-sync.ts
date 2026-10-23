@@ -69,6 +69,9 @@ export function mergeSharedDiagram(base: Diagram, local: Diagram, remote: Diagra
   const notes = record(b.notes || {}, l.notes || {}, r.notes || {});
   if (!notes) return null;
   merged.notes = notes;
+  const images = record(b.images || {}, l.images || {}, r.images || {});
+  if (!images) return null;
+  merged.images = images;
   for (const link of Object.values(frameLinks)) {
     if ([link.from, link.to].some(end => end.kind === "frame" && !Object.hasOwn(frames, end.id))) return null;
   }

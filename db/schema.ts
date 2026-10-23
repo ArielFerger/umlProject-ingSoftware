@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, index, uniqueIndex, blob } from "drizzle-orm/sqlite-core";
 
 export const workspaces = sqliteTable("workspaces", {
   owner: text("owner").primaryKey(),
@@ -76,3 +76,14 @@ export const boardPresence = sqliteTable("board_presence", {
   color: text("color").notNull().default(""),
   lastSeen: integer("last_seen").notNull(),
 }, table => [uniqueIndex("idx_presence_session").on(table.diagramId, table.sessionId), index("idx_presence_seen").on(table.lastSeen)]);
+
+// Pictures placed on boards. Content never changes for an id, so it is cached as immutable.
+export const boardAssets = sqliteTable("board_assets", {
+  id: text("id").primaryKey(),
+  diagramId: text("diagram_id").notNull().references(() => diagrams.id, { onDelete: "cascade" }),
+  mime: text("mime").notNull(),
+  data: blob("data").notNull(),
+  bytes: integer("bytes").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+}, table => [index("idx_asset_diagram").on(table.diagramId)]);

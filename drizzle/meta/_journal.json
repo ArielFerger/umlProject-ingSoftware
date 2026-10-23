@@ -36,6 +36,13 @@
       "when": 1792685871749,
       "tag": "0004_presence_color",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792717561168,
+      "tag": "0005_board_assets",
+      "breakpoints": true
     }
   ]
 }
