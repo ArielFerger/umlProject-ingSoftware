@@ -1,5 +1,23 @@
 import { cleanSource, readCanvas, writeCanvas, RELATIONS } from "./canvas.ts";
-import { relationRouteKey } from "./edge-routing.ts";
+import { relationRouteKey, reverseRoute, routeKeys } from "./edge-routing.ts";
+import type { CanvasSettings } from "./canvas.ts";
+
+/**
+ * Moves route and color settings to the keys relations have after an edit, by
+ * source order. The relation at `flipped` now runs the other way, so its route
+ * is reversed too.
+ */
+export function remapRelationSettings(settings: CanvasSettings, before: { from: string; to: string }[], after: { from: string; to: string }[], flipped = -1): CanvasSettings {
+  const oldKeys = routeKeys(before), newKeys = routeKeys(after);
+  const routes: CanvasSettings["routes"] = {}, edgeColors: Record<string, string> = {};
+  oldKeys.forEach((key, i) => {
+    if (!newKeys[i]) return;
+    const route = settings.routes[key], color = settings.edgeColors?.[key];
+    if (route) routes[newKeys[i]] = i === flipped ? reverseRoute(route) : route;
+    if (color) edgeColors[newKeys[i]] = color;
+  });
+  return { ...settings, routes, edgeColors };
+}
 
 export type SourceRelation = { line: number; raw: string; from: string; to: string; kind: string; fromCard: string; toCard: string; label: string; indent: string; comment: string };
 const relationLine = /^([ \t]*)([A-Za-z_][\w-]*)(?:[ \t]+"([^"\r\n]*)")?[ \t]+([<>|o*().-]+)[ \t]+(?:"([^"\r\n]*)"[ \t]+)?([A-Za-z_][\w-]*)(?:[ \t]*:[ \t]*(.*?))?([ \t]*(?:%%.*)?)$/;
@@ -27,6 +45,15 @@ export function updateRelation(source: string, relation: SourceRelation, patch: 
   const from = patch.fromCard.trim(), to = patch.toCard.trim(), label = patch.label.trim();
   lines[relation.line] = `${relation.indent}${relation.from}${from ? ` "${from}"` : ""} ${patch.kind} ${to ? `"${to}" ` : ""}${relation.to}${label ? ` : ${label}` : ""}${relation.comment}`;
   return writeCanvas(lines.join("\n"), readCanvas(source));
+}
+/** Swaps both ends of a class relation; each multiplicity stays with its class. */
+export function invertRelation(source: string, relation: SourceRelation) {
+  const lines = currentLines(source, relation), before = sourceRelations(source);
+  const index = before.findIndex(item => item.line === relation.line);
+  const { indent, from, to, fromCard, toCard, kind, label, comment } = relation;
+  lines[relation.line] = `${indent}${to}${toCard ? ` "${toCard}"` : ""} ${kind} ${fromCard ? `"${fromCard}" ` : ""}${from}${label ? ` : ${label}` : ""}${comment}`;
+  const content = lines.join("\n"), after = sourceRelations(content);
+  return { source: writeCanvas(content, remapRelationSettings(readCanvas(source), before, after, index)), routeKey: routeKeys(after)[index] };
 }
 export function removeRelation(source: string, relation: SourceRelation) {
   const lines = currentLines(source, relation);

@@ -105,6 +105,8 @@ export default function Studio() {
   const [svg, setSvg] = useState<SvgResult | null>(null);
   const [working, setWorking] = useState(false);
   const [exportScale, setExportScale] = useState(4);
+  // "Insertar" starts folded so the diagram list keeps its room; the choice is remembered.
+  const [toolboxOpen, setToolboxOpen] = useState(() => { try { return typeof window !== "undefined" && localStorage.getItem("uml-toolbox-open") === "1"; } catch { return false; } });
   const [transparentPng, setTransparentPng] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [formError, setFormError] = useState("");
@@ -518,7 +520,8 @@ export default function Studio() {
         {search && !filtered.length && <div className="list-empty">No hay resultados.</div>}
         {!loading && !documents.length && !loadError && <div className="list-empty">Todavía no hay diagramas.</div>}
       </div>
-      {current && <section className="toolbox" aria-label="Herramientas de diagramado"><div className="toolbox-heading"><h2>Insertar</h2><span>{TYPE_LABELS[current.type]}</span></div>
+      {current && <section className={"toolbox" + (toolboxOpen ? " is-open" : "")} aria-label="Herramientas de diagramado"><button type="button" className="toolbox-heading toolbox-toggle" aria-expanded={toolboxOpen} onClick={() => { const next = !toolboxOpen; setToolboxOpen(next); try { localStorage.setItem("uml-toolbox-open", next ? "1" : "0"); } catch { /* Preference stays for this visit only. */ } }}><h2>Insertar</h2><span>{TYPE_LABELS[current.type]}</span>{toolboxOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
+        {toolboxOpen && <>
         {current.type === "class" ? <>
           <button disabled={!canEdit} className="sidebar-tool" onClick={() => beginClass()}><Boxes size={17} /><span>Clase</span><Plus size={13} /></button>
           <button disabled={!canEdit} className="sidebar-tool" onClick={beginRelation}><Link2 size={17} /><span>Relación</span><Plus size={13} /></button>
@@ -527,6 +530,7 @@ export default function Studio() {
         <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Texto libre en el tablero (T)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "text" })}><Type size={17} /><span>Texto</span><Plus size={13} /></button>
         <button disabled={!canEdit || view === "code"} className="sidebar-tool" title="Nota adhesiva (K)" onClick={() => setInsertRequest({ serial: Date.now(), kind: "sticky" })}><StickyNote size={17} /><span>Nota</span><Plus size={13} /></button>
         <button disabled={!canEdit} className="sidebar-tool" onClick={() => insertSnippet("note")} title="Comentario dentro del código Mermaid"><MessageSquareText size={17} /><span>Comentario</span><Plus size={13} /></button>
+        </>}
       </section>}
       <div className="sidebar-bottom"><button className="sidebar-action" onClick={() => importInput.current?.click()} disabled={loading || !!loadError}><Upload size={16} />Importar archivo</button>
         <button className="sidebar-action" onClick={beginNew} disabled={loading || !!loadError}><LayoutTemplate size={16} />Plantillas</button>

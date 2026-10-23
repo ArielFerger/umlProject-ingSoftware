@@ -5,7 +5,8 @@ import { routeEdge, DEFAULT_ROUTE, nearestAnchor, anchorPoint, polylineMidpoint 
 import { shapeBoundary, type DerShape } from "./der";
 import { outlinePath, strokeOutline } from "./freehand";
 
-export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string; shape?: DerShape };
+/** `cx`/`cy`: center in the node's own coordinates, the origin for size changes. */
+export type ClassGeometry = { name: string; x: number; y: number; width: number; height: number; domId: string; transform: string; shape?: DerShape; cx?: number; cy?: number };
 export type EdgeGeometry = { id: string; routeKey?: string; start?: string; end?: string; startLabelRight?: string; endLabelLeft?: string; points?: Point[]; labelPosition?: Point; label?: string; labelNear?: "start" | "end" };
 export type CanvasModel = { nodes: ClassGeometry[]; edges: EdgeGeometry[] };
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -40,7 +41,7 @@ type CachedEdgeEntry = {
 type CanvasDomCache = {
   nodeEls: Map<string, SVGGElement>;
   modelNodes: Map<string, ClassGeometry>;
-  appliedNodePos: Map<string, Point>;
+  appliedNodePos: Map<string, Point & { s: number }>;
   placedNodes: Map<string, ClassGeometry>;
   markers: Map<string, MarkerCache>;
   allPaths: SVGPathElement[];
@@ -61,7 +62,7 @@ export function measureClasses(root: SVGSVGElement): ClassGeometry[] {
     const box = node.getBBox();
     const transform = node.transform.baseVal.consolidate()?.matrix;
     if (!transform) return [];
-    return [{ name, domId: node.id, x: transform.e + box.x + box.width / 2, y: transform.f + box.y + box.height / 2, width: box.width, height: box.height, transform: node.getAttribute("transform") || "" }];
+    return [{ name, domId: node.id, x: transform.e + box.x + box.width / 2, y: transform.f + box.y + box.height / 2, width: box.width, height: box.height, transform: node.getAttribute("transform") || "", cx: box.x + box.width / 2, cy: box.y + box.height / 2 }];
   });
 }
 
@@ -149,7 +150,7 @@ function routeSignature(route: EdgeRoute | undefined): string {
 function buildDomCache(root: SVGSVGElement, model: CanvasModel): CanvasDomCache {
   const nodeEls = new Map<string, SVGGElement>();
   const modelNodes = new Map<string, ClassGeometry>();
-  const appliedNodePos = new Map<string, Point>();
+  const appliedNodePos = new Map<string, Point & { s: number }>();
   const placedNodes = new Map<string, ClassGeometry>();
 
   for (const node of model.nodes) {
@@ -342,14 +343,14 @@ function updateEdgeEntry(entry: CachedEdgeEntry, cache: CanvasDomCache, settings
   if (!a || !b || !originalA || !originalB) return;
   const custom = edge.routeKey ? settings.routes[edge.routeKey] : undefined;
   const color = edge.routeKey ? settings.edgeColors?.[edge.routeKey] : undefined;
-  const key = `${color || ""}|${a.x},${a.y}|${b.x},${b.y}|${settings.arrowScale}|${settings.labelSize}|${dark ? 1 : 0}|${routeSignature(custom)}`;
+  const key = `${color || ""}|${a.x},${a.y},${a.width}|${b.x},${b.y},${b.width}|${settings.arrowScale}|${settings.labelSize}|${dark ? 1 : 0}|${routeSignature(custom)}`;
   if (entry.lastKey === key) return;
   entry.lastKey = key;
   colorArrow(path, entry.coloredMarkers, color);
 
   const startGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-start"), settings.arrowScale, true);
   const endGap = cachedMarkerGap(cache.markers, path.getAttribute("marker-end"), settings.arrowScale, false);
-  const atLayout = Math.abs(a.x - originalA.x) < .1 && Math.abs(a.y - originalA.y) < .1 && Math.abs(b.x - originalB.x) < .1 && Math.abs(b.y - originalB.y) < .1;
+  const atLayout = Math.abs(a.x - originalA.x) < .1 && Math.abs(a.y - originalA.y) < .1 && Math.abs(b.x - originalB.x) < .1 && Math.abs(b.y - originalB.y) < .1 && a.width === originalA.width && b.width === originalB.width;
   const geometry = (entry.shaped && !custom?.points.length && !custom?.from && !custom?.to ? shapedRoute(a, b) : null)
     || (!custom && atLayout && !actorEdge ? layoutRoute(edge, startGap, endGap) : null) || routeEdge(a, b, custom || DEFAULT_ROUTE, startGap, endGap, parallelOffset);
   path.setAttribute("d", geometry.path);
@@ -372,6 +373,22 @@ function updateEdgeEntry(entry: CachedEdgeEntry, cache: CanvasDomCache, settings
   updateTerminal(endTerminal, geometry.end, "endToward" in geometry ? geometry.endToward as Point : geometry.start, labelSize, dark, false);
 }
 
+/** Places a node at its saved position and size; returns the geometry edges route to. */
+function placeNode(cache: CanvasDomCache, base: ClassGeometry, settings: CanvasSettings) {
+  const saved = Object.hasOwn(settings.positions, base.name) ? settings.positions[base.name] : undefined;
+  const scale = settings.nodeScales && Object.hasOwn(settings.nodeScales, base.name) ? settings.nodeScales[base.name] : 1;
+  const placed = { ...base, ...saved, width: base.width * scale, height: base.height * scale };
+  cache.placedNodes.set(base.name, placed);
+  const prev = cache.appliedNodePos.get(base.name);
+  if (!prev || prev.x !== placed.x || prev.y !== placed.y || prev.s !== scale) {
+    cache.appliedNodePos.set(base.name, { x: placed.x, y: placed.y, s: scale });
+    const cx = base.cx ?? 0, cy = base.cy ?? 0;
+    const resize = scale !== 1 ? ` translate(${cx}, ${cy}) scale(${scale}) translate(${-cx}, ${-cy})` : "";
+    cache.nodeEls.get(base.name)?.setAttribute("transform", `translate(${placed.x - base.x}, ${placed.y - base.y}) ${base.transform}${resize}`);
+  }
+  return placed;
+}
+
 export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: CanvasSettings, dark: boolean, dirtyNode?: string, dirtyEdgeId?: string) {
   root.dataset.framesDark = String(dark);
   let cache = domCache.get(root);
@@ -382,14 +399,7 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
   if (dirtyNode) {
     const base = cache.modelNodes.get(dirtyNode);
     if (base) {
-      const saved = Object.hasOwn(settings.positions, dirtyNode) ? settings.positions[dirtyNode] : undefined;
-      const placed = saved ? { ...base, ...saved } : base;
-      cache.placedNodes.set(dirtyNode, placed);
-      const prev = cache.appliedNodePos.get(dirtyNode);
-      if (!prev || prev.x !== placed.x || prev.y !== placed.y) {
-        cache.appliedNodePos.set(dirtyNode, { x: placed.x, y: placed.y });
-        cache.nodeEls.get(dirtyNode)?.setAttribute("transform", `translate(${placed.x - base.x}, ${placed.y - base.y}) ${base.transform}`);
-      }
+      placeNode(cache, base, settings);
       const incident = cache.edgesByNode.get(dirtyNode);
       if (incident) {
         for (const entry of incident) updateEdgeEntry(entry, cache, settings, dark);
@@ -419,15 +429,8 @@ export function applyCanvas(root: SVGSVGElement, model: CanvasModel, settings: C
 
   const result: Record<string, Point> = {};
   for (const node of model.nodes) {
-    const saved = Object.hasOwn(settings.positions, node.name) ? settings.positions[node.name] : undefined;
-    const placed = saved ? { ...node, ...saved } : node;
-    cache.placedNodes.set(node.name, placed);
+    const placed = placeNode(cache, node, settings);
     result[node.name] = { x: placed.x, y: placed.y };
-    const prev = cache.appliedNodePos.get(node.name);
-    if (!prev || prev.x !== placed.x || prev.y !== placed.y) {
-      cache.appliedNodePos.set(node.name, { x: placed.x, y: placed.y });
-      cache.nodeEls.get(node.name)?.setAttribute("transform", `translate(${placed.x - node.x}, ${placed.y - node.y}) ${node.transform}`);
-    }
   }
 
   if (cache.arrowScale !== settings.arrowScale) {
@@ -543,7 +546,7 @@ export function renderStrokeSelection(root: SVGSVGElement, stroke: CanvasStroke 
 
 export function exportCanvas(root: SVGSVGElement) {
   const clone = root.cloneNode(true) as SVGSVGElement;
-  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection,.studio-stroke-selection,.studio-note-controls").forEach(el => el.remove());
+  clone.querySelectorAll(".studio-edge-hitareas,.studio-edge-controls,.studio-stroke-hit,.studio-frame-controls,.studio-frame-hit,.studio-frame-link-hit,.studio-remote-selection,.studio-stroke-selection,.studio-note-controls,.studio-resize-handle").forEach(el => el.remove());
   clone.querySelectorAll(".edge-selected,.edge-hovered").forEach(el => el.classList.remove("edge-selected", "edge-hovered"));
   clone.querySelectorAll(".connection-origin,.class-selected").forEach(el => el.classList.remove("connection-origin", "class-selected"));
   clone.querySelectorAll("[tabindex]").forEach(el => { el.removeAttribute("tabindex"); el.removeAttribute("role"); });

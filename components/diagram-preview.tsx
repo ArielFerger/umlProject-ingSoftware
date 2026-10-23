@@ -1,21 +1,21 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon, Type, StickyNote, Highlighter } from "lucide-react";
+import { Minus, Plus, Scan, LoaderCircle, AlertCircle, Hand, Link2, BookOpen, SlidersHorizontal, LayoutGrid, X, MoreHorizontal, Pencil, Copy, Trash2, RotateCcw, Download, Check, Code2, Eraser, Maximize2, Minimize2, MousePointer2, Undo2, Redo2, Grid2X2, Magnet, Keyboard, Shapes, Frame as FrameIcon, Type, StickyNote, Highlighter, ArrowLeftRight, Route, MoveDiagonal2 } from "lucide-react";
 import { Diagram } from "@/lib/diagrams";
 import { CanvasSettings, CanvasStroke, Point, RelationKind, RELATIONS, cleanSource, readCanvas, writeCanvas, type EdgeRoute, type EdgeAnchor } from "@/lib/canvas";
 import { CanvasModel, applyCanvas, measureClasses, exportCanvas, lazyExportCanvas, edgeControls, scaleEdgeControls, renderStrokes, renderStrokeSelection } from "@/lib/svg-canvas";
 import { simplify, straightLine, streamline, type InkPoint, type InkTool } from "@/lib/freehand";
 import { SOURCE_LIMIT } from "@/lib/diagrams";
 import CanvasNotes from "./canvas-notes";
+import ColorButton from "./color-button";
 import { DEFAULT_ROUTE, nearestAnchor, outsidePoint, relationRouteKey } from "@/lib/edge-routing";
 import { classSnippet, classMembers, classNames, duplicateClass, removeClass, setClassMembers } from "@/lib/class-actions";
 import CanvasFrames from "./canvas-frames";
-import CanvasColors from "./canvas-colors";
 import CanvasMenu, { MenuAction } from "./canvas-menu";
 import Modal from "./modal";
 import { useAppTheme } from "./theme-picker";
-import { sourceRelations, updateRelation, removeRelation, type SourceRelation } from "@/lib/relation-actions";
-import { NODE_KINDS, VISUAL_RELATIONS, visualNodes, visualRelations, setVisualNode, addVisualRelation, removeVisualNode, updateVisualRelation, removeVisualRelation, type VisualNode } from "@/lib/visual-diagrams";
+import { sourceRelations, updateRelation, removeRelation, invertRelation, type SourceRelation } from "@/lib/relation-actions";
+import { NODE_KINDS, VISUAL_RELATIONS, visualNodes, visualRelations, setVisualNode, addVisualRelation, removeVisualNode, updateVisualRelation, removeVisualRelation, invertVisualRelation, type VisualNode } from "@/lib/visual-diagrams";
 import { prepareVisualSource, measureVisualNodes, sequenceModel, reorderSequence } from "@/lib/visual-svg";
 import { zoomAt, snapPoint, gridSpacing } from "@/lib/canvas-navigation";
 import { chenLayout, derIdFromLabel, isDerRelationship } from "@/lib/der";
@@ -25,7 +25,7 @@ let renderQueue: Promise<unknown> = Promise.resolve();
 export type SvgResult = { svg: string; width: number; height: number; center?: Point };
 type ToolMode = "move" | "hand" | "place" | "connect" | "draw" | "erase" | "text" | "sticky";
 type Drag = {
-  kind: "node" | "pan" | "edge" | "draw" | "erase" | "marquee" | "stroke";
+  kind: "node" | "pan" | "edge" | "draw" | "erase" | "marquee" | "stroke" | "resize";
   name?: string;
   x: number;
   y: number;
@@ -45,6 +45,9 @@ type Drag = {
   /** Pencil: pointer positions before smoothing, and the stroke being moved. */
   raw?: InkPoint[];
   strokeIndex?: number;
+  /** Resize handle: the size factor and pointer distance from the center when it began. */
+  scale?: number;
+  distance?: number;
 };
 
 const PEN_COLORS = [
@@ -432,6 +435,11 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       renderStrokes(svg, settings.strokes);
     }
     callbacks.current.onRendered(lazyExportCanvas(svg));
+    if (pendingEdgeKey.current && renderedContent.current === content) {
+      const reselected = model.current.edges.find(edge => edge.routeKey === pendingEdgeKey.current);
+      pendingEdgeKey.current = "";
+      setSelectedEdge(reselected?.id || "");
+    }
     if (pendingNode.current && model.current.nodes.some(node => node.name === pendingNode.current)) {
       const addedName = pendingNode.current;
       pendingNode.current = "";
@@ -458,6 +466,7 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     }
     if (fittedId.current !== diagram.id) {
       fittedId.current = diagram.id;
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) art.current?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: "cubic-bezier(.16,1,.3,1)" });
       if (result?.center) prevViewCenter.current = { id: diagram.id, center: result.center };
       fit(initialFit === "readable");
     } else if (result?.center) {
@@ -534,7 +543,9 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     const svg = root();
     if (svg) scaleEdgeControls(svg, zoom);
   }, [zoom, selectedEdge, busy, error]);
-  useEffect(() => { setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; }, [content]);
+  // Edits from the relation bar keep the arrow selected: it is found again by route key after the redraw.
+  const pendingEdgeKey = useRef("");
+  useEffect(() => { if (!pendingEdgeKey.current) setSelectedEdge(""); hoveredEdgeRef.current = ""; prevSelectedEdgeRef.current = ""; }, [content]);
   useEffect(() => {
     if (!busy && renderedId.current === diagram.id && renderedContent.current === content && selectedNode && !model.current.nodes.some(node => node.name === selectedNode)) {
       setSelectedNode(""); setFeedback("");
@@ -681,6 +692,47 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
     for (const name of multi ? selectedGroup : selection ? [selection] : []) { if (color) colors[name] = color; else delete colors[name]; }
     changeSettings({ nodeColors: colors });
   }
+
+  function relationChange(change: () => { source: string; routeKey: string }) {
+    try { const result = change(); pendingEdgeKey.current = result.routeKey; callbacks.current.onSourceChange?.(result.source); }
+    catch (e) { pendingEdgeKey.current = ""; setFeedback((e as Error).message); }
+  }
+  function changeEdgeKind(kind: string) {
+    if (!chosenRelation || !chosenEdge?.routeKey) return;
+    const key = chosenEdge.routeKey;
+    relationChange(() => ({ routeKey: key, source: isClass ? updateRelation(diagram.source, chosenRelation, { ...chosenRelation, kind }) : updateVisualRelation(diagram.source, diagram.type, chosenRelation, { ...chosenRelation, kind }) }));
+  }
+  function invertEdge() {
+    if (!chosenRelation) return;
+    relationChange(() => isClass ? invertRelation(diagram.source, chosenRelation) : invertVisualRelation(diagram.source, diagram.type, chosenRelation));
+    setFeedback("Dirección invertida. Podés deshacerlo con Deshacer.");
+  }
+  const scaleOf = (name: string) => settings.nodeScales && Object.hasOwn(settings.nodeScales, name) ? settings.nodeScales[name] : 1;
+  function resizeSelection(factor: number | "reset") {
+    const scales = { ...settingsRef.current.nodeScales };
+    for (const name of multi ? selectedGroup : selection ? [selection] : []) {
+      const next = factor === "reset" ? 1 : Math.round(Math.max(.4, Math.min(4, (scales[name] || 1) * factor)) * 20) / 20;
+      if (next === 1) delete scales[name]; else scales[name] = next;
+    }
+    changeSettings({ nodeScales: scales });
+  }
+  /** Corner handle of the selected element: drag it to change the element's size. */
+  useEffect(() => {
+    const svg = root();
+    svg?.querySelector(".studio-resize-handle")?.remove();
+    if (!svg || busy || error || multi || !selection || isSequence || !onSourceChange || mode !== "move") return;
+    const node = model.current.nodes.find(n => n.name === selection), at = positions.current[selection];
+    if (!node || !at) return;
+    const scale = scaleOf(selection), size = 11 / Math.max(.2, zoom);
+    const handle = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    handle.setAttribute("class", "studio-resize-handle"); handle.setAttribute("data-resize-handle", selection);
+    handle.setAttribute("x", String(at.x + node.width * scale / 2 - size / 2)); handle.setAttribute("y", String(at.y + node.height * scale / 2 - size / 2));
+    handle.setAttribute("width", String(size)); handle.setAttribute("height", String(size)); handle.setAttribute("rx", String(size / 4));
+    handle.style.cssText = `fill:var(--paper,#fff);stroke:var(--accent,#1a647b);stroke-width:${1.6 / Math.max(.2, zoom)}px;cursor:nwse-resize;pointer-events:all`;
+    const title = document.createElementNS("http://www.w3.org/2000/svg", "title"); title.textContent = "Arrastrá para cambiar el tamaño"; handle.appendChild(title);
+    (svg.querySelector("g.root") || svg).appendChild(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection, multi, result, settings, zoom, busy, error, mode]);
 
   /** Ctrl/⌘ + click: add or remove one element from the selection. */
   function toggleInGroup(name: string) {
@@ -931,26 +983,24 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <footer>Rueda para zoom · Mayús + rueda para desplazar · Esc para cancelar</footer>
     </section>}
     {mode === "connect" && <div className="connection-prompt" role="status"><Link2 size={14} /><select aria-label="Relación rápida" value={activeKind} onChange={e => { if (isClass) setRelationKind(e.target.value as RelationKind); else setVisualKind(e.target.value); setOrigin(""); }}>{availableRelations.map(item => <option key={item.value} value={item.value}>{item.name}</option>)}</select>{isClass && <button className="icon-btn" title="Guía de relaciones UML" aria-label="Guía de relaciones UML" onClick={() => callbacks.current.onGuide(relationKind)}><BookOpen size={16} /></button>}<span>{origin ? origin + " → elegí el destino" : "Elegí el origen y después el destino"}</span><button className="icon-btn" title="Cancelar conexión" aria-label="Cancelar conexión" onClick={() => { setMode("move"); setOrigin(""); }}><X size={14} /></button></div>}
-    {(mode === "draw" || mode === "erase") && onSourceChange && <div className="ink-toolbar" role="toolbar" aria-label="Opciones del lápiz" onPointerDown={e => e.stopPropagation()}>
+    {(mode === "draw" || mode === "erase") && onSourceChange && <div className="ink-toolbar" role="toolbar" aria-label="Opciones del lápiz" aria-orientation="vertical" onPointerDown={e => e.stopPropagation()}>
       <div className="ink-tools" role="group" aria-label="Herramienta">
-        <button type="button" className={"ink-tool" + (mode === "draw" && penTool === "pen" ? " active" : "")} aria-pressed={mode === "draw" && penTool === "pen"} title="Lápiz (P)" onClick={() => { setPenTool("pen"); setMode("draw"); }}><Pencil size={17} /><span>Lápiz</span></button>
-        <button type="button" className={"ink-tool" + (mode === "draw" && penTool === "marker" ? " active" : "")} aria-pressed={mode === "draw" && penTool === "marker"} title="Resaltador (M)" onClick={() => { setPenTool("marker"); setMode("draw"); }}><Highlighter size={17} /><span>Resaltador</span></button>
-        <button type="button" className={"ink-tool" + (mode === "erase" ? " active" : "")} aria-pressed={mode === "erase"} title="Borrador (E)" disabled={!settings.strokes?.length} onClick={() => setMode("erase")}><Eraser size={17} /><span>Borrador</span></button>
+        <button type="button" className={"ink-tool" + (mode === "draw" && penTool === "pen" ? " active" : "")} aria-pressed={mode === "draw" && penTool === "pen"} title="Lápiz (P)" aria-label="Lápiz" onClick={() => { setPenTool("pen"); setMode("draw"); }}><Pencil size={17} /></button>
+        <button type="button" className={"ink-tool" + (mode === "draw" && penTool === "marker" ? " active" : "")} aria-pressed={mode === "draw" && penTool === "marker"} title="Resaltador (M)" aria-label="Resaltador" onClick={() => { setPenTool("marker"); setMode("draw"); }}><Highlighter size={17} /></button>
+        <button type="button" className={"ink-tool" + (mode === "erase" ? " active" : "")} aria-pressed={mode === "erase"} title="Borrador de trazos (E)" aria-label="Borrador" disabled={!settings.strokes?.length} onClick={() => setMode("erase")}><Eraser size={17} /></button>
       </div>
-      <span className="board-control-divider" />
       <div className="ink-swatches" role="group" aria-label="Color">
         {PEN_COLORS.map(c => <button key={c.value} type="button" className={"ink-swatch" + (penColor === c.value ? " active" : "")} style={{ backgroundColor: c.value }} title={c.label} aria-label={`Color ${c.label}`} aria-pressed={penColor === c.value} onClick={() => { setPenColor(c.value); setMode("draw"); }} />)}
         <label className={"ink-swatch ink-custom" + (!PEN_COLORS.some(c => c.value === penColor) ? " active" : "")} title="Otro color"><input type="color" aria-label="Otro color" value={penColor} onChange={e => { setPenColor(e.target.value); setMode("draw"); }} /></label>
       </div>
-      <span className="board-control-divider" />
       <div className="ink-sizes" role="group" aria-label="Grosor">
-        {PEN_SIZES[penTool].map(size => <button key={size} type="button" className={"ink-size" + (penWidth === size ? " active" : "")} aria-pressed={penWidth === size} title={`${size} px`} aria-label={`Grosor ${size} píxeles`} onClick={() => { setPenSizes(current => ({ ...current, [penTool]: size })); setMode("draw"); }}><span style={{ width: Math.min(22, size + 2), height: Math.min(22, size + 2), background: penColor, opacity: penTool === "marker" ? .45 : 1 }} /></button>)}
+        {PEN_SIZES[penTool].map(size => <button key={size} type="button" className={"ink-size" + (penWidth === size ? " active" : "")} aria-pressed={penWidth === size} title={`${size} px`} aria-label={`Grosor ${size} píxeles`} onClick={() => { setPenSizes(current => ({ ...current, [penTool]: size })); setMode("draw"); }}><span style={{ width: Math.min(20, size + 2), height: Math.min(20, size + 2), background: penColor, opacity: penTool === "marker" ? .45 : 1 }} /></button>)}
       </div>
-      <span className="board-control-divider" />
-      <button type="button" className="icon-btn" title="Deshacer último trazo" aria-label="Deshacer último trazo" disabled={!settings.strokes?.length} onClick={undoStroke}><Undo2 size={16} /></button>
-      <button type="button" className="icon-btn" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos" disabled={!settings.strokes?.length} onClick={clearStrokes}><Trash2 size={16} /></button>
-      <button type="button" className="icon-btn" title="Listo (V)" aria-label="Salir del modo lápiz" onClick={() => activateTool("move")}><Check size={16} /></button>
-      <span className="ink-hint">{mode === "erase" ? "Tocá o arrastrá sobre un trazo para borrarlo" : "Mantené Mayús para una línea recta"}</span>
+      <div className="ink-actions">
+        <button type="button" className="icon-btn" title="Deshacer último trazo" aria-label="Deshacer último trazo" disabled={!settings.strokes?.length} onClick={undoStroke}><Undo2 size={16} /></button>
+        <button type="button" className="icon-btn" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos" disabled={!settings.strokes?.length} onClick={clearStrokes}><Trash2 size={16} /></button>
+        <button type="button" className="icon-btn ink-done" title="Listo (V)" aria-label="Salir del modo lápiz" onClick={() => activateTool("move")}><Check size={16} /></button>
+      </div>
     </div>}
     {strokeChoice && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label="Trazo seleccionado" onPointerDown={e => e.stopPropagation()}>
       <strong>{strokeChoice.tool === "marker" ? <Highlighter size={15} /> : <Pencil size={15} />}Trazo</strong><span className="board-control-divider" />
@@ -960,22 +1010,32 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       <button className="icon-btn" title="Deseleccionar (Esc)" aria-label="Deseleccionar trazo" onClick={() => setSelectedStroke(-1)}><X size={15} /></button>
     </div>}
     {chosenEdge && !busy && !error && <div className="relation-selection" role="region" aria-label="Relación seleccionada" onPointerDown={e => e.stopPropagation()}>
-      <Link2 size={16} /><div><strong>{chosenEdge.start} — {chosenEdge.end}</strong><span>{chosenRelation ? `${RELATIONS.find(r => r.value === chosenRelation.kind)?.name || chosenRelation.kind}${chosenRelation.label ? ` · ${chosenRelation.label}` : ""}` : "Relación Mermaid"}</span></div>
-      {onSourceChange && <><button className="btn" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /><span>Editar</span></button><button className="icon-btn" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
-      {onSourceChange && !isSequence && chosenEdge.routeKey && <CanvasColors label="Color de flecha" value={settings.edgeColors?.[chosenEdge.routeKey]} onChange={color => changeColor("edgeColors", chosenEdge.routeKey!, color)} />}
-      <button className="icon-btn" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
-      {onSourceChange && !isSequence && chosenEdge.routeKey && <div className="relation-routing">
-        <label>Trazo<select aria-label="Forma de la conexión" value={settings.routes[chosenEdge.routeKey]?.shape || "automatic"} onChange={e => e.target.value === "automatic" ? resetRoute() : changeRoute({ shape: e.target.value as EdgeRoute["shape"] })}>
-          <option value="automatic">Automático</option><option value="straight">Recta</option><option value="curved">Curva</option><option value="orthogonal">En ángulo</option>
-        </select></label>
-        <button className="btn" aria-label="Agregar punto de conexión" disabled={chosenRoute.points.length >= 20} onClick={addBend}><Plus size={14} />Punto</button>
-        <button className="icon-btn" aria-label="Quitar último punto de conexión" title="Quitar último punto" disabled={!chosenRoute.points.length} onClick={() => changeRoute({ points: chosenRoute.points.slice(0, -1) })}><Minus size={15} /></button>
-        <button className="icon-btn" aria-label="Restaurar recorrido automático" title="Restaurar recorrido automático" disabled={!settings.routes[chosenEdge.routeKey]} onClick={resetRoute}><RotateCcw size={15} /></button>
-        <details className="edge-anchors"><summary>Extremos</summary><div className="edge-anchor-fields">
+      <Link2 size={16} /><div className="relation-title"><strong>{chosenEdge.start} → {chosenEdge.end}</strong>{chosenRelation?.label && <span>{chosenRelation.label}</span>}</div>
+      {onSourceChange && chosenRelation && <>
+        <select className="relation-kind" aria-label="Tipo de relación" title="Cambiar el tipo de relación" value={availableRelations.some(r => r.value === chosenRelation.kind) ? chosenRelation.kind : ""} onChange={e => changeEdgeKind(e.target.value)}>
+          {!availableRelations.some(r => r.value === chosenRelation.kind) && <option value="" disabled>{chosenRelation.kind}</option>}
+          {availableRelations.map(r => <option key={r.value} value={r.value}>{r.name}</option>)}
+        </select>
+        <button className="icon-btn" title="Invertir dirección" aria-label="Invertir dirección de la relación" onClick={invertEdge}><ArrowLeftRight size={16} /></button>
+      </>}
+      {onSourceChange && !isSequence && chosenEdge.routeKey && <ColorButton label="Color de flecha" colors={[["Petróleo", "#1a647b"], ["Grafito", "#334155"], ["Azul", "#2563eb"], ["Violeta", "#7c3aed"], ["Rosa", "#db2777"], ["Rojo", "#dc2626"], ["Naranja", "#ea580c"], ["Verde", "#15803d"]]} value={settings.edgeColors?.[chosenEdge.routeKey]} onChange={color => changeColor("edgeColors", chosenEdge.routeKey!, color)} />}
+      {onSourceChange && !isSequence && chosenEdge.routeKey && <details className="relation-route-menu">
+        <summary className="icon-btn" title="Recorrido de la flecha" aria-label="Recorrido de la flecha"><Route size={16} /></summary>
+        <div className="relation-routing">
+          <label>Trazo<select aria-label="Forma de la conexión" value={settings.routes[chosenEdge.routeKey]?.shape || "automatic"} onChange={e => e.target.value === "automatic" ? resetRoute() : changeRoute({ shape: e.target.value as EdgeRoute["shape"] })}>
+            <option value="automatic">Automático</option><option value="straight">Recta</option><option value="curved">Curva</option><option value="orthogonal">En ángulo</option>
+          </select></label>
+          <div className="relation-routing-row">
+            <button className="btn" aria-label="Agregar punto de conexión" disabled={chosenRoute.points.length >= 20} onClick={addBend}><Plus size={14} />Punto</button>
+            <button className="icon-btn" aria-label="Quitar último punto de conexión" title="Quitar último punto" disabled={!chosenRoute.points.length} onClick={() => changeRoute({ points: chosenRoute.points.slice(0, -1) })}><Minus size={15} /></button>
+            <button className="icon-btn" aria-label="Restaurar recorrido automático" title="Restaurar recorrido automático" disabled={!settings.routes[chosenEdge.routeKey]} onClick={resetRoute}><RotateCcw size={15} /></button>
+          </div>
           {(["from", "to"] as const).map(end => <label key={end}>{end === "from" ? "Origen" : "Destino"}<select aria-label={`Lado de ${end === "from" ? "origen" : "destino"}`} value={chosenRoute[end]?.side || "automatic"} onChange={e => changeRoute({ [end]: e.target.value === "automatic" ? undefined : { side: e.target.value as EdgeAnchor["side"], offset: .5 } })}><option value="automatic">Automático</option><option value="top">Arriba</option><option value="right">Derecha</option><option value="bottom">Abajo</option><option value="left">Izquierda</option></select></label>)}
-        </div></details>
-        <span className="edge-route-hint">Arrastrá extremos y puntos. Supr quita un punto.</span>
-      </div>}
+          <span className="edge-route-hint">Arrastrá extremos y puntos sobre el lienzo. Supr quita un punto.</span>
+        </div>
+      </details>}
+      {onSourceChange && <><button className="icon-btn" title="Editar etiqueta y multiplicidad" disabled={!chosenRelation} onClick={() => editEdge(selectedEdge)} aria-label="Editar relación seleccionada"><Pencil size={15} /></button><button className="icon-btn board-delete" title="Eliminar relación" aria-label="Eliminar relación seleccionada" disabled={!chosenRelation} onClick={() => { setFormError(""); setEdgeDelete(chosenRelation || null); }}><Trash2 size={16} /></button></>}
+      <button className="icon-btn" title="Deseleccionar (Esc)" aria-label="Deseleccionar relación" onClick={() => setSelectedEdge("")}><X size={15} /></button>
     </div>}
     <div className="canvas-stage">
       {isClass && <CanvasFrames key={diagram.id} settings={settings} renderKey={result} addRequest={frameRequest} zoom={zoom} active={mode === "move" && !spaceHeld && !busy && !error} otherSelection={selection || selectedEdge} root={root} nodes={() => model.current.nodes} point={clientPoint} preview={next => showSettings(next)} commit={onSourceChange ? next => callbacks.current.onSourceChange && callbacks.current.onSettingsChange(next) : undefined} select={() => { setSelectedNode(""); setSelectedEdge(""); }} />}
@@ -1006,14 +1066,24 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
       </div>}
       {multi && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label="Acciones de la selección">
         <strong>{selectedGroup.length} elementos</strong><span className="board-control-divider" />
-        {!isSequence && <CanvasColors label="Color de la selección" value={selectedGroup.every(name => settings.nodeColors?.[name] && settings.nodeColors[name] === settings.nodeColors?.[selectedGroup[0]]) ? settings.nodeColors?.[selectedGroup[0]] : undefined} onChange={colorSelection} />}
-        <span className="node-selection-hint">Arrastrá o usá las flechas para moverlos</span>
+        {!isSequence && <ColorButton label="Color de la selección" value={selectedGroup.every(name => settings.nodeColors?.[name] && settings.nodeColors[name] === settings.nodeColors?.[selectedGroup[0]]) ? settings.nodeColors?.[selectedGroup[0]] : undefined} onChange={colorSelection} />}
+        {!isSequence && <div className="size-stepper" role="group" aria-label="Tamaño de la selección">
+          <button className="icon-btn" title="Achicar" aria-label="Achicar selección" onClick={() => resizeSelection(1 / 1.15)}><Minus size={14} /></button>
+          <button className="size-value" title="Tamaño original" aria-label="Restaurar tamaño original" onClick={() => resizeSelection("reset")}><MoveDiagonal2 size={14} /></button>
+          <button className="icon-btn" title="Agrandar" aria-label="Agrandar selección" onClick={() => resizeSelection(1.15)}><Plus size={14} /></button>
+        </div>}
         <button className="icon-btn board-delete" title="Eliminar selección (Supr)" aria-label="Eliminar elementos seleccionados" onClick={() => { setFormError(""); setDeleteGroup(selectedGroup); }}><Trash2 size={16} /></button>
         <button className="icon-btn" title="Deseleccionar (Esc)" aria-label="Deseleccionar todo" onClick={clearSelection}><X size={15} /></button>
       </div>}
       {!multi && selection && mode === "move" && onSourceChange && !busy && !error && <div className="node-selection" role="toolbar" aria-label={"Acciones de " + selection}>
-        <strong>{selection}</strong><span className="board-control-divider" />
-        {!isSequence && <CanvasColors label={isClass ? "Color de clase" : "Color del elemento"} value={settings.nodeColors && Object.hasOwn(settings.nodeColors, selection) ? settings.nodeColors[selection] : undefined} onChange={color => changeColor("nodeColors", selection, color)} />}
+        <strong title={selection}>{selection}</strong><span className="board-control-divider" />
+        {!isSequence && <ColorButton label={isClass ? "Color de clase" : "Color del elemento"} value={settings.nodeColors && Object.hasOwn(settings.nodeColors, selection) ? settings.nodeColors[selection] : undefined} onChange={color => changeColor("nodeColors", selection, color)} />}
+        {!isSequence && <div className="size-stepper" role="group" aria-label="Tamaño">
+          <button className="icon-btn" title="Achicar" aria-label="Achicar elemento" disabled={scaleOf(selection) <= .4} onClick={() => resizeSelection(1 / 1.15)}><Minus size={14} /></button>
+          <button className="size-value" title="Tamaño original" aria-label="Restaurar tamaño original" onClick={() => resizeSelection("reset")}>{Math.round(scaleOf(selection) * 100)}%</button>
+          <button className="icon-btn" title="Agrandar (o arrastrá la esquina)" aria-label="Agrandar elemento" disabled={scaleOf(selection) >= 4} onClick={() => resizeSelection(1.15)}><Plus size={14} /></button>
+        </div>}
+        <span className="board-control-divider" />
         <button className="icon-btn" title="Editar elemento" aria-label="Editar elemento seleccionado" onClick={() => openClass(selection)}><Pencil size={16} /></button>
         <button className="icon-btn" title="Duplicar elemento" aria-label="Duplicar elemento seleccionado" onClick={() => copyClass(selection)}><Copy size={16} /></button>
         <button className="icon-btn" title="Conectar desde aquí" aria-label="Conectar elemento seleccionado" onClick={() => { activateTool("connect"); setOrigin(selection); }}><Link2 size={16} /></button>
@@ -1053,6 +1123,13 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             if (erased) { const svg = root(); if (svg) renderStrokes(svg, filtered); }
             capturePointer(e);
             return;
+          }
+          const resizing = (e.target as Element).closest("[data-resize-handle]")?.getAttribute("data-resize-handle");
+          if (resizing && onSourceChange && !busy && !error) {
+            e.preventDefault();
+            const at = positions.current[resizing], pt = clientPoint(e.clientX, e.clientY);
+            drag.current = { kind: "resize", name: resizing, x: e.clientX, y: e.clientY, start: at, moved: false, scale: scaleOf(resizing), distance: Math.max(8, Math.hypot(pt.x - at.x, pt.y - at.y)) };
+            capturePointer(e); return;
           }
           const edgeId = (e.target as Element).closest("[data-edge-id]")?.getAttribute("data-edge-id");
           const handle = (e.target as Element).closest("[data-handle]");
@@ -1096,6 +1173,15 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
             } else return;
             const svg = root();
             if (svg) renderStrokes(svg, settingsRef.current.strokes || [], { points: d.points, color: penColor, width: penWidth, tool: penTool });
+            return;
+          }
+          if (d.kind === "resize" && d.name && d.scale && d.distance) {
+            const pt = clientPoint(e.clientX, e.clientY);
+            const next = Math.round(Math.max(.4, Math.min(4, d.scale * Math.hypot(pt.x - d.start.x, pt.y - d.start.y) / d.distance)) * 100) / 100;
+            const scales = { ...settingsRef.current.nodeScales, [d.name]: next };
+            const svg = root();
+            if (svg) { positions.current = applyCanvas(svg, model.current, withLayout({ ...settingsRef.current, nodeScales: scales }), dark); svg.querySelector(".studio-resize-handle")?.remove(); }
+            d.next = { ...settingsRef.current, nodeScales: scales };
             return;
           }
           if (d.kind === "stroke" && d.strokeIndex !== undefined && d.moved) {
@@ -1147,6 +1233,10 @@ export default function DiagramPreview({ diagram, onRendered, onClassClick, onSe
           }
           if (d.kind === "stroke") {
             if (d.moved && d.strokes) commitStrokes(d.strokes);
+            return;
+          }
+          if (d.kind === "resize") {
+            if (d.moved && d.next) callbacks.current.onSettingsChange(d.next);
             return;
           }
           if (d.kind === "erase") {

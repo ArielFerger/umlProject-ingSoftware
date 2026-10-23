@@ -1,5 +1,9 @@
 import { cleanSource, readCanvas, writeCanvas } from "./canvas.ts";
 
+import { routeKeys } from "./edge-routing.ts";
+
+import { remapRelationSettings } from "./relation-actions.ts";
+
 import type { DiagramType } from "./diagrams.ts";
 
 import { DER_KINDS, DER_RELATIONS, derDeclaration, derKindFor, derRatios, isDerRelationship, removeDerRatio, setDerRatio } from "./der.ts";
@@ -234,6 +238,15 @@ export function updateVisualRelation(source: string, type: DiagramType, old: Vis
 
   lines[old.line] = [...declarations, built].join("\n"); return preserve(source, lines.join("\n"));
 
+}
+
+/** Swaps the ends of a connection, keeping its kind, label, route and color. */
+export function invertVisualRelation(source: string, type: DiagramType, edge: VisualRelation) {
+  const before = visualRelations(source, type), index = before.findIndex(r => r.line === edge.line);
+  const kind = edge.kind.includes("include") ? "include" : edge.kind.includes("extend") ? "extend" : edge.kind;
+  const changed = updateVisualRelation(source, type, edge, { ...edge, kind, from: edge.to, to: edge.from });
+  const after = visualRelations(changed, type);
+  return { source: writeCanvas(cleanSource(changed), remapRelationSettings(readCanvas(source), before, after, index)), routeKey: routeKeys(after)[index] };
 }
 
 export function removeVisualRelation(source: string, type: DiagramType, edge: VisualRelation) {

@@ -115,6 +115,13 @@ export function routeEdge(a: RectNode, b: RectNode, route: EdgeRoute, startGap =
 }
 
 export function relationRouteKey(from: string, to: string, occurrence: number) { return JSON.stringify([from, to, occurrence]); }
+/** Route keys in source order: the nth relation between the same pair gets occurrence n. */
+export function routeKeys(relations: { from: string; to: string }[]) {
+  const counts = new Map<string, number>();
+  return relations.map(r => { const pair = JSON.stringify([r.from, r.to]); const n = counts.get(pair) || 0; counts.set(pair, n + 1); return relationRouteKey(r.from, r.to, n); });
+}
+/** The same drawn path, walked from the other end. */
+export function reverseRoute(route: EdgeRoute): EdgeRoute { return { ...route, from: route.to, to: route.from, points: [...route.points].reverse() }; }
 
 export function polylineMidpoint(points: Point[]): Point {
   if (!points.length) return { x: 0, y: 0 };

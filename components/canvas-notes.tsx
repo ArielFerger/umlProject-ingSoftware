@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Bold, Copy, StickyNote, Trash2, Type, X } from "lucide-react";
+import { Bold, Copy, Pencil, StickyNote, Trash2, Type, X } from "lucide-react";
+import ColorButton from "./color-button";
 import type { CanvasSettings, Point } from "@/lib/canvas";
 import { MAX_NOTES, NOTE_SIZES, STICKY_COLORS, TEXT_COLORS, newNote, type CanvasNote } from "@/lib/notes";
 import { noteBox, renderNotes } from "@/lib/svg-notes";
@@ -27,7 +28,11 @@ export default function CanvasNotes(props: Props) {
   const state = useRef({ selected, editing });
   useLayoutEffect(() => { latest.current = props; state.current = { selected, editing }; });
   const drag = useRef<Drag | null>(null);
+  // Selecting a note redraws it, so the browser never sees two clicks on the same
+  // element and fires no dblclick; double clicks (and double taps) are detected here.
+  const lastTap = useRef<{ id: string; time: number; x: number; y: number }>({ id: "", time: 0, x: 0, y: 0 });
   const created = useRef("");
+  const fadeIn = useRef("");
   const editor = useRef<HTMLTextAreaElement>(null);
   const editable = !!props.commit;
   const notes = props.settings.notes || {};
@@ -50,6 +55,8 @@ export default function CanvasNotes(props: Props) {
   function finishEditing(keep = true) {
     const id = state.current.editing, target = latest.current.settings.notes?.[id];
     setEditing("");
+    // Board shortcuts (P, T, V…) need the focus back on the canvas.
+    requestAnimationFrame(() => { if (document.activeElement === document.body || !document.activeElement) latest.current.viewport()?.focus({ preventScroll: true }); });
     if (!target) return;
     const text = keep ? draft.slice(0, 1000) : target.text;
     // A new text with nothing typed is discarded; sticky notes may stay empty.
@@ -58,7 +65,15 @@ export default function CanvasNotes(props: Props) {
     created.current = "";
   }
 
-  useEffect(() => { draw(); });
+  useEffect(() => {
+    draw();
+    // A note that was just placed fades in once.
+    const id = fadeIn.current, svg = latest.current.root();
+    if (id && !editing && svg) {
+      const group = svg.querySelector(`[data-note-id="${CSS.escape(id)}"]`);
+      if (group) { fadeIn.current = ""; if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: "cubic-bezier(.16,1,.3,1)" }); }
+    }
+  });
   useEffect(() => { if (editing) requestAnimationFrame(() => { editor.current?.focus(); editor.current?.select(); }); }, [editing]);
 
   useEffect(() => {
@@ -71,13 +86,16 @@ export default function CanvasNotes(props: Props) {
         if (Object.keys(p.settings.notes || {}).length >= MAX_NOTES) { setMessage(`Podés agregar hasta ${MAX_NOTES} textos y notas por tablero.`); p.onPlaced(); return; }
         const id = crypto.randomUUID(), at = p.point(event.clientX, event.clientY), value = newNote(p.placing, at.x, at.y);
         p.commit({ ...p.settings, notes: { ...p.settings.notes, [id]: value } });
-        created.current = id; p.onSelect(); p.onPlaced(); setMessage("");
+        created.current = id; fadeIn.current = id; p.onSelect(); p.onPlaced(); setMessage("");
         setSelected(id); setEditing(id); setDraft("");
         return;
       }
       const id = target.closest("[data-note-id]")?.getAttribute("data-note-id");
       if (!id || !p.active) { if (!target.closest("[data-note-id]")) setSelected(""); return; }
       event.preventDefault(); event.stopPropagation();
+      const now = performance.now(), tap = lastTap.current;
+      if (tap.id === id && now - tap.time < 450 && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) < 8) { lastTap.current = { id: "", time: 0, x: 0, y: 0 }; startEditing(id); return; }
+      lastTap.current = { id, time: now, x: event.clientX, y: event.clientY };
       p.onSelect(); setSelected(id);
       const handle = target.closest("[data-note-handle]") ? "width" : "move";
       drag.current = { id, handle, start: p.point(event.clientX, event.clientY), base: p.settings.notes![id], pointer: event.pointerId };
@@ -149,9 +167,8 @@ export default function CanvasNotes(props: Props) {
       onKeyDown={e => { e.stopPropagation(); if (e.key === "Escape") { e.preventDefault(); if (created.current === editing && !draft.trim()) finishEditing(); else finishEditing(false); } if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); finishEditing(); } }} />}
     {note && !editing && props.active && <div className="node-selection note-panel" role="toolbar" aria-label={note.kind === "sticky" ? "Opciones de la nota adhesiva" : "Opciones del texto"} onPointerDown={e => e.stopPropagation()}>
       <strong>{note.kind === "sticky" ? <><StickyNote size={15} />Nota</> : <><Type size={15} />Texto</>}</strong><span className="board-control-divider" />
-      <div className="note-swatches" role="group" aria-label="Color">{palette.map(([name, value]) => <button key={value} type="button" className="canvas-swatch" style={{ background: value }} title={name} aria-label={`Color ${name}`} aria-pressed={note.color === value} onClick={() => save(selected, { ...note, color: value })} />)}
-        <label className="canvas-custom-color" title="Color personalizado"><input type="color" aria-label="Color personalizado" value={note.color} onChange={e => save(selected, { ...note, color: e.target.value })} /></label></div>
-      <span className="board-control-divider" />
+      <button type="button" className="icon-btn" title="Editar texto (doble clic o Enter)" aria-label="Editar texto" onClick={() => startEditing(selected)}><Pencil size={15} /></button>
+      <ColorButton label={note.kind === "sticky" ? "Color de la nota" : "Color del texto"} value={note.color} colors={palette} allowReset={false} onChange={color => color && save(selected, { ...note, color })} />
       <div className="segmented note-sizes" role="group" aria-label="Tamaño del texto">{NOTE_SIZES.map(size => <button key={size.value} type="button" className={note.size === size.value ? "active" : ""} aria-pressed={note.size === size.value} onClick={() => save(selected, { ...note, size: size.value })}>{size.label}</button>)}</div>
       <button type="button" className={"icon-btn" + (note.bold ? " active" : "")} title="Negrita" aria-label="Negrita" aria-pressed={note.bold} onClick={() => save(selected, { ...note, bold: !note.bold })}><Bold size={15} /></button>
       <button type="button" className="icon-btn" title={note.kind === "sticky" ? "Convertir en texto" : "Convertir en nota adhesiva"} aria-label={note.kind === "sticky" ? "Convertir en texto" : "Convertir en nota adhesiva"} onClick={() => save(selected, note.kind === "sticky" ? { ...note, kind: "text", color: TEXT_COLORS[0][1] } : { ...note, kind: "sticky", color: STICKY_COLORS[0][1], width: Math.max(160, note.width) })}>{note.kind === "sticky" ? <Type size={15} /> : <StickyNote size={15} />}</button>

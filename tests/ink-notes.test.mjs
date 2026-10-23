@@ -51,3 +51,29 @@ test("notes and ink round-trip through canvas metadata and merge between editors
   assert.equal(readCanvas(ink).strokes[0].points[0].p, .4);
   assert.equal(readCanvas(ink).strokes[0].tool, "pen");
 });
+
+test("inverting a relation keeps its multiplicities, route and color with the swapped key", async () => {
+  const { invertRelation, sourceRelations } = await import("../lib/relation-actions.ts");
+  const base = writeCanvas('classDiagram\nCliente "1" --> "0..*" Pedido : realiza\nCliente --> Pedido', { positions: {}, routes: { [JSON.stringify(["Cliente", "Pedido", 0])]: { shape: "orthogonal", points: [{ x: 1, y: 1 }, { x: 9, y: 9 }], from: { side: "right", offset: .5 } } }, edgeColors: { [JSON.stringify(["Cliente", "Pedido", 1])]: "#dc2626" }, lineWidth: 2, arrowScale: 1.4, labelSize: 14 });
+  const first = sourceRelations(base)[0];
+  const { source, routeKey } = invertRelation(base, first);
+  assert.ok(source.includes('Pedido "0..*" --> "1" Cliente : realiza'));
+  assert.equal(routeKey, JSON.stringify(["Pedido", "Cliente", 0]));
+  const settings = readCanvas(source);
+  assert.deepEqual(settings.routes[routeKey].points, [{ x: 9, y: 9 }, { x: 1, y: 1 }]);
+  assert.equal(settings.routes[routeKey].to.side, "right");
+  // The other relation between the pair keeps its color under its new occurrence number.
+  assert.equal(settings.edgeColors[JSON.stringify(["Cliente", "Pedido", 0])], "#dc2626");
+});
+
+test("element sizes are stored, validated and merged per element", () => {
+  const base = { id: "d", name: "D", type: "class", project: "P", theme: "studio", notes: "", revision: 1, updatedAt: "", source: writeCanvas("classDiagram\nclass A\nclass B", { positions: {}, routes: {}, lineWidth: 2, arrowScale: 1.4, labelSize: 14 }) };
+  const scaled = (source, scales) => writeCanvas(source, { ...readCanvas(source), nodeScales: scales });
+  assert.equal(readCanvas(scaled(base.source, { A: 1.5 })).nodeScales.A, 1.5);
+  const withScale = value => "classDiagram\nclass A\n%% uml-studio: " + JSON.stringify({ positions: {}, routes: {}, nodeScales: { A: value } });
+  assert.equal(readCanvas(withScale(2)).nodeScales.A, 2, "a valid size is read back");
+  assert.deepEqual(readCanvas(withScale(9)).positions, {}, "an out-of-range size makes the metadata fall back to defaults");
+  assert.equal(readCanvas(withScale(9)).nodeScales, undefined);
+  const merged = mergeSharedDiagram(base, { ...base, source: scaled(base.source, { A: 1.5 }) }, { ...base, revision: 2, source: scaled(base.source, { B: .8 }) });
+  assert.deepEqual(readCanvas(merged.source).nodeScales, { A: 1.5, B: .8 });
+});
