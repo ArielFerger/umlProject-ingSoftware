@@ -25,6 +25,8 @@ export type CanvasStroke = z.infer<typeof strokeSettings>;
 export const canvasSettings = z.object({
   positions: z.record(point).default({}),
   nodeColors: z.record(z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
+  // Per-element size factor; 1 is the size Mermaid lays out.
+  nodeScales: z.record(z.number().min(.4).max(4)).optional(),
   edgeColors: z.record(z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
   lineWidth: z.number().min(1).max(6).default(2),
   arrowScale: z.number().min(1).max(3).default(1.4),
@@ -46,7 +48,7 @@ export function readCanvas(source: string): CanvasSettings {
     const parsed = canvasSettings.safeParse(JSON.parse(line.trimStart().slice(PREFIX.length)));
     if (!parsed.success) return { ...DEFAULT_CANVAS, positions: {} };
     if (!parsed.data.strokes?.length) delete parsed.data.strokes;
-    for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks", "notes"] as const) if (!Object.keys(parsed.data[key] || {}).length) delete parsed.data[key];
+    for (const key of ["nodeColors", "nodeScales", "edgeColors", "frames", "frameLinks", "notes"] as const) if (!Object.keys(parsed.data[key] || {}).length) delete parsed.data[key];
     return parsed.data;
   } catch { return { ...DEFAULT_CANVAS, positions: {} }; }
 }
@@ -56,7 +58,7 @@ export function cleanSource(source: string) {
 export function writeCanvas(source: string, settings: CanvasSettings) {
   const parsed = canvasSettings.parse(settings);
   if (!parsed.strokes?.length) delete parsed.strokes;
-  for (const key of ["nodeColors", "edgeColors", "frames", "frameLinks", "notes"] as const) if (!Object.keys(parsed[key] || {}).length) delete parsed[key];
+  for (const key of ["nodeColors", "nodeScales", "edgeColors", "frames", "frameLinks", "notes"] as const) if (!Object.keys(parsed[key] || {}).length) delete parsed[key];
   return cleanSource(source) + "\n" + PREFIX + JSON.stringify(parsed) + "\n";
 }
 

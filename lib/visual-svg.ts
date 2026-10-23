@@ -189,9 +189,9 @@ export function measureVisualNodes(root: SVGSVGElement, data: RenderNode[], sour
 
     group.setAttribute("data-class", name); group.setAttribute("data-visual", type);
 
-    if (der) { group.setAttribute("data-der-shape", der.shape); return [{ name, domId: group.id, x: center.x, y: center.y, width: der.width, height: der.height, transform: original, shape: der.shape }]; }
+    if (der) { group.setAttribute("data-der-shape", der.shape); return [{ name, domId: group.id, x: center.x, y: center.y, width: der.width, height: der.height, transform: original, shape: der.shape, cx: der.cx, cy: der.cy }]; }
 
-    return [{ name, domId: group.id, x: center.x, y: center.y, width: isActor ? 44 : box.width, height: isActor ? 84 : box.height, transform: original }];
+    return [{ name, domId: group.id, x: center.x, y: center.y, width: isActor ? 44 : box.width, height: isActor ? 84 : box.height, transform: original, cx: isActor ? 0 : box.x + box.width / 2, cy: isActor ? 0 : box.y + box.height / 2 }];
 
   });
 

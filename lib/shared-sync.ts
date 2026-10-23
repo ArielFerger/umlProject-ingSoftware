@@ -59,6 +59,9 @@ export function mergeSharedDiagram(base: Diagram, local: Diagram, remote: Diagra
     if (!colors) return null;
     merged[key] = colors;
   }
+  const scales = record(b.nodeScales || {}, l.nodeScales || {}, r.nodeScales || {});
+  if (!scales) return null;
+  merged.nodeScales = scales;
   const frames = record(b.frames || {}, l.frames || {}, r.frames || {});
   const frameLinks = record(b.frameLinks || {}, l.frameLinks || {}, r.frameLinks || {});
   if (!frames || !frameLinks) return null;
